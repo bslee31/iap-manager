@@ -21,6 +21,7 @@ const selected = ref<Set<string>>(new Set())
 const loading = ref(false)
 const syncing = ref(false)
 const showCreateForm = ref(false)
+const searchQuery = ref('')
 const syncProgress = ref('')
 
 let cleanupProgress: (() => void) | null = null
@@ -59,8 +60,17 @@ const statusGroups = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  if (!activeFilter.value) return products.value
-  return products.value.filter((p) => p.status === activeFilter.value)
+  let result = products.value
+  if (activeFilter.value) {
+    result = result.filter((p) => p.status === activeFilter.value)
+  }
+  if (searchQuery.value.trim()) {
+    const q = searchQuery.value.trim().toLowerCase()
+    result = result.filter(
+      (p) => p.productId.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)
+    )
+  }
+  return result
 })
 
 function setFilter(status: string | null) {
@@ -212,9 +222,17 @@ function statusColor(status: string): string {
           + 新增商品
         </button>
       </div>
-      <span v-if="products.length > 0" class="text-sm text-gray-500">
-        共 {{ products.length }} 個商品
-      </span>
+      <div class="flex items-center gap-3">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 w-52"
+          placeholder="搜尋 Product ID / Name..."
+        />
+        <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
+          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
+        </span>
+      </div>
     </div>
 
     <!-- Status filter chips -->
