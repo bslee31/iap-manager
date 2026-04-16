@@ -13,8 +13,8 @@ const router = useRouter()
 const activeTab = ref<'apple' | 'google' | 'credentials'>('apple')
 
 const tabs = [
-  { key: 'apple' as const, label: 'Apple IAP' },
-  { key: 'google' as const, label: 'Google 商品' },
+  { key: 'apple' as const, label: 'Apple In-App Purchases' },
+  { key: 'google' as const, label: 'Google One-time products' },
   { key: 'credentials' as const, label: '憑證設定' }
 ]
 
