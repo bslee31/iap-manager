@@ -678,32 +678,20 @@ const LOCALES = [
               <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden h-full flex flex-col">
                 <!-- Fixed header -->
                 <div class="shrink-0 pr-[6px]">
-                <table class="w-full table-fixed">
-                  <colgroup>
-                    <col class="w-[48%]" />
-                    <col class="w-[22%]" />
-                    <col class="w-[22%]" />
-                    <col class="w-8" />
-                  </colgroup>
+                <table class="w-full">
                   <thead>
                     <tr class="border-b border-[#393b40]">
                       <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">Country or Region</th>
-                      <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Price</th>
-                      <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Proceeds</th>
-                      <th></th>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-[20%]">Price</th>
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-[20%]">Proceeds</th>
+                      <th class="w-5"></th>
                     </tr>
                   </thead>
                 </table>
                 </div>
                 <!-- Scrollable body -->
                 <div class="flex-1 min-h-0 overflow-y-auto">
-                  <table class="w-full table-fixed">
-                    <colgroup>
-                      <col class="w-[48%]" />
-                      <col class="w-[22%]" />
-                      <col class="w-[22%]" />
-                      <col class="w-8" />
-                    </colgroup>
+                  <table class="w-full">
                     <tbody>
                       <tr
                         v-for="tp in filteredPrices"
@@ -712,9 +700,9 @@ const LOCALES = [
                         :class="tp.territory === allPricesData?.baseTerritory ? 'bg-blue-600/10' : tp.isManual ? 'bg-yellow-600/10' : ''"
                       >
                         <td class="px-3 py-1.5 text-sm text-gray-300">{{ territoryName(tp.territory) }} ({{ tp.currency }})</td>
-                        <td class="px-3 py-1.5 text-sm text-gray-200 font-mono text-right">{{ tp.customerPrice }}</td>
-                        <td class="px-3 py-1.5 text-sm text-gray-400 font-mono text-right">{{ tp.proceeds }}</td>
-                        <td class="px-3 py-1.5 text-center">
+                        <td class="px-3 py-1.5 text-sm text-gray-200 font-mono w-[20%]">{{ tp.customerPrice }}</td>
+                        <td class="px-3 py-1.5 text-sm text-gray-400 font-mono w-[20%]">{{ tp.proceeds }}</td>
+                        <td class="py-1.5 w-5 text-center">
                           <button
                             v-if="tp.territory !== allPricesData?.baseTerritory"
                             @click="openEditTerritoryPrice(tp)"
@@ -732,11 +720,14 @@ const LOCALES = [
             </div>
 
             <!-- Edit territory price modal -->
-            <div v-if="editingTerrPrice" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div v-if="editingTerrPrice" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="editingTerrPrice = null">
               <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-                <h4 class="text-base font-semibold mb-4 text-gray-100">
-                  修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{ editingTerrPrice.currency }})
-                </h4>
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-base font-semibold text-gray-100">
+                    修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{ editingTerrPrice.currency }})
+                  </h4>
+                  <button @click="editingTerrPrice = null" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+                </div>
                 <div v-if="editTerrPriceLoading" class="text-center py-6 text-gray-500">載入價格選項中...</div>
                 <template v-else>
                   <div class="mb-4">
@@ -800,11 +791,14 @@ const LOCALES = [
             <p v-else class="text-sm text-gray-500 text-center py-6">尚未新增任何本地化資料</p>
 
             <!-- Edit/Create form modal -->
-            <div v-if="editingLoc" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div v-if="editingLoc" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="editingLoc = null">
               <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-                <h4 class="text-base font-semibold mb-4 text-gray-100">
-                  {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
-                </h4>
+                <div class="flex items-center justify-between mb-4">
+                  <h4 class="text-base font-semibold text-gray-100">
+                    {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
+                  </h4>
+                  <button @click="editingLoc = null" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+                </div>
                 <div class="space-y-3">
                   <div>
                     <label class="block text-sm text-gray-400 mb-1">Locale</label>
