@@ -282,9 +282,12 @@ function statusColor(status: string): string {
     </div>
 
     <!-- Create Form Modal -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
+    <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="showCreateForm = false">
       <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-        <h3 class="text-lg font-semibold mb-4 text-gray-100">新增 Google 商品</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-100">新增 Google 商品</h3>
+          <button @click="showCreateForm = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+        </div>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Product ID</label>
