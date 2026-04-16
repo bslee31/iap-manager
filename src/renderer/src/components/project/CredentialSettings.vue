@@ -133,7 +133,7 @@ async function testGoogle() {
 </script>
 
 <template>
-  <div class="space-y-8 max-w-2xl">
+  <div class="space-y-8">
     <!-- Apple Section -->
     <section class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-6">
       <h3 class="text-lg font-semibold text-gray-100 mb-4">Apple App Store Connect</h3>
