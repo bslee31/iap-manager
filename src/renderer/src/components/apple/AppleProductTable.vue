@@ -126,6 +126,19 @@ async function syncProducts() {
   }
 }
 
+function onAvailabilityUpdated(count: number) {
+  if (selectedProduct.value) {
+    selectedProduct.value.territoryCount = count
+  }
+}
+
+function onPriceUpdated(price: string, currency: string) {
+  if (selectedProduct.value) {
+    selectedProduct.value.basePrice = price
+    selectedProduct.value.baseCurrency = currency
+  }
+}
+
 async function syncSingleAvailability(product: AppleProduct) {
   syncingItem.value = product.id
   const result = await window.api.syncAppleAvailability(props.projectId, product.id)
@@ -527,7 +540,8 @@ function typeLabel(type: string): string {
       :project-id="props.projectId"
       :product="selectedProduct"
       @close="selectedProduct = null"
-      @updated="syncProducts"
+      @update-availability="onAvailabilityUpdated"
+      @update-price="onPriceUpdated"
     />
   </div>
 </template>

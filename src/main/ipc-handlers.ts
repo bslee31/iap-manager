@@ -198,20 +198,18 @@ export function registerIpcHandlers(): void {
       const now = new Date().toISOString()
       const upsert = db.prepare(
         `INSERT INTO apple_products (id, project_id, product_id, reference_name, product_type, state, available, territory_count, sort_order, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         VALUES (?, ?, ?, ?, ?, ?, 0, 0, ?, ?)
          ON CONFLICT(id) DO UPDATE SET
            product_id = excluded.product_id,
            reference_name = excluded.reference_name,
            product_type = excluded.product_type,
            state = excluded.state,
-           available = excluded.available,
-           territory_count = excluded.territory_count,
            sort_order = excluded.sort_order,
            synced_at = excluded.synced_at`
       )
       const tx = db.transaction(() => {
         let idx = 0
-        for (const { iap, territoryCount } of results) {
+        for (const { iap } of results) {
           upsert.run(
             iap.id,
             projectId,
@@ -219,8 +217,6 @@ export function registerIpcHandlers(): void {
             iap.attributes.referenceName || iap.attributes.name,
             iap.attributes.inAppPurchaseType,
             iap.attributes.state,
-            territoryCount > 0 ? 1 : 0,
-            territoryCount,
             idx++,
             now
           )
@@ -228,25 +224,24 @@ export function registerIpcHandlers(): void {
       })
       tx()
 
-      // Read back cached base prices
-      const db2 = getDatabase()
-      const priceMap = new Map<string, { base_price: string; base_currency: string }>()
-      const cachedRows = db2.prepare('SELECT id, base_price, base_currency FROM apple_products WHERE project_id = ?').all(projectId) as any[]
+      // Read back cached data (territory_count, base_price, base_currency)
+      const cachedRows = db.prepare('SELECT id, territory_count, base_price, base_currency FROM apple_products WHERE project_id = ?').all(projectId) as any[]
+      const cacheMap = new Map<string, any>()
       for (const r of cachedRows) {
-        if (r.base_price) priceMap.set(r.id, { base_price: r.base_price, base_currency: r.base_currency })
+        cacheMap.set(r.id, r)
       }
 
       return {
         success: true,
-        data: results.map(({ iap, territoryCount }) => {
-          const cached = priceMap.get(iap.id)
+        data: results.map(({ iap }) => {
+          const cached = cacheMap.get(iap.id)
           return {
             id: iap.id,
             productId: iap.attributes.productId,
             referenceName: iap.attributes.referenceName || iap.attributes.name,
             type: iap.attributes.inAppPurchaseType,
             state: iap.attributes.state,
-            territoryCount,
+            territoryCount: cached?.territory_count ?? 0,
             basePrice: cached?.base_price || '',
             baseCurrency: cached?.base_currency || '',
             syncedAt: now
@@ -352,6 +347,11 @@ export function registerIpcHandlers(): void {
     async (_event, projectId: string, iapId: string, territoryIds: string[], availableInNewTerritories: boolean) => {
       try {
         await updateIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
+        // Update DB
+        const db = getDatabase()
+        db.prepare(
+          'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
+        ).run(territoryIds.length, territoryIds.length > 0 ? 1 : 0, iapId)
         return { success: true }
       } catch (e: any) {
         return { success: false, error: e.message }

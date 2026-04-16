@@ -16,7 +16,7 @@ const props = defineProps<{
   }
 }>()
 
-const emit = defineEmits<{ close: []; updated: [] }>()
+const emit = defineEmits<{ close: []; 'update-availability': [count: number]; 'update-price': [price: string, currency: string] }>()
 const notify = useNotificationStore()
 
 // Tabs
@@ -114,7 +114,7 @@ async function saveAvailability() {
   availSaving.value = false
   if (result.success) {
     notify.success('Availability 已更新')
-    emit('updated')
+    emit('update-availability', selectedTerritories.value.size)
   } else {
     notify.error(result.error || '更新失敗')
   }
@@ -393,6 +393,9 @@ async function savePriceSchedule() {
   if (result.success) {
     notify.success('價格已更新')
     await Promise.all([loadPriceSchedule(), loadAllTerritoryPrices()])
+    if (allPricesData.value) {
+      emit('update-price', allPricesData.value.basePrice, allPricesData.value.baseCurrency)
+    }
   } else {
     notify.error(result.error || '更新失敗')
   }

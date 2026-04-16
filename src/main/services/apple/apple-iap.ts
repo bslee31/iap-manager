@@ -64,7 +64,7 @@ export interface IapWithAvailability {
 
 export type ProgressCallback = (current: number, total: number, phase: string) => void
 
-// Fetch all IAPs for an app, then fetch availability per product
+// Fetch all IAPs for an app (without availability — use batch sync separately)
 export async function listInAppPurchases(
   projectId: string,
   onProgress?: ProgressCallback
@@ -72,7 +72,6 @@ export async function listInAppPurchases(
   const creds = loadCredentials(projectId)
   if (!creds.apple?.appId) throw new Error('未設定 App ID')
 
-  // Step 1: Fetch all IAPs
   onProgress?.(0, 0, '取得商品列表...')
   const allIaps: AppleInAppPurchase[] = []
   let url: string | null = `/v1/apps/${creds.apple.appId}/inAppPurchasesV2?limit=200`
@@ -87,52 +86,7 @@ export async function listInAppPurchases(
     url = resp.links?.next || null
   }
 
-  // Step 2: Fetch availability for all IAPs in parallel (concurrency limited)
-  const CONCURRENCY = 5
-  const BATCH_DELAY = 1000 // 1 second between batches
-  const MAX_RETRIES = 2
-
-  async function fetchAvailability(iap: AppleInAppPurchase): Promise<IapWithAvailability> {
-    let territoryCount = 0
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const availResp = await appleRequest(
-          projectId,
-          `/v2/inAppPurchases/${iap.id}/inAppPurchaseAvailability`
-        )
-        if (availResp.data?.id) {
-          const terrResp = await appleRequest(
-            projectId,
-            `/v1/inAppPurchaseAvailabilities/${availResp.data.id}/availableTerritories?limit=200`
-          )
-          territoryCount = terrResp.data?.length ?? 0
-        }
-        break // success
-      } catch (e: any) {
-        if (attempt < MAX_RETRIES && (e.message?.includes('429') || e.message?.includes('rate'))) {
-          // Rate limited — wait and retry
-          await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)))
-        }
-        // Last attempt or non-rate-limit error: leave as 0
-      }
-    }
-    return { iap, territoryCount }
-  }
-
-  const delay = (ms: number) => new Promise((r) => setTimeout(r, ms))
-
-  // Process in batches of CONCURRENCY with delay between batches
-  const total = allIaps.length
-  const results: IapWithAvailability[] = []
-  for (let i = 0; i < allIaps.length; i += CONCURRENCY) {
-    if (i > 0) await delay(BATCH_DELAY)
-    const batch = allIaps.slice(i, i + CONCURRENCY)
-    const batchResults = await Promise.all(batch.map(fetchAvailability))
-    results.push(...batchResults)
-    onProgress?.(results.length, total, `查詢 Availability... ${results.length}/${total}`)
-  }
-
-  return results
+  return allIaps.map((iap) => ({ iap, territoryCount: -1 }))
 }
 
 export async function getInAppPurchase(
