@@ -14,6 +14,8 @@ interface AppleProduct {
   type: string
   state: string
   territoryCount: number
+  basePrice: string
+  baseCurrency: string
   syncedAt: string
 }
 
@@ -26,6 +28,7 @@ const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
 const syncProgress = ref('')
 const syncingItem = ref<string | null>(null)
+const syncingPrice = ref<string | null>(null)
 const selectedProduct = ref<AppleProduct | null>(null)
 
 // Listen for sync progress from main process
@@ -91,6 +94,8 @@ const allSelected = computed(() => {
 })
 
 const batchActions = [
+  { key: 'sync-price', label: '重整 Price' },
+  { key: 'sync-availability', label: '重整 Availability' },
   { key: 'activate', label: '批次上架' },
   { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
 ]
@@ -133,6 +138,18 @@ async function syncSingleAvailability(product: AppleProduct) {
   }
 }
 
+async function syncSinglePrice(product: AppleProduct) {
+  syncingPrice.value = product.id
+  const result = await window.api.syncAppleBasePrice(props.projectId, product.id)
+  syncingPrice.value = null
+  if (result.success) {
+    product.basePrice = result.data.basePrice
+    product.baseCurrency = result.data.baseCurrency
+  } else {
+    notify.error(result.error || '同步失敗')
+  }
+}
+
 function toggleAll() {
   if (allSelected.value) {
     selected.value.clear()
@@ -159,6 +176,47 @@ function toggleItem(id: string) {
 async function handleBatchAction(key: string) {
   const ids = Array.from(selected.value)
   if (ids.length === 0) return
+
+  if (key === 'sync-price') {
+    syncing.value = true
+    let success = 0
+    const total = ids.length
+    for (const id of ids) {
+      const product = products.value.find((p) => p.id === id)
+      if (!product) continue
+      syncProgress.value = `重整 Price... ${success + 1}/${total}`
+      const result = await window.api.syncAppleBasePrice(props.projectId, id)
+      if (result.success) {
+        product.basePrice = result.data.basePrice
+        product.baseCurrency = result.data.baseCurrency
+        success++
+      }
+    }
+    syncing.value = false
+    syncProgress.value = ''
+    notify.success(`已重整 ${success} 個商品的價格`)
+    return
+  }
+
+  if (key === 'sync-availability') {
+    syncing.value = true
+    let success = 0
+    const total = ids.length
+    for (const id of ids) {
+      const product = products.value.find((p) => p.id === id)
+      if (!product) continue
+      syncProgress.value = `重整 Availability... ${success + 1}/${total}`
+      const result = await window.api.syncAppleAvailability(props.projectId, id)
+      if (result.success) {
+        product.territoryCount = result.data.territoryCount
+        success++
+      }
+    }
+    syncing.value = false
+    syncProgress.value = ''
+    notify.success(`已重整 ${success} 個商品的 Availability`)
+    return
+  }
 
   if (key === 'activate' || key === 'deactivate') {
     const available = key === 'activate'
@@ -355,6 +413,7 @@ function typeLabel(type: string): string {
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product ID</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Reference Name</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
+            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Availability</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
           </tr>
@@ -381,6 +440,24 @@ function typeLabel(type: string): string {
               <span class="text-xs px-2 py-0.5 rounded-full bg-[#393b40] text-gray-400">
                 {{ typeLabel(product.type) }}
               </span>
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-mono text-gray-300">
+                  {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
+                </span>
+                <button
+                  @click.stop="syncSinglePrice(product)"
+                  :disabled="syncingPrice === product.id"
+                  class="p-0.5 text-gray-500 hover:text-blue-400 transition-colors disabled:opacity-50"
+                  title="同步價格"
+                >
+                  <span
+                    class="inline-block text-xs leading-none"
+                    :class="{ 'animate-spin': syncingPrice === product.id }"
+                  >&#8635;</span>
+                </button>
+              </div>
             </td>
             <td class="px-3 py-3">
               <div class="flex items-center gap-1.5">

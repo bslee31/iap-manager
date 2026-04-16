@@ -61,6 +61,8 @@ const api = {
     ipcRenderer.invoke('apple:get-primary-locale', projectId),
   setAppleManualTerritoryPrice: (projectId: string, iapId: string, territory: string, pricePointId: string) =>
     ipcRenderer.invoke('apple:set-manual-territory-price', projectId, iapId, territory, pricePointId),
+  syncAppleBasePrice: (projectId: string, iapId: string) =>
+    ipcRenderer.invoke('apple:sync-base-price', projectId, iapId),
   getAppleAllTerritoryPrices: (projectId: string, iapId: string) =>
     ipcRenderer.invoke('apple:get-all-territory-prices', projectId, iapId),
 

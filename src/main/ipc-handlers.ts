@@ -197,8 +197,17 @@ export function registerIpcHandlers(): void {
       const db = getDatabase()
       const now = new Date().toISOString()
       const upsert = db.prepare(
-        `INSERT OR REPLACE INTO apple_products (id, project_id, product_id, reference_name, product_type, state, available, territory_count, sort_order, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO apple_products (id, project_id, product_id, reference_name, product_type, state, available, territory_count, sort_order, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT(id) DO UPDATE SET
+           product_id = excluded.product_id,
+           reference_name = excluded.reference_name,
+           product_type = excluded.product_type,
+           state = excluded.state,
+           available = excluded.available,
+           territory_count = excluded.territory_count,
+           sort_order = excluded.sort_order,
+           synced_at = excluded.synced_at`
       )
       const tx = db.transaction(() => {
         let idx = 0
@@ -219,17 +228,30 @@ export function registerIpcHandlers(): void {
       })
       tx()
 
+      // Read back cached base prices
+      const db2 = getDatabase()
+      const priceMap = new Map<string, { base_price: string; base_currency: string }>()
+      const cachedRows = db2.prepare('SELECT id, base_price, base_currency FROM apple_products WHERE project_id = ?').all(projectId) as any[]
+      for (const r of cachedRows) {
+        if (r.base_price) priceMap.set(r.id, { base_price: r.base_price, base_currency: r.base_currency })
+      }
+
       return {
         success: true,
-        data: results.map(({ iap, territoryCount }) => ({
-          id: iap.id,
-          productId: iap.attributes.productId,
-          referenceName: iap.attributes.referenceName || iap.attributes.name,
-          type: iap.attributes.inAppPurchaseType,
-          state: iap.attributes.state,
-          territoryCount,
-          syncedAt: now
-        }))
+        data: results.map(({ iap, territoryCount }) => {
+          const cached = priceMap.get(iap.id)
+          return {
+            id: iap.id,
+            productId: iap.attributes.productId,
+            referenceName: iap.attributes.referenceName || iap.attributes.name,
+            type: iap.attributes.inAppPurchaseType,
+            state: iap.attributes.state,
+            territoryCount,
+            basePrice: cached?.base_price || '',
+            baseCurrency: cached?.base_currency || '',
+            syncedAt: now
+          }
+        })
       }
     } catch (e: any) {
       return { success: false, error: e.message }
@@ -251,6 +273,8 @@ export function registerIpcHandlers(): void {
           type: r.product_type,
           state: r.state,
           territoryCount: r.territory_count ?? 0,
+          basePrice: r.base_price || '',
+          baseCurrency: r.base_currency || '',
           syncedAt: r.synced_at
         }))
       }
@@ -437,9 +461,29 @@ export function registerIpcHandlers(): void {
     }
   )
 
+  ipcMain.handle('apple:sync-base-price', async (_event, projectId: string, iapId: string) => {
+    try {
+      const data = await getIapAllTerritoryPrices(projectId, iapId)
+      if (data.basePrice) {
+        const db = getDatabase()
+        db.prepare('UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?')
+          .run(data.basePrice, data.baseCurrency, iapId)
+      }
+      return { success: true, data: { basePrice: data.basePrice, baseCurrency: data.baseCurrency } }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
   ipcMain.handle('apple:get-all-territory-prices', async (_event, projectId: string, iapId: string) => {
     try {
       const data = await getIapAllTerritoryPrices(projectId, iapId)
+      // Cache base price to local DB
+      if (data.basePrice) {
+        const db = getDatabase()
+        db.prepare('UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?')
+          .run(data.basePrice, data.baseCurrency, iapId)
+      }
       return { success: true, data }
     } catch (e: any) {
       return { success: false, error: e.message }

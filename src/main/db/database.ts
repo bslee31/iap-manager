@@ -110,6 +110,13 @@ function runMigrations(db: Database.Database): void {
         ALTER TABLE projects ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
         UPDATE projects SET sort_order = rowid;
       `
+    },
+    {
+      name: '007-apple-base-price',
+      sql: `
+        ALTER TABLE apple_products ADD COLUMN base_price TEXT;
+        ALTER TABLE apple_products ADD COLUMN base_currency TEXT;
+      `
     }
   ]
 
