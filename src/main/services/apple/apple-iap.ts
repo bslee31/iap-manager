@@ -4,7 +4,12 @@ import type {
   AppleInAppPurchase,
   AppleApiListResponse,
   AppleApiResponse,
-  CreateIapPayload
+  CreateIapPayload,
+  AvailabilityDetail,
+  TerritoryInfo,
+  IapLocalization,
+  IapPriceInfo,
+  IapPricePoint
 } from './apple-types'
 
 const API_BASE = 'https://api.appstoreconnect.apple.com'
@@ -297,6 +302,271 @@ export async function batchUpdateAvailability(
   }
 
   return { success, failed }
+}
+
+// ── Availability Detail ──
+
+export async function getIapAvailabilityDetail(
+  projectId: string,
+  iapId: string
+): Promise<AvailabilityDetail> {
+  try {
+    const availResp = await appleRequest(
+      projectId,
+      `/v2/inAppPurchases/${iapId}/inAppPurchaseAvailability`
+    )
+    if (!availResp.data?.id) {
+      return { availableInNewTerritories: false, territoryIds: [] }
+    }
+
+    const availableInNewTerritories = availResp.data.attributes?.availableInNewTerritories ?? false
+
+    // Paginate territories
+    const territoryIds: string[] = []
+    let url: string | null =
+      `/v1/inAppPurchaseAvailabilities/${availResp.data.id}/availableTerritories?limit=200`
+    while (url) {
+      const terrResp = await appleRequest(projectId, url)
+      for (const t of terrResp.data || []) {
+        territoryIds.push(t.id)
+      }
+      url = terrResp.links?.next || null
+    }
+
+    return { availableInNewTerritories, territoryIds }
+  } catch {
+    return { availableInNewTerritories: false, territoryIds: [] }
+  }
+}
+
+export async function updateIapAvailability(
+  projectId: string,
+  iapId: string,
+  territoryIds: string[],
+  availableInNewTerritories: boolean
+): Promise<void> {
+  await setIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
+}
+
+export async function getAllTerritories(
+  projectId: string
+): Promise<TerritoryInfo[]> {
+  const territories: TerritoryInfo[] = []
+  let url: string | null = '/v1/territories?limit=200'
+  while (url) {
+    const resp = await appleRequest(projectId, url)
+    for (const t of resp.data) {
+      territories.push({ id: t.id, currency: t.attributes?.currency || '' })
+    }
+    url = resp.links?.next || null
+  }
+  return territories
+}
+
+// ── Localizations ──
+
+export async function getIapLocalizations(
+  projectId: string,
+  iapId: string
+): Promise<IapLocalization[]> {
+  const localizations: IapLocalization[] = []
+  let url: string | null =
+    `/v2/inAppPurchases/${iapId}/inAppPurchaseLocalizations?limit=200`
+  while (url) {
+    const resp = await appleRequest(projectId, url)
+    for (const loc of resp.data || []) {
+      localizations.push({
+        id: loc.id,
+        locale: loc.attributes.locale,
+        name: loc.attributes.name || '',
+        description: loc.attributes.description || ''
+      })
+    }
+    url = resp.links?.next || null
+  }
+  return localizations
+}
+
+export async function createIapLocalization(
+  projectId: string,
+  iapId: string,
+  data: { locale: string; name: string; description?: string }
+): Promise<IapLocalization> {
+  const resp = await appleRequest(projectId, '/v1/inAppPurchaseLocalizations', {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        type: 'inAppPurchaseLocalizations',
+        attributes: {
+          locale: data.locale,
+          name: data.name,
+          description: data.description || ''
+        },
+        relationships: {
+          inAppPurchase: {
+            data: { type: 'inAppPurchases', id: iapId }
+          }
+        }
+      }
+    })
+  })
+  return {
+    id: resp.data.id,
+    locale: resp.data.attributes.locale,
+    name: resp.data.attributes.name || '',
+    description: resp.data.attributes.description || ''
+  }
+}
+
+export async function updateIapLocalization(
+  projectId: string,
+  localizationId: string,
+  data: { name?: string; description?: string }
+): Promise<IapLocalization> {
+  const resp = await appleRequest(
+    projectId,
+    `/v1/inAppPurchaseLocalizations/${localizationId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: {
+          type: 'inAppPurchaseLocalizations',
+          id: localizationId,
+          attributes: data
+        }
+      })
+    }
+  )
+  return {
+    id: resp.data.id,
+    locale: resp.data.attributes.locale,
+    name: resp.data.attributes.name || '',
+    description: resp.data.attributes.description || ''
+  }
+}
+
+export async function deleteIapLocalization(
+  projectId: string,
+  localizationId: string
+): Promise<void> {
+  await appleRequest(
+    projectId,
+    `/v1/inAppPurchaseLocalizations/${localizationId}`,
+    { method: 'DELETE' }
+  )
+}
+
+// ── Price Schedule ──
+
+export async function getIapPriceSchedule(
+  projectId: string,
+  iapId: string
+): Promise<IapPriceInfo[]> {
+  try {
+    const resp = await appleRequest(
+      projectId,
+      `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=manualPrices&fields[inAppPurchasePrices]=startDate,endDate`
+    )
+
+    if (!resp.data?.id) return []
+
+    const manualPrices = resp.included || []
+    const prices: IapPriceInfo[] = []
+
+    for (const mp of manualPrices) {
+      if (mp.type !== 'inAppPurchasePrices') continue
+      // Fetch territory and price point details for each manual price
+      try {
+        const priceDetail = await appleRequest(
+          projectId,
+          `/v1/inAppPurchasePrices/${mp.id}?include=inAppPurchasePricePoint,territory`
+        )
+        const included = priceDetail.included || []
+        const territory = included.find((i: any) => i.type === 'territories')
+        const pricePoint = included.find((i: any) => i.type === 'inAppPurchasePricePoints')
+
+        prices.push({
+          startDate: mp.attributes?.startDate || null,
+          endDate: mp.attributes?.endDate || null,
+          territory: territory?.id || '',
+          price: pricePoint?.attributes?.customerPrice || '',
+          pricePointId: pricePoint?.id || ''
+        })
+      } catch {
+        // skip individual price errors
+      }
+    }
+
+    return prices
+  } catch {
+    return []
+  }
+}
+
+export async function getIapPricePoints(
+  projectId: string,
+  iapId: string,
+  territory: string
+): Promise<IapPricePoint[]> {
+  const points: IapPricePoint[] = []
+  let url: string | null =
+    `/v2/inAppPurchases/${iapId}/pricePoints?filter[territory]=${territory}&limit=200`
+  while (url) {
+    const resp = await appleRequest(projectId, url)
+    for (const pp of resp.data || []) {
+      points.push({
+        id: pp.id,
+        customerPrice: pp.attributes?.customerPrice || '',
+        proceeds: pp.attributes?.proceeds || '',
+        territory
+      })
+    }
+    url = resp.links?.next || null
+  }
+  return points
+}
+
+export async function setIapPriceSchedule(
+  projectId: string,
+  iapId: string,
+  baseTerritory: string,
+  pricePointId: string
+): Promise<void> {
+  const priceId = `\${new-price}`
+  await appleRequest(projectId, '/v1/inAppPurchasePriceSchedules', {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        type: 'inAppPurchasePriceSchedules',
+        relationships: {
+          inAppPurchase: {
+            data: { type: 'inAppPurchases', id: iapId }
+          },
+          baseTerritory: {
+            data: { type: 'territories', id: baseTerritory }
+          },
+          manualPrices: {
+            data: [{ type: 'inAppPurchasePrices', id: priceId }]
+          }
+        }
+      },
+      included: [
+        {
+          type: 'inAppPurchasePrices',
+          id: priceId,
+          attributes: {
+            startDate: null,
+            endDate: null
+          },
+          relationships: {
+            inAppPurchasePricePoint: {
+              data: { type: 'inAppPurchasePricePoints', id: pricePointId }
+            }
+          }
+        }
+      ]
+    })
+  })
 }
 
 // Test connection by fetching app info

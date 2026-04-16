@@ -21,7 +21,17 @@ import {
   createInAppPurchase,
   batchUpdateAvailability,
   getExistingAvailability,
-  testConnection as testAppleConnection
+  testConnection as testAppleConnection,
+  getIapAvailabilityDetail,
+  updateIapAvailability,
+  getAllTerritories,
+  getIapLocalizations,
+  createIapLocalization,
+  updateIapLocalization,
+  deleteIapLocalization,
+  getIapPriceSchedule,
+  getIapPricePoints,
+  setIapPriceSchedule
 } from './services/apple/apple-iap'
 import type { CreateIapPayload } from './services/apple/apple-types'
 import {
@@ -293,6 +303,110 @@ export function registerIpcHandlers(): void {
           activate
         )
         return { success: true, data: result }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  // ── Apple IAP Detail (Availability, Localization, Price Schedule) ──
+
+  ipcMain.handle('apple:get-availability-detail', async (_event, projectId: string, iapId: string) => {
+    try {
+      const data = await getIapAvailabilityDetail(projectId, iapId)
+      return { success: true, data }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle(
+    'apple:update-availability',
+    async (_event, projectId: string, iapId: string, territoryIds: string[], availableInNewTerritories: boolean) => {
+      try {
+        await updateIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
+        return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle('apple:get-all-territories', async (_event, projectId: string) => {
+    try {
+      const data = await getAllTerritories(projectId)
+      return { success: true, data }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('apple:get-localizations', async (_event, projectId: string, iapId: string) => {
+    try {
+      const data = await getIapLocalizations(projectId, iapId)
+      return { success: true, data }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle(
+    'apple:create-localization',
+    async (_event, projectId: string, iapId: string, data: { locale: string; name: string; description?: string }) => {
+      try {
+        const loc = await createIapLocalization(projectId, iapId, data)
+        return { success: true, data: loc }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'apple:update-localization',
+    async (_event, projectId: string, localizationId: string, data: { name?: string; description?: string }) => {
+      try {
+        const loc = await updateIapLocalization(projectId, localizationId, data)
+        return { success: true, data: loc }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle('apple:delete-localization', async (_event, projectId: string, localizationId: string) => {
+    try {
+      await deleteIapLocalization(projectId, localizationId)
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('apple:get-price-schedule', async (_event, projectId: string, iapId: string) => {
+    try {
+      const data = await getIapPriceSchedule(projectId, iapId)
+      return { success: true, data }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('apple:get-price-points', async (_event, projectId: string, iapId: string, territory: string) => {
+    try {
+      const data = await getIapPricePoints(projectId, iapId, territory)
+      return { success: true, data }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle(
+    'apple:set-price-schedule',
+    async (_event, projectId: string, iapId: string, baseTerritory: string, pricePointId: string) => {
+      try {
+        await setIapPriceSchedule(projectId, iapId, baseTerritory, pricePointId)
+        return { success: true }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

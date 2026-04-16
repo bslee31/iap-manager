@@ -73,10 +73,7 @@ const draggableList = computed({
   }
 })
 
-const drag = ref(false)
-
 function onDragEnd() {
-  drag.value = false
   const orderedIds = store.projects.map((p) => p.id)
   store.reorderProjects(orderedIds)
 }
@@ -150,7 +147,6 @@ function onDragEnd() {
       ghost-class="opacity-30"
       animation="200"
       class="flex flex-col gap-2"
-      @start="drag = true"
       @end="onDragEnd"
     >
       <template #item="{ element: project }">

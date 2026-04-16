@@ -36,6 +36,28 @@ const api = {
   batchUpdateAppleAvailability: (projectId: string, ids: string[], available: boolean) =>
     ipcRenderer.invoke('apple:batch-availability', projectId, ids, available),
 
+  // Apple IAP Detail
+  getAppleAvailabilityDetail: (projectId: string, iapId: string) =>
+    ipcRenderer.invoke('apple:get-availability-detail', projectId, iapId),
+  updateAppleAvailability: (projectId: string, iapId: string, territoryIds: string[], availableInNewTerritories: boolean) =>
+    ipcRenderer.invoke('apple:update-availability', projectId, iapId, territoryIds, availableInNewTerritories),
+  getAllTerritories: (projectId: string) =>
+    ipcRenderer.invoke('apple:get-all-territories', projectId),
+  getAppleLocalizations: (projectId: string, iapId: string) =>
+    ipcRenderer.invoke('apple:get-localizations', projectId, iapId),
+  createAppleLocalization: (projectId: string, iapId: string, data: { locale: string; name: string; description?: string }) =>
+    ipcRenderer.invoke('apple:create-localization', projectId, iapId, data),
+  updateAppleLocalization: (projectId: string, localizationId: string, data: { name?: string; description?: string }) =>
+    ipcRenderer.invoke('apple:update-localization', projectId, localizationId, data),
+  deleteAppleLocalization: (projectId: string, localizationId: string) =>
+    ipcRenderer.invoke('apple:delete-localization', projectId, localizationId),
+  getApplePriceSchedule: (projectId: string, iapId: string) =>
+    ipcRenderer.invoke('apple:get-price-schedule', projectId, iapId),
+  getApplePricePoints: (projectId: string, iapId: string, territory: string) =>
+    ipcRenderer.invoke('apple:get-price-points', projectId, iapId, territory),
+  setApplePriceSchedule: (projectId: string, iapId: string, baseTerritory: string, pricePointId: string) =>
+    ipcRenderer.invoke('apple:set-price-schedule', projectId, iapId, baseTerritory, pricePointId),
+
   // Google Products
   fetchGoogleProducts: (projectId: string) =>
     ipcRenderer.invoke('google:fetch-products', projectId),

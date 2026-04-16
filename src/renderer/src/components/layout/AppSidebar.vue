@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useProjectStore } from '../../stores/project.store'
 import { useRouter, useRoute } from 'vue-router'
-import { onMounted, computed, ref } from 'vue'
+import { onMounted, computed } from 'vue'
 import draggable from 'vuedraggable'
 
 const emit = defineEmits<{ 'create-project': [] }>()

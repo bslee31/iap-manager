@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
 import BatchActionBar from '../common/BatchActionBar.vue'
+import AppleProductDetail from './AppleProductDetail.vue'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -25,6 +26,7 @@ const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
 const syncProgress = ref('')
 const syncingItem = ref<string | null>(null)
+const selectedProduct = ref<AppleProduct | null>(null)
 
 // Listen for sync progress from main process
 let cleanupProgress: (() => void) | null = null
@@ -361,10 +363,11 @@ function typeLabel(type: string): string {
           <tr
             v-for="product in filteredProducts"
             :key="product.id"
-            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors"
+            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors cursor-pointer"
             :class="{ 'bg-blue-600/10': selected.has(product.id) }"
+            @click="selectedProduct = product"
           >
-            <td class="px-3 py-3">
+            <td class="px-3 py-3" @click.stop>
               <input
                 type="checkbox"
                 :checked="selected.has(product.id)"
@@ -439,6 +442,15 @@ function typeLabel(type: string): string {
       :actions="batchActions"
       @action="handleBatchAction"
       @clear="selected.clear(); selected = new Set()"
+    />
+
+    <!-- Product Detail Modal -->
+    <AppleProductDetail
+      v-if="selectedProduct"
+      :project-id="props.projectId"
+      :product="selectedProduct"
+      @close="selectedProduct = null"
+      @updated="syncProducts"
     />
   </div>
 </template>

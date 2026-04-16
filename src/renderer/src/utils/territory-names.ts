@@ -1,0 +1,299 @@
+/** Territory display name (matching App Store Connect) */
+const TERRITORY_NAMES: Record<string, string> = {
+  AFG: 'Afghanistan',
+  AGO: 'Angola',
+  AIA: 'Anguilla',
+  ALB: 'Albania',
+  ARE: 'United Arab Emirates',
+  ARG: 'Argentina',
+  ARM: 'Armenia',
+  ATG: 'Antigua and Barbuda',
+  AUS: 'Australia',
+  AUT: 'Austria',
+  AZE: 'Azerbaijan',
+  BEL: 'Belgium',
+  BEN: 'Benin',
+  BES: 'Caribbean Netherlands',
+  BFA: 'Burkina Faso',
+  BGD: 'Bangladesh',
+  BGR: 'Bulgaria',
+  BHR: 'Bahrain',
+  BHS: 'Bahamas',
+  BIH: 'Bosnia and Herzegovina',
+  BLR: 'Belarus',
+  BLZ: 'Belize',
+  BMU: 'Bermuda',
+  BOL: 'Bolivia',
+  BRA: 'Brazil',
+  BRB: 'Barbados',
+  BRN: 'Brunei',
+  BTN: 'Bhutan',
+  BWA: 'Botswana',
+  CAF: 'Central African Republic',
+  CAN: 'Canada',
+  CHE: 'Switzerland',
+  CHL: 'Chile',
+  CHN: 'China mainland',
+  CIV: "Côte d'Ivoire",
+  CMR: 'Cameroon',
+  COD: 'Congo, Democratic Republic of the',
+  COG: 'Congo, Republic of the',
+  COL: 'Colombia',
+  CPV: 'Cape Verde',
+  CRI: 'Costa Rica',
+  CUW: 'Curaçao',
+  CYM: 'Cayman Islands',
+  CYP: 'Cyprus',
+  CZE: 'Czech Republic',
+  DEU: 'Germany',
+  DJI: 'Djibouti',
+  DMA: 'Dominica',
+  DNK: 'Denmark',
+  DOM: 'Dominican Republic',
+  DZA: 'Algeria',
+  ECU: 'Ecuador',
+  EGY: 'Egypt',
+  ERI: 'Eritrea',
+  ESP: 'Spain',
+  EST: 'Estonia',
+  ETH: 'Ethiopia',
+  FIN: 'Finland',
+  FJI: 'Fiji',
+  FRA: 'France',
+  FSM: 'Micronesia',
+  GAB: 'Gabon',
+  GBR: 'United Kingdom',
+  GEO: 'Georgia',
+  GHA: 'Ghana',
+  GIN: 'Guinea',
+  GMB: 'Gambia',
+  GNB: 'Guinea-Bissau',
+  GNQ: 'Equatorial Guinea',
+  GRC: 'Greece',
+  GRD: 'Grenada',
+  GTM: 'Guatemala',
+  GUY: 'Guyana',
+  HKG: 'Hong Kong',
+  HND: 'Honduras',
+  HRV: 'Croatia',
+  HUN: 'Hungary',
+  IDN: 'Indonesia',
+  IND: 'India',
+  IRL: 'Ireland',
+  IRQ: 'Iraq',
+  ISL: 'Iceland',
+  ISR: 'Israel',
+  ITA: 'Italy',
+  JAM: 'Jamaica',
+  JOR: 'Jordan',
+  JPN: 'Japan',
+  KAZ: 'Kazakhstan',
+  KEN: 'Kenya',
+  KGZ: 'Kyrgyzstan',
+  KHM: 'Cambodia',
+  KNA: 'St. Kitts and Nevis',
+  KOR: 'Korea, Republic of',
+  KWT: 'Kuwait',
+  LAO: 'Laos',
+  LBN: 'Lebanon',
+  LBR: 'Liberia',
+  LBY: 'Libya',
+  LCA: 'St. Lucia',
+  LKA: 'Sri Lanka',
+  LTU: 'Lithuania',
+  LUX: 'Luxembourg',
+  LVA: 'Latvia',
+  MAC: 'Macau',
+  MAR: 'Morocco',
+  MDA: 'Moldova',
+  MDG: 'Madagascar',
+  MDV: 'Maldives',
+  MEX: 'Mexico',
+  MKD: 'North Macedonia',
+  MLI: 'Mali',
+  MLT: 'Malta',
+  MMR: 'Myanmar',
+  MNE: 'Montenegro',
+  MNG: 'Mongolia',
+  MOZ: 'Mozambique',
+  MRT: 'Mauritania',
+  MSR: 'Montserrat',
+  MUS: 'Mauritius',
+  MWI: 'Malawi',
+  MYS: 'Malaysia',
+  NAM: 'Namibia',
+  NER: 'Niger',
+  NGA: 'Nigeria',
+  NIC: 'Nicaragua',
+  NLD: 'Netherlands',
+  NOR: 'Norway',
+  NPL: 'Nepal',
+  NRU: 'Nauru',
+  NZL: 'New Zealand',
+  OMN: 'Oman',
+  PAK: 'Pakistan',
+  PAN: 'Panama',
+  PER: 'Peru',
+  PHL: 'Philippines',
+  PLW: 'Palau',
+  PNG: 'Papua New Guinea',
+  POL: 'Poland',
+  PRT: 'Portugal',
+  PRY: 'Paraguay',
+  PSE: 'Palestine',
+  QAT: 'Qatar',
+  ROU: 'Romania',
+  RUS: 'Russia',
+  RWA: 'Rwanda',
+  SAU: 'Saudi Arabia',
+  SEN: 'Senegal',
+  SGP: 'Singapore',
+  SLB: 'Solomon Islands',
+  SLE: 'Sierra Leone',
+  SLV: 'El Salvador',
+  SRB: 'Serbia',
+  STP: 'São Tomé and Príncipe',
+  SUR: 'Suriname',
+  SVK: 'Slovakia',
+  SVN: 'Slovenia',
+  SWE: 'Sweden',
+  SWZ: 'Eswatini',
+  SXM: 'Sint Maarten',
+  SYC: 'Seychelles',
+  TCA: 'Turks and Caicos Islands',
+  TCD: 'Chad',
+  TGO: 'Togo',
+  THA: 'Thailand',
+  TJK: 'Tajikistan',
+  TKM: 'Turkmenistan',
+  TON: 'Tonga',
+  TTO: 'Trinidad and Tobago',
+  TUN: 'Tunisia',
+  TUR: 'Türkiye',
+  TWN: 'Taiwan',
+  TZA: 'Tanzania',
+  UGA: 'Uganda',
+  UKR: 'Ukraine',
+  URY: 'Uruguay',
+  USA: 'United States',
+  UZB: 'Uzbekistan',
+  VCT: 'St. Vincent and the Grenadines',
+  VEN: 'Venezuela',
+  VGB: 'British Virgin Islands',
+  VNM: 'Vietnam',
+  VUT: 'Vanuatu',
+  WSM: 'Samoa',
+  XKS: 'Kosovo',
+  YEM: 'Yemen',
+  ZAF: 'South Africa',
+  ZMB: 'Zambia',
+  ZWE: 'Zimbabwe'
+}
+
+export function territoryName(code: string): string {
+  return TERRITORY_NAMES[code] || code
+}
+
+export function territoryLabel(code: string): string {
+  const name = TERRITORY_NAMES[code]
+  return name ? `${name} (${code})` : code
+}
+
+/** Region groupings matching App Store Connect */
+export interface TerritoryRegion {
+  name: string
+  codes: string[]
+}
+
+const REGION_DEFINITIONS: TerritoryRegion[] = [
+  {
+    name: 'The United States and Canada',
+    codes: ['CAN', 'USA']
+  },
+  {
+    name: 'Europe',
+    codes: [
+      'ALB', 'AUT', 'BLR', 'BEL', 'BIH', 'BGR', 'HRV', 'CYP', 'CZE',
+      'DNK', 'EST', 'FIN', 'FRA', 'DEU', 'GRC', 'HUN', 'ISL', 'IRL',
+      'ITA', 'XKS', 'LVA', 'LTU', 'LUX', 'MLT', 'MDA', 'MNE', 'NLD',
+      'MKD', 'NOR', 'POL', 'PRT', 'ROU', 'RUS', 'SRB', 'SVK', 'SVN',
+      'ESP', 'SWE', 'CHE', 'TUR', 'UKR', 'GBR'
+    ]
+  },
+  {
+    name: 'Africa, Middle East, and India',
+    codes: [
+      'AFG', 'DZA', 'AGO', 'ARM', 'AZE', 'BHR', 'BEN', 'BWA', 'BFA',
+      'CMR', 'CPV', 'TCD', 'COD', 'COG', 'CIV', 'DJI', 'EGY', 'GNQ',
+      'ERI', 'SWZ', 'ETH', 'GAB', 'GMB', 'GEO', 'GHA', 'GIN', 'GNB',
+      'IND', 'IRQ', 'ISR', 'JOR', 'KEN', 'KWT', 'LBN', 'LBR', 'LBY',
+      'MDG', 'MWI', 'MLI', 'MRT', 'MUS', 'MAR', 'MOZ', 'NAM', 'NER',
+      'NGA', 'OMN', 'PSE', 'QAT', 'RWA', 'STP', 'SAU', 'SEN', 'SYC',
+      'SLE', 'ZAF', 'TZA', 'TGO', 'TUN', 'UGA', 'ARE', 'YEM', 'ZMB',
+      'ZWE'
+    ]
+  },
+  {
+    name: 'Latin America and the Caribbean',
+    codes: [
+      'AIA', 'ATG', 'ARG', 'BHS', 'BRB', 'BLZ', 'BMU', 'BOL', 'BRA',
+      'VGB', 'CYM', 'CHL', 'COL', 'CRI', 'CUW', 'DMA', 'DOM', 'ECU',
+      'SLV', 'GRD', 'GTM', 'GUY', 'HND', 'JAM', 'MEX', 'MSR', 'NIC',
+      'PAN', 'PRY', 'PER', 'KNA', 'LCA', 'VCT', 'SUR', 'SXM', 'TTO',
+      'TCA', 'URY', 'VEN', 'BES'
+    ]
+  },
+  {
+    name: 'Asia Pacific',
+    codes: [
+      'AUS', 'BTN', 'BRN', 'KHM', 'CHN', 'FJI', 'HKG', 'IDN', 'JPN',
+      'KAZ', 'KOR', 'KGZ', 'LAO', 'MAC', 'MYS', 'MDV', 'FSM', 'MNG',
+      'MMR', 'NRU', 'NPL', 'NZL', 'PAK', 'PLW', 'PNG', 'PHL', 'SGP',
+      'SLB', 'LKA', 'TWN', 'TJK', 'THA', 'TON', 'TKM', 'UZB', 'VUT',
+      'VNM', 'BGD', 'WSM', 'CAF'
+    ]
+  }
+]
+
+export interface GroupedTerritory {
+  regionName: string
+  territories: { code: string; name: string }[]
+}
+
+/**
+ * Group territory codes into regions matching App Store Connect layout.
+ * Only includes territories that exist in the provided codes array.
+ */
+export function groupTerritoriesByRegion(codes: string[]): GroupedTerritory[] {
+  const codeSet = new Set(codes)
+  const grouped: GroupedTerritory[] = []
+  const assigned = new Set<string>()
+
+  for (const region of REGION_DEFINITIONS) {
+    const territories: { code: string; name: string }[] = []
+    for (const code of region.codes) {
+      if (codeSet.has(code)) {
+        territories.push({ code, name: territoryName(code) })
+        assigned.add(code)
+      }
+    }
+    if (territories.length > 0) {
+      territories.sort((a, b) => a.name.localeCompare(b.name))
+      grouped.push({ regionName: region.name, territories })
+    }
+  }
+
+  // Any unassigned territories go into "Other"
+  const other: { code: string; name: string }[] = []
+  for (const code of codes) {
+    if (!assigned.has(code)) {
+      other.push({ code, name: territoryName(code) })
+    }
+  }
+  if (other.length > 0) {
+    other.sort((a, b) => a.name.localeCompare(b.name))
+    grouped.push({ regionName: 'Other', territories: other })
+  }
+
+  return grouped
+}

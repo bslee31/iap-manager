@@ -68,3 +68,39 @@ export interface BatchAvailabilityPayload {
   availableInNewTerritories: boolean
   territoryIds?: string[]
 }
+
+// Availability detail
+export interface AvailabilityDetail {
+  availableInNewTerritories: boolean
+  territoryIds: string[]
+}
+
+// Full territory info
+export interface TerritoryInfo {
+  id: string
+  currency: string
+}
+
+// Localization detail
+export interface IapLocalization {
+  id: string
+  locale: string
+  name: string
+  description: string
+}
+
+// Price schedule
+export interface IapPriceInfo {
+  startDate: string | null
+  endDate: string | null
+  territory: string
+  price: string
+  pricePointId: string
+}
+
+export interface IapPricePoint {
+  id: string
+  customerPrice: string
+  proceeds: string
+  territory: string
+}
