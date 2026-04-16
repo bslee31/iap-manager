@@ -149,47 +149,25 @@ function onDragEnd() {
       handle=".drag-handle"
       ghost-class="opacity-30"
       animation="200"
-      class="grid grid-cols-1 md:grid-cols-2 gap-4"
+      class="flex flex-col gap-2"
       @start="drag = true"
       @end="onDragEnd"
     >
       <template #item="{ element: project }">
         <div
-          class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-5 hover:border-[#43454a] transition-colors cursor-pointer group"
+          class="bg-[#2b2d30] rounded-lg border border-[#393b40] px-4 py-3 hover:border-[#43454a] transition-colors cursor-pointer group flex items-center gap-3"
           @click="goToProject(project)"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex items-center gap-2 flex-1 min-w-0">
-              <span
-                class="drag-handle cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 select-none"
-                @click.stop
-                title="拖曳排序"
-              >&#9776;</span>
-              <div class="flex-1 min-w-0">
-                <h3 class="font-semibold text-gray-100 truncate">{{ project.name }}</h3>
-                <p v-if="project.description" class="text-sm text-gray-400 mt-1 line-clamp-2">
-                  {{ project.description }}
-                </p>
-              </div>
-            </div>
-            <div class="flex gap-1 ml-2" @click.stop>
-              <button
-                @click="openEditForm(project)"
-                class="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-600/15 rounded-md transition-colors"
-                title="編輯"
-              >
-                &#9998;
-              </button>
-              <button
-                @click="confirmDelete(project)"
-                class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-600/15 rounded-md transition-colors"
-                title="刪除"
-              >
-                &#10005;
-              </button>
-            </div>
-          </div>
-          <div class="flex gap-2 mt-3">
+          <span
+            class="drag-handle cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 select-none shrink-0"
+            @click.stop
+            title="拖曳排序"
+          >&#9776;</span>
+          <h3 class="font-semibold text-gray-100 truncate flex-1 min-w-0">{{ project.name }}</h3>
+          <p v-if="project.description" class="text-sm text-gray-400 truncate max-w-[200px] hidden md:block">
+            {{ project.description }}
+          </p>
+          <div class="flex gap-1.5 shrink-0">
             <span
               class="text-xs px-2 py-0.5 rounded-full"
               :class="project.has_apple ? 'bg-blue-600/20 text-blue-400' : 'bg-[#393b40] text-gray-500'"
@@ -202,6 +180,22 @@ function onDragEnd() {
             >
               Google
             </span>
+          </div>
+          <div class="flex gap-1 shrink-0" @click.stop>
+            <button
+              @click="openEditForm(project)"
+              class="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-600/15 rounded-md transition-colors"
+              title="編輯"
+            >
+              &#9998;
+            </button>
+            <button
+              @click="confirmDelete(project)"
+              class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-600/15 rounded-md transition-colors"
+              title="刪除"
+            >
+              &#10005;
+            </button>
           </div>
         </div>
       </template>
