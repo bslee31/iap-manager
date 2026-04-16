@@ -8,6 +8,7 @@ const api = {
   updateProject: (id: string, data: { name?: string; description?: string }) =>
     ipcRenderer.invoke('project:update', id, data),
   deleteProject: (id: string) => ipcRenderer.invoke('project:delete', id),
+  reorderProjects: (orderedIds: string[]) => ipcRenderer.invoke('project:reorder', orderedIds),
 
   // Credentials
   getCredentials: (projectId: string) =>

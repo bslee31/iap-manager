@@ -103,6 +103,13 @@ function runMigrations(db: Database.Database): void {
       sql: `
         ALTER TABLE google_products ADD COLUMN purchase_option_id TEXT;
       `
+    },
+    {
+      name: '006-project-sort-order',
+      sql: `
+        ALTER TABLE projects ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0;
+        UPDATE projects SET sort_order = rowid;
+      `
     }
   ]
 

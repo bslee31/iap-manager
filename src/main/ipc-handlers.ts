@@ -3,7 +3,8 @@ import {
   findAllProjects,
   createProject,
   updateProject,
-  deleteProject
+  deleteProject,
+  reorderProjects
 } from './db/repositories/project.repo'
 import {
   saveAppleCredentials,
@@ -74,6 +75,15 @@ export function registerIpcHandlers(): void {
       const deleted = deleteProject(id)
       if (deleted) deleteCredentials(id)
       if (!deleted) return { success: false, error: '專案不存在' }
+      return { success: true }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle('project:reorder', async (_event, orderedIds: string[]) => {
+    try {
+      reorderProjects(orderedIds)
       return { success: true }
     } catch (e: any) {
       return { success: false, error: e.message }

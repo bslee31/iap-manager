@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useProjectStore } from '../../stores/project.store'
 import { useRouter, useRoute } from 'vue-router'
-import { onMounted } from 'vue'
+import { onMounted, computed, ref } from 'vue'
+import draggable from 'vuedraggable'
 
 const emit = defineEmits<{ 'create-project': [] }>()
 
@@ -21,6 +22,18 @@ function selectProject(project: (typeof store.projects)[0]) {
 function isActive(projectId: string) {
   return route.params.id === projectId
 }
+
+const draggableList = computed({
+  get: () => store.projects,
+  set: (val) => {
+    store.projects = val
+  }
+})
+
+function onDragEnd() {
+  const orderedIds = store.projects.map((p) => p.id)
+  store.reorderProjects(orderedIds)
+}
 </script>
 
 <template>
@@ -37,17 +50,25 @@ function isActive(projectId: string) {
 
     <!-- Project list -->
     <nav class="flex-1 overflow-y-auto px-2 py-2">
-      <button
-        v-for="project in store.projects"
-        :key="project.id"
-        @click="selectProject(project)"
-        class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors mb-0.5"
-        :class="isActive(project.id)
-          ? 'bg-blue-600/20 text-blue-400 font-medium'
-          : 'text-gray-300 hover:bg-[#393b40]'"
+      <draggable
+        v-model="draggableList"
+        item-key="id"
+        ghost-class="opacity-30"
+        animation="200"
+        @end="onDragEnd"
       >
-        {{ project.name }}
-      </button>
+        <template #item="{ element: project }">
+          <button
+            @click="selectProject(project)"
+            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors mb-0.5 cursor-grab active:cursor-grabbing"
+            :class="isActive(project.id)
+              ? 'bg-blue-600/20 text-blue-400 font-medium'
+              : 'text-gray-300 hover:bg-[#393b40]'"
+          >
+            {{ project.name }}
+          </button>
+        </template>
+      </draggable>
 
       <p v-if="store.projects.length === 0 && !store.loading" class="text-xs text-gray-500 px-3 py-4 text-center">
         尚未建立任何專案

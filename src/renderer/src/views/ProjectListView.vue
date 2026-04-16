@@ -2,7 +2,8 @@
 import { useProjectStore } from '../stores/project.store'
 import { useNotificationStore } from '../stores/notification.store'
 import { useRouter } from 'vue-router'
-import { ref, inject, watch, type Ref } from 'vue'
+import { ref, inject, watch, computed, type Ref } from 'vue'
+import draggable from 'vuedraggable'
 
 const store = useProjectStore()
 const notify = useNotificationStore()
@@ -63,6 +64,21 @@ async function confirmDelete(project: (typeof store.projects)[0]) {
 function goToProject(project: (typeof store.projects)[0]) {
   store.setCurrentProject(project)
   router.push(`/projects/${project.id}`)
+}
+
+const draggableList = computed({
+  get: () => store.projects,
+  set: (val) => {
+    store.projects = val
+  }
+})
+
+const drag = ref(false)
+
+function onDragEnd() {
+  drag.value = false
+  const orderedIds = store.projects.map((p) => p.id)
+  store.reorderProjects(orderedIds)
 }
 </script>
 
@@ -126,53 +142,70 @@ function goToProject(project: (typeof store.projects)[0]) {
     </div>
 
     <!-- Project Cards -->
-    <div v-if="store.projects.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-      <div
-        v-for="project in store.projects"
-        :key="project.id"
-        class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-5 hover:border-[#43454a] transition-colors cursor-pointer"
-        @click="goToProject(project)"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1 min-w-0">
-            <h3 class="font-semibold text-gray-100 truncate">{{ project.name }}</h3>
-            <p v-if="project.description" class="text-sm text-gray-400 mt-1 line-clamp-2">
-              {{ project.description }}
-            </p>
+    <draggable
+      v-if="store.projects.length > 0"
+      v-model="draggableList"
+      item-key="id"
+      handle=".drag-handle"
+      ghost-class="opacity-30"
+      animation="200"
+      class="grid grid-cols-1 md:grid-cols-2 gap-4"
+      @start="drag = true"
+      @end="onDragEnd"
+    >
+      <template #item="{ element: project }">
+        <div
+          class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-5 hover:border-[#43454a] transition-colors cursor-pointer group"
+          @click="goToProject(project)"
+        >
+          <div class="flex items-start justify-between">
+            <div class="flex items-center gap-2 flex-1 min-w-0">
+              <span
+                class="drag-handle cursor-grab active:cursor-grabbing text-gray-600 hover:text-gray-400 select-none"
+                @click.stop
+                title="拖曳排序"
+              >&#9776;</span>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-gray-100 truncate">{{ project.name }}</h3>
+                <p v-if="project.description" class="text-sm text-gray-400 mt-1 line-clamp-2">
+                  {{ project.description }}
+                </p>
+              </div>
+            </div>
+            <div class="flex gap-1 ml-2" @click.stop>
+              <button
+                @click="openEditForm(project)"
+                class="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-600/15 rounded-md transition-colors"
+                title="編輯"
+              >
+                &#9998;
+              </button>
+              <button
+                @click="confirmDelete(project)"
+                class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-600/15 rounded-md transition-colors"
+                title="刪除"
+              >
+                &#10005;
+              </button>
+            </div>
           </div>
-          <div class="flex gap-1 ml-2" @click.stop>
-            <button
-              @click="openEditForm(project)"
-              class="p-1.5 text-gray-500 hover:text-blue-400 hover:bg-blue-600/15 rounded-md transition-colors"
-              title="編輯"
+          <div class="flex gap-2 mt-3">
+            <span
+              class="text-xs px-2 py-0.5 rounded-full"
+              :class="project.has_apple ? 'bg-blue-600/20 text-blue-400' : 'bg-[#393b40] text-gray-500'"
             >
-              &#9998;
-            </button>
-            <button
-              @click="confirmDelete(project)"
-              class="p-1.5 text-gray-500 hover:text-red-400 hover:bg-red-600/15 rounded-md transition-colors"
-              title="刪除"
+              Apple
+            </span>
+            <span
+              class="text-xs px-2 py-0.5 rounded-full"
+              :class="project.has_google ? 'bg-green-600/20 text-green-400' : 'bg-[#393b40] text-gray-500'"
             >
-              &#10005;
-            </button>
+              Google
+            </span>
           </div>
         </div>
-        <div class="flex gap-2 mt-3">
-          <span
-            class="text-xs px-2 py-0.5 rounded-full"
-            :class="project.has_apple ? 'bg-blue-600/20 text-blue-400' : 'bg-[#393b40] text-gray-500'"
-          >
-            Apple
-          </span>
-          <span
-            class="text-xs px-2 py-0.5 rounded-full"
-            :class="project.has_google ? 'bg-green-600/20 text-green-400' : 'bg-[#393b40] text-gray-500'"
-          >
-            Google
-          </span>
-        </div>
-      </div>
-    </div>
+      </template>
+    </draggable>
 
     <!-- Empty state -->
     <div v-else-if="!store.loading" class="text-center py-20">

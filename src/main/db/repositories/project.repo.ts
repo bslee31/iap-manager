@@ -5,6 +5,7 @@ export interface ProjectRow {
   id: string
   name: string
   description: string | null
+  sort_order: number
   created_at: string
   updated_at: string
   has_apple: number
@@ -18,7 +19,7 @@ export function findAllProjects(): ProjectRow[] {
       `SELECT p.*, COALESCE(c.has_apple, 0) as has_apple, COALESCE(c.has_google, 0) as has_google
        FROM projects p
        LEFT JOIN project_credentials c ON c.project_id = p.id
-       ORDER BY p.updated_at DESC`
+       ORDER BY p.sort_order ASC`
     )
     .all() as ProjectRow[]
 }
@@ -43,9 +44,10 @@ export function createProject(data: {
   const id = uuidv4()
   const now = new Date().toISOString()
 
+  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM projects').get() as any
   db.prepare(
-    'INSERT INTO projects (id, name, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?)'
-  ).run(id, data.name, data.description || null, now, now)
+    'INSERT INTO projects (id, name, description, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id, data.name, data.description || null, maxOrder.next, now, now)
 
   db.prepare(
     'INSERT INTO project_credentials (project_id) VALUES (?)'
@@ -77,4 +79,15 @@ export function deleteProject(id: string): boolean {
   const db = getDatabase()
   const result = db.prepare('DELETE FROM projects WHERE id = ?').run(id)
   return result.changes > 0
+}
+
+export function reorderProjects(orderedIds: string[]): void {
+  const db = getDatabase()
+  const stmt = db.prepare('UPDATE projects SET sort_order = ? WHERE id = ?')
+  const tx = db.transaction(() => {
+    orderedIds.forEach((id, index) => {
+      stmt.run(index, id)
+    })
+  })
+  tx()
 }

@@ -55,6 +55,16 @@ export const useProjectStore = defineStore('project', () => {
     return result
   }
 
+  async function reorderProjects(orderedIds: string[]) {
+    const result = await window.api.reorderProjects(orderedIds)
+    if (result.success) {
+      // Reorder local array to match
+      const idToProject = new Map(projects.value.map((p) => [p.id, p]))
+      projects.value = orderedIds.map((id) => idToProject.get(id)!).filter(Boolean)
+    }
+    return result
+  }
+
   function setCurrentProject(project: Project | null) {
     currentProject.value = project
   }
@@ -67,6 +77,7 @@ export const useProjectStore = defineStore('project', () => {
     createProject,
     updateProject,
     deleteProject,
+    reorderProjects,
     setCurrentProject
   }
 })

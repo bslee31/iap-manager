@@ -17,13 +17,19 @@
     "productName": "IAP 管理工具",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": ["dmg"]
+      "target": [
+        "dmg"
+      ]
     },
     "win": {
-      "target": ["nsis"]
+      "target": [
+        "nsis"
+      ]
     },
     "linux": {
-      "target": ["AppImage"]
+      "target": [
+        "AppImage"
+      ]
     },
     "files": [
       "out/**/*",
@@ -48,7 +54,8 @@
     "pinia": "^3.0.4",
     "uuid": "^13.0.0",
     "vue": "^3.5.32",
-    "vue-router": "^5.0.4"
+    "vue-router": "^5.0.4",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
