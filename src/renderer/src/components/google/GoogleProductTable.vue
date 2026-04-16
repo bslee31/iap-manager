@@ -332,7 +332,8 @@ function statusColor(status: string): string {
     <div class="flex-1 min-h-0 px-6 pb-6">
     <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
       <!-- Fixed header -->
-      <table class="w-full shrink-0 table-fixed">
+      <div class="shrink-0 pr-[6px]">
+      <table class="w-full table-fixed">
         <colgroup>
           <col class="w-10" />
           <col class="w-[22%]" />
@@ -354,6 +355,7 @@ function statusColor(status: string): string {
           </tr>
         </thead>
       </table>
+      </div>
       <!-- Scrollable body -->
       <div class="flex-1 min-h-0 overflow-y-auto">
       <table class="w-full table-fixed">

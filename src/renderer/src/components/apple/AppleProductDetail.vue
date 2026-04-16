@@ -677,7 +677,8 @@ const LOCALES = [
               <div v-if="allPricesLoading" class="text-center py-6 text-gray-500">載入地區價格中...</div>
               <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden h-full flex flex-col">
                 <!-- Fixed header -->
-                <table class="w-full shrink-0 table-fixed">
+                <div class="shrink-0 pr-[6px]">
+                <table class="w-full table-fixed">
                   <colgroup>
                     <col class="w-[48%]" />
                     <col class="w-[22%]" />
@@ -693,6 +694,7 @@ const LOCALES = [
                     </tr>
                   </thead>
                 </table>
+                </div>
                 <!-- Scrollable body -->
                 <div class="flex-1 min-h-0 overflow-y-auto">
                   <table class="w-full table-fixed">
