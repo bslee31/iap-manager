@@ -26,8 +26,6 @@ const showCreateForm = ref(false)
 const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
 const syncProgress = ref('')
-const syncingItem = ref<string | null>(null)
-const syncingPrice = ref<string | null>(null)
 const selectedProduct = ref<AppleProduct | null>(null)
 
 // Listen for sync progress from main process
@@ -138,29 +136,6 @@ function onPriceUpdated(price: string, currency: string) {
   }
 }
 
-async function syncSingleAvailability(product: AppleProduct) {
-  syncingItem.value = product.id
-  const result = await window.api.syncAppleAvailability(props.projectId, product.id)
-  syncingItem.value = null
-  if (result.success) {
-    product.territoryCount = result.data.territoryCount
-    notify.success(`${product.productId}: ${result.data.territoryCount} 個地區`)
-  } else {
-    notify.error(result.error || '同步失敗')
-  }
-}
-
-async function syncSinglePrice(product: AppleProduct) {
-  syncingPrice.value = product.id
-  const result = await window.api.syncAppleBasePrice(props.projectId, product.id)
-  syncingPrice.value = null
-  if (result.success) {
-    product.basePrice = result.data.basePrice
-    product.baseCurrency = result.data.baseCurrency
-  } else {
-    notify.error(result.error || '同步失敗')
-  }
-}
 
 function toggleAll() {
   if (allSelected.value) {
@@ -504,46 +479,18 @@ function typeLabel(type: string): string {
                 {{ typeLabel(product.type) }}
               </span>
             </td>
-            <td class="px-3 py-3">
-              <div class="flex items-center gap-1.5">
-                <span class="text-sm font-mono text-gray-300">
-                  {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
-                </span>
-                <button
-                  @click.stop="syncSinglePrice(product)"
-                  :disabled="syncingPrice === product.id"
-                  class="p-0.5 text-gray-500 hover:text-blue-400 transition-colors disabled:opacity-50"
-                  title="同步價格"
-                >
-                  <span
-                    class="inline-block text-xs leading-none"
-                    :class="{ 'animate-spin': syncingPrice === product.id }"
-                  >&#8635;</span>
-                </button>
-              </div>
+            <td class="px-3 py-3 text-sm font-mono text-gray-300">
+              {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
             </td>
             <td class="px-3 py-3">
-              <div class="flex items-center gap-1.5">
-                <span
-                  class="text-xs px-2 py-0.5 rounded-full"
-                  :class="product.territoryCount > 0
-                    ? 'bg-blue-600/20 text-blue-400'
-                    : 'bg-red-600/20 text-red-400'"
-                >
-                  {{ product.territoryCount > 0 ? product.territoryCount + ' 個地區' : '無' }}
-                </span>
-                <button
-                  @click.stop="syncSingleAvailability(product)"
-                  :disabled="syncingItem === product.id"
-                  class="p-0.5 text-gray-500 hover:text-blue-400 transition-colors disabled:opacity-50"
-                  title="重新同步 Availability"
-                >
-                  <span
-                    class="inline-block text-xs leading-none"
-                    :class="{ 'animate-spin': syncingItem === product.id }"
-                  >&#8635;</span>
-                </button>
-              </div>
+              <span
+                class="text-xs px-2 py-0.5 rounded-full"
+                :class="product.territoryCount > 0
+                  ? 'bg-blue-600/20 text-blue-400'
+                  : 'bg-red-600/20 text-red-400'"
+              >
+                {{ product.territoryCount > 0 ? product.territoryCount + ' 個地區' : '無' }}
+              </span>
             </td>
             <td class="px-3 py-3">
               <span
