@@ -778,7 +778,7 @@ const LOCALES = [
 
             <!-- Edit/Create form modal -->
             <div v-if="editingLoc" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-              <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40]">
+              <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
                 <h4 class="text-base font-semibold mb-4 text-gray-100">
                   {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
                 </h4>

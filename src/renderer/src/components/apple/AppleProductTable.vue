@@ -300,7 +300,7 @@ function typeLabel(type: string): string {
 
     <!-- Create Form Modal -->
     <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40">
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40]">
+      <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
         <h3 class="text-lg font-semibold mb-4 text-gray-100">新增 Apple IAP</h3>
         <div class="space-y-4">
           <div>
