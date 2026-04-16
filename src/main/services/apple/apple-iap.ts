@@ -158,7 +158,7 @@ export async function createInAppPurchase(
           type: 'inAppPurchases',
           attributes: {
             productId: payload.productId,
-            referenceName: payload.referenceName,
+            name: payload.referenceName,
             inAppPurchaseType: payload.inAppPurchaseType,
             reviewNote: payload.reviewNote || ''
           },
