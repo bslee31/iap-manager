@@ -400,7 +400,6 @@ function typeLabel(type: string): string {
             >
               <option value="CONSUMABLE">消耗型</option>
               <option value="NON_CONSUMABLE">非消耗型</option>
-              <option value="NON_RENEWING_SUBSCRIPTION">非續訂型訂閱</option>
             </select>
           </div>
         </div>
