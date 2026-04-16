@@ -252,6 +252,7 @@ interface AllTerritoryPricesData {
 const allPricesData = ref<AllTerritoryPricesData | null>(null)
 const allPricesLoading = ref(false)
 const priceSearch = ref('')
+const priceOnlyAvailable = ref(false)
 
 const filteredPrices = computed(() => {
   if (!allPricesData.value) return []
@@ -267,13 +268,19 @@ const filteredPrices = computed(() => {
     // Then alphabetical
     return territoryName(a.territory).localeCompare(territoryName(b.territory))
   })
-  if (!priceSearch.value.trim()) return sorted
-  const q = priceSearch.value.trim().toLowerCase()
-  return sorted.filter((tp) =>
-    territoryName(tp.territory).toLowerCase().includes(q) ||
-    tp.territory.toLowerCase().includes(q) ||
-    tp.currency.toLowerCase().includes(q)
-  )
+  let result = sorted
+  if (priceOnlyAvailable.value && selectedTerritories.value.size > 0) {
+    result = result.filter((tp) => selectedTerritories.value.has(tp.territory))
+  }
+  if (priceSearch.value.trim()) {
+    const q = priceSearch.value.trim().toLowerCase()
+    result = result.filter((tp) =>
+      territoryName(tp.territory).toLowerCase().includes(q) ||
+      tp.territory.toLowerCase().includes(q) ||
+      tp.currency.toLowerCase().includes(q)
+    )
+  }
+  return result
 })
 
 async function loadAllTerritoryPrices() {
@@ -668,9 +675,15 @@ const LOCALES = [
                   </button>
                 </div>
               </div>
-              <p v-if="allPricesData" class="text-xs text-gray-500 mt-1">
-                Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{ allPricesData.baseCurrency }}) - {{ allPricesData.basePrice }}
-              </p>
+              <div class="flex items-center justify-between mt-1">
+                <p v-if="allPricesData" class="text-xs text-gray-500">
+                  Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{ allPricesData.baseCurrency }}) - {{ allPricesData.basePrice }}
+                </p>
+                <label class="flex items-center gap-1.5 cursor-pointer">
+                  <input type="checkbox" v-model="priceOnlyAvailable" class="rounded w-3 h-3" />
+                  <span class="text-xs text-gray-400">只顯示已上架地區</span>
+                </label>
+              </div>
             </div>
 
             <div class="flex-1 min-h-0 px-6 pb-4">
