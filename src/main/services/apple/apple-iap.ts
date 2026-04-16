@@ -403,7 +403,7 @@ export async function createIapLocalization(
           description: data.description || ''
         },
         relationships: {
-          inAppPurchase: {
+          inAppPurchaseV2: {
             data: { type: 'inAppPurchases', id: iapId }
           }
         }
@@ -567,6 +567,14 @@ export async function setIapPriceSchedule(
       ]
     })
   })
+}
+
+// Get app primary locale
+export async function getAppPrimaryLocale(projectId: string): Promise<string> {
+  const creds = loadCredentials(projectId)
+  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  const resp = await appleRequest(projectId, `/v1/apps/${creds.apple.appId}`)
+  return resp.data?.attributes?.primaryLocale || 'en-US'
 }
 
 // Test connection by fetching app info

@@ -131,21 +131,35 @@ const locLoading = ref(false)
 const localizations = ref<Localization[]>([])
 const editingLoc = ref<{ id?: string; locale: string; name: string; description: string } | null>(null)
 const locSaving = ref(false)
+const primaryLocale = ref('en-US')
 
 async function loadLocalizations() {
   locLoading.value = true
-  const result = await window.api.getAppleLocalizations(props.projectId, props.product.id)
-  if (result.success) {
-    localizations.value = result.data
+  const [locResult, localeResult] = await Promise.all([
+    window.api.getAppleLocalizations(props.projectId, props.product.id),
+    primaryLocale.value === 'en-US' ? window.api.getApplePrimaryLocale(props.projectId) : null
+  ])
+  if (locResult.success) {
+    localizations.value = locResult.data
+  }
+  if (localeResult?.success) {
+    primaryLocale.value = localeResult.data
   }
   locLoading.value = false
 }
+
+const availableLocales = computed(() => {
+  const existing = new Set(localizations.value.map((l) => l.locale))
+  return LOCALES.filter((l) => !existing.has(l.value))
+})
 
 function openLocForm(loc?: Localization) {
   if (loc) {
     editingLoc.value = { id: loc.id, locale: loc.locale, name: loc.name, description: loc.description }
   } else {
-    editingLoc.value = { locale: '', name: '', description: '' }
+    const existing = new Set(localizations.value.map((l) => l.locale))
+    const defaultLocale = existing.has(primaryLocale.value) ? '' : primaryLocale.value
+    editingLoc.value = { locale: defaultLocale, name: '', description: '' }
   }
 }
 
@@ -277,11 +291,61 @@ onMounted(() => {
   loadAvailability()
 })
 
-const COMMON_LOCALES = [
-  'en-US', 'zh-Hant', 'zh-Hans', 'ja', 'ko', 'fr-FR', 'de-DE', 'es-ES',
-  'pt-BR', 'it', 'nl-NL', 'ru', 'th', 'vi', 'id', 'ms', 'ar-SA', 'tr',
-  'pl', 'uk', 'ro', 'cs', 'el', 'hu', 'sv', 'da', 'fi', 'nb', 'sk', 'hr',
-  'hi', 'he', 'ca', 'en-GB', 'en-AU', 'fr-CA', 'es-MX', 'pt-PT'
+function localeLabel(code: string): string {
+  return LOCALES.find((l) => l.value === code)?.label || code
+}
+
+const LOCALES = [
+  { value: 'ar-SA', label: 'Arabic' },
+  { value: 'bn-BD', label: 'Bangla' },
+  { value: 'ca', label: 'Catalan' },
+  { value: 'zh-Hans', label: 'Chinese (Simplified)' },
+  { value: 'zh-Hant', label: 'Chinese (Traditional)' },
+  { value: 'hr', label: 'Croatian' },
+  { value: 'cs', label: 'Czech' },
+  { value: 'da', label: 'Danish' },
+  { value: 'nl-NL', label: 'Dutch' },
+  { value: 'en-AU', label: 'English (Australia)' },
+  { value: 'en-CA', label: 'English (Canada)' },
+  { value: 'en-GB', label: 'English (U.K.)' },
+  { value: 'en-US', label: 'English (U.S.)' },
+  { value: 'fi', label: 'Finnish' },
+  { value: 'fr-FR', label: 'French' },
+  { value: 'fr-CA', label: 'French (Canada)' },
+  { value: 'de-DE', label: 'German' },
+  { value: 'el', label: 'Greek' },
+  { value: 'gu-IN', label: 'Gujarati' },
+  { value: 'he', label: 'Hebrew' },
+  { value: 'hi', label: 'Hindi' },
+  { value: 'hu', label: 'Hungarian' },
+  { value: 'id', label: 'Indonesian' },
+  { value: 'it', label: 'Italian' },
+  { value: 'ja', label: 'Japanese' },
+  { value: 'kn-IN', label: 'Kannada' },
+  { value: 'ko', label: 'Korean' },
+  { value: 'ms', label: 'Malay' },
+  { value: 'ml-IN', label: 'Malayalam' },
+  { value: 'mr-IN', label: 'Marathi' },
+  { value: 'no', label: 'Norwegian' },
+  { value: 'or-IN', label: 'Odia' },
+  { value: 'pl', label: 'Polish' },
+  { value: 'pt-BR', label: 'Portuguese (Brazil)' },
+  { value: 'pt-PT', label: 'Portuguese (Portugal)' },
+  { value: 'pa-IN', label: 'Punjabi' },
+  { value: 'ro', label: 'Romanian' },
+  { value: 'ru', label: 'Russian' },
+  { value: 'sk', label: 'Slovak' },
+  { value: 'sl-SI', label: 'Slovenian' },
+  { value: 'es-MX', label: 'Spanish (Mexico)' },
+  { value: 'es-ES', label: 'Spanish (Spain)' },
+  { value: 'sv', label: 'Swedish' },
+  { value: 'ta-IN', label: 'Tamil' },
+  { value: 'te-IN', label: 'Telugu' },
+  { value: 'th', label: 'Thai' },
+  { value: 'tr', label: 'Turkish' },
+  { value: 'uk', label: 'Ukrainian' },
+  { value: 'ur-PK', label: 'Urdu' },
+  { value: 'vi', label: 'Vietnamese' }
 ]
 </script>
 
@@ -500,7 +564,7 @@ const COMMON_LOCALES = [
               >
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300 font-mono">{{ loc.locale }}</span>
+                    <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ localeLabel(loc.locale) }}</span>
                     <span class="text-sm text-gray-200 font-medium truncate">{{ loc.name }}</span>
                   </div>
                   <p v-if="loc.description" class="text-xs text-gray-400 mt-1 line-clamp-2">{{ loc.description }}</p>
@@ -528,24 +592,32 @@ const COMMON_LOCALES = [
                       class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="" disabled>請選擇語言...</option>
-                      <option v-for="l in COMMON_LOCALES" :key="l" :value="l">{{ l }}</option>
+                      <option v-for="l in availableLocales" :key="l.value" :value="l.value">{{ l.label }}</option>
                     </select>
                     <span v-else class="text-sm text-gray-300 font-mono">{{ editingLoc.locale }}</span>
                   </div>
                   <div>
-                    <label class="block text-sm text-gray-400 mb-1">Name</label>
+                    <div class="flex justify-between mb-1">
+                      <label class="text-sm text-gray-400">Name</label>
+                      <span class="text-xs" :class="(editingLoc?.name.length ?? 0) > 35 ? 'text-red-400' : 'text-gray-500'">{{ editingLoc?.name.length ?? 0 }} / 35</span>
+                    </div>
                     <input
                       v-model="editingLoc.name"
                       type="text"
+                      maxlength="35"
                       class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       placeholder="商品名稱"
                     />
                   </div>
                   <div>
-                    <label class="block text-sm text-gray-400 mb-1">Description</label>
+                    <div class="flex justify-between mb-1">
+                      <label class="text-sm text-gray-400">Description</label>
+                      <span class="text-xs" :class="(editingLoc?.description.length ?? 0) > 55 ? 'text-red-400' : 'text-gray-500'">{{ editingLoc?.description.length ?? 0 }} / 55</span>
+                    </div>
                     <textarea
                       v-model="editingLoc.description"
                       rows="3"
+                      maxlength="55"
                       class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
                       placeholder="商品描述（選填）"
                     />

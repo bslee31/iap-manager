@@ -22,6 +22,7 @@ import {
   batchUpdateAvailability,
   getExistingAvailability,
   testConnection as testAppleConnection,
+  getAppPrimaryLocale,
   getIapAvailabilityDetail,
   updateIapAvailability,
   getAllTerritories,
@@ -412,6 +413,15 @@ export function registerIpcHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle('apple:get-primary-locale', async (_event, projectId: string) => {
+    try {
+      const locale = await getAppPrimaryLocale(projectId)
+      return { success: true, data: locale }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
 
   // ── Google Products ──
 

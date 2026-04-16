@@ -57,6 +57,8 @@ const api = {
     ipcRenderer.invoke('apple:get-price-points', projectId, iapId, territory),
   setApplePriceSchedule: (projectId: string, iapId: string, baseTerritory: string, pricePointId: string) =>
     ipcRenderer.invoke('apple:set-price-schedule', projectId, iapId, baseTerritory, pricePointId),
+  getApplePrimaryLocale: (projectId: string) =>
+    ipcRenderer.invoke('apple:get-primary-locale', projectId),
 
   // Google Products
   fetchGoogleProducts: (projectId: string) =>
