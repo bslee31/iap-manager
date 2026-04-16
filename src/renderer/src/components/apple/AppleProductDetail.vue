@@ -662,7 +662,7 @@ const LOCALES = [
                   <button
                     v-if="!allPricesLoading"
                     @click="loadAllTerritoryPrices"
-                    class="text-xs text-blue-400 hover:text-blue-300"
+                    class="px-2 py-1 border border-[#43454a] rounded text-xs text-gray-300 hover:bg-[#393b40] transition-colors"
                   >
                     重新載入
                   </button>
