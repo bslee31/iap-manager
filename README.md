@@ -7,11 +7,15 @@ Apple & Google 應用程式內購商品批次管理工具。
 ## 功能
 
 ### Apple In-App Purchases
-- 同步商品列表（含 Availability 地區數量）
+- 同步商品列表
 - 批次上架 / 下架
+- 批次重整 Price / Availability
 - 依狀態篩選（已核准、已下架、缺少資料等）
-- 單一商品 Availability 重新同步
-- 新增商品
+- 新增商品（消耗型 / 非消耗型）
+- 商品詳情 Modal（點擊商品列開啟）：
+  - **Availability** — 依區域分組勾選上架地區（匹配 App Store Connect 佈局）
+  - **Price Schedule** — 設定基準價格、查看所有地區等價、修改個別地區價格
+  - **Localization** — 新增/編輯/刪除多語言名稱與描述
 
 ### Google One-time Products
 - 同步商品列表（含 Purchase Option 狀態）
@@ -21,6 +25,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 
 ### 多專案管理
 - 每個專案獨立的 Apple / Google 憑證
+- 專案列表和側欄支援拖曳排序
 - 切換專案時保留分頁狀態
 
 ## 技術棧
@@ -83,8 +88,15 @@ npm run dist:linux    # Linux
 ### Apple
 - [App Store Connect API v1/v2](https://developer.apple.com/documentation/appstoreconnectapi)
 - 列表：`GET /v1/apps/{appId}/inAppPurchasesV2`
+- 建立：`POST /v2/inAppPurchases`
 - Availability：`GET /v2/inAppPurchases/{id}/inAppPurchaseAvailability`
 - 上下架：`POST /v1/inAppPurchaseAvailabilities`
+- Price Schedule：`GET /v2/inAppPurchases/{id}/iapPriceSchedule`
+- Price Points：`GET /v2/inAppPurchases/{id}/pricePoints`
+- 設定價格：`POST /v1/inAppPurchasePriceSchedules`
+- Localization：`GET /v2/inAppPurchases/{id}/inAppPurchaseLocalizations`
+- 建立 Localization：`POST /v1/inAppPurchaseLocalizations`
+- 地區列表：`GET /v1/territories`
 
 ### Google
 - [Google Play Developer API v3 - Monetization](https://developers.google.com/android-publisher/api-ref/rest/v3/monetization.onetimeproducts)
