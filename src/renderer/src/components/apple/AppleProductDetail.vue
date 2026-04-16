@@ -475,7 +475,7 @@ const LOCALES = [
 
 <template>
   <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="emit('close')">
-    <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] border border-[#393b40] flex flex-col overflow-hidden titlebar-no-drag">
+    <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-3xl h-[85vh] border border-[#393b40] flex flex-col overflow-hidden titlebar-no-drag">
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[#393b40] shrink-0">
         <div>
@@ -509,7 +509,7 @@ const LOCALES = [
           <template v-else>
             <!-- Top controls (fixed) -->
             <div class="px-6 pt-6 pb-2 shrink-0">
-              <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center justify-between mb-3">
                 <h4 class="text-sm font-medium text-gray-200">
                   Country or Region Availability ({{ selectedTerritories.size }})
                 </h4>
@@ -520,6 +520,22 @@ const LOCALES = [
                   placeholder="搜尋地區..."
                 />
               </div>
+
+              <!-- Selected territories summary -->
+              <div v-if="selectedTerritories.size > 0 && selectedTerritories.size <= 20" class="flex flex-wrap gap-1 mb-3">
+                <span
+                  v-for="code in [...selectedTerritories].sort((a, b) => territoryName(a).localeCompare(territoryName(b)))"
+                  :key="code"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-600/15 text-blue-400"
+                >
+                  {{ territoryName(code) }}
+                  <button @click="toggleTerritory(code)" class="hover:text-blue-200">&times;</button>
+                </span>
+              </div>
+              <p v-else-if="selectedTerritories.size > 20" class="text-xs text-gray-500 mb-3">
+                已選擇 {{ selectedTerritories.size }} 個地區
+              </p>
+
               <div class="flex items-center gap-1 text-xs">
                 <span class="text-gray-500">Select</span>
                 <button @click="selectAllTerritories" class="text-blue-400 hover:text-blue-300 underline">All</button>
