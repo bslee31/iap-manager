@@ -677,19 +677,31 @@ const LOCALES = [
               <div v-if="allPricesLoading" class="text-center py-6 text-gray-500">載入地區價格中...</div>
               <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden h-full flex flex-col">
                 <!-- Fixed header -->
-                <table class="w-full shrink-0">
+                <table class="w-full shrink-0 table-fixed">
+                  <colgroup>
+                    <col class="w-[48%]" />
+                    <col class="w-[22%]" />
+                    <col class="w-[22%]" />
+                    <col class="w-8" />
+                  </colgroup>
                   <thead>
                     <tr class="border-b border-[#393b40]">
                       <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">Country or Region</th>
                       <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Price</th>
                       <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Proceeds</th>
-                      <th class="w-10"></th>
+                      <th></th>
                     </tr>
                   </thead>
                 </table>
                 <!-- Scrollable body -->
                 <div class="flex-1 min-h-0 overflow-y-auto">
-                  <table class="w-full">
+                  <table class="w-full table-fixed">
+                    <colgroup>
+                      <col class="w-[48%]" />
+                      <col class="w-[22%]" />
+                      <col class="w-[22%]" />
+                      <col class="w-8" />
+                    </colgroup>
                     <tbody>
                       <tr
                         v-for="tp in filteredPrices"

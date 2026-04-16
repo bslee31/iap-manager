@@ -332,10 +332,18 @@ function statusColor(status: string): string {
     <div class="flex-1 min-h-0 px-6 pb-6">
     <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
       <!-- Fixed header -->
-      <table class="w-full shrink-0">
+      <table class="w-full shrink-0 table-fixed">
+        <colgroup>
+          <col class="w-10" />
+          <col class="w-[22%]" />
+          <col class="w-[22%]" />
+          <col class="w-[26%]" />
+          <col class="w-[14%]" />
+          <col class="w-[14%]" />
+        </colgroup>
         <thead>
           <tr class="bg-[#22252a] border-b border-[#393b40]">
-            <th class="w-10 px-3 py-3">
+            <th class="px-3 py-3">
               <input type="checkbox" :checked="allSelected" @change="toggleAll" class="rounded" />
             </th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product ID</th>
@@ -348,7 +356,15 @@ function statusColor(status: string): string {
       </table>
       <!-- Scrollable body -->
       <div class="flex-1 min-h-0 overflow-y-auto">
-      <table class="w-full">
+      <table class="w-full table-fixed">
+        <colgroup>
+          <col class="w-10" />
+          <col class="w-[22%]" />
+          <col class="w-[22%]" />
+          <col class="w-[26%]" />
+          <col class="w-[14%]" />
+          <col class="w-[14%]" />
+        </colgroup>
         <tbody>
           <tr
             v-for="product in filteredProducts"
