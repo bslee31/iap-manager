@@ -104,3 +104,11 @@ export interface IapPricePoint {
   proceeds: string
   territory: string
 }
+
+export interface TerritoryPrice {
+  territory: string
+  currency: string
+  customerPrice: string
+  proceeds: string
+  isManual: boolean
+}

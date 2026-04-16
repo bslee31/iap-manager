@@ -23,6 +23,8 @@ import {
   getExistingAvailability,
   testConnection as testAppleConnection,
   getAppPrimaryLocale,
+  getIapAllTerritoryPrices,
+  setManualTerritoryPrice,
   getIapAvailabilityDetail,
   updateIapAvailability,
   getAllTerritories,
@@ -418,6 +420,27 @@ export function registerIpcHandlers(): void {
     try {
       const locale = await getAppPrimaryLocale(projectId)
       return { success: true, data: locale }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle(
+    'apple:set-manual-territory-price',
+    async (_event, projectId: string, iapId: string, territory: string, pricePointId: string) => {
+      try {
+        await setManualTerritoryPrice(projectId, iapId, territory, pricePointId)
+        return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle('apple:get-all-territory-prices', async (_event, projectId: string, iapId: string) => {
+    try {
+      const data = await getIapAllTerritoryPrices(projectId, iapId)
+      return { success: true, data }
     } catch (e: any) {
       return { success: false, error: e.message }
     }

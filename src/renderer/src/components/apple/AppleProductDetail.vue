@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
-import { territoryLabel, groupTerritoriesByRegion, type GroupedTerritory } from '../../utils/territory-names'
+import { territoryName, groupTerritoriesByRegion, type GroupedTerritory } from '../../utils/territory-names'
+import SearchableSelect from '../common/SearchableSelect.vue'
 
 const props = defineProps<{
   projectId: string
@@ -214,14 +215,6 @@ async function deleteLoc(loc: Localization) {
 }
 
 // ── Price Schedule ──
-interface PriceInfo {
-  startDate: string | null
-  endDate: string | null
-  territory: string
-  price: string
-  pricePointId: string
-}
-
 interface PricePoint {
   id: string
   customerPrice: string
@@ -229,19 +222,139 @@ interface PricePoint {
   territory: string
 }
 
+const territoryOptions = computed(() =>
+  allTerritories.value
+    .map((t) => ({ code: t.id, label: `${territoryName(t.id)} (${t.currency})` }))
+    .sort((a, b) => a.label.localeCompare(b.label))
+)
+
 const priceLoading = ref(false)
 const priceSaving = ref(false)
-const prices = ref<PriceInfo[]>([])
 const pricePoints = ref<PricePoint[]>([])
 const selectedTerritory = ref('USA')
 const selectedPricePoint = ref('')
 const pricePointsLoading = ref(false)
 
+const pricePointOptions = computed(() =>
+  pricePoints.value.map((pp) => ({
+    value: pp.id,
+    label: `${pp.customerPrice} (收益: ${pp.proceeds})`
+  }))
+)
+
+// All territory prices
+interface AllTerritoryPricesData {
+  baseTerritory: string
+  basePrice: string
+  baseCurrency: string
+  territoryPrices: { territory: string; currency: string; customerPrice: string; proceeds: string; isManual: boolean }[]
+}
+const allPricesData = ref<AllTerritoryPricesData | null>(null)
+const allPricesLoading = ref(false)
+const priceSearch = ref('')
+
+const filteredPrices = computed(() => {
+  if (!allPricesData.value) return []
+  const base = allPricesData.value.baseTerritory
+  const list = allPricesData.value.territoryPrices
+  const sorted = [...list].sort((a, b) => {
+    // Base territory first
+    if (a.territory === base) return -1
+    if (b.territory === base) return 1
+    // Manual overrides second
+    if (a.isManual && !b.isManual) return -1
+    if (!a.isManual && b.isManual) return 1
+    // Then alphabetical
+    return territoryName(a.territory).localeCompare(territoryName(b.territory))
+  })
+  if (!priceSearch.value.trim()) return sorted
+  const q = priceSearch.value.trim().toLowerCase()
+  return sorted.filter((tp) =>
+    territoryName(tp.territory).toLowerCase().includes(q) ||
+    tp.territory.toLowerCase().includes(q) ||
+    tp.currency.toLowerCase().includes(q)
+  )
+})
+
+async function loadAllTerritoryPrices() {
+  allPricesLoading.value = true
+  const result = await window.api.getAppleAllTerritoryPrices(props.projectId, props.product.id)
+  if (result.success) {
+    allPricesData.value = result.data
+  }
+  allPricesLoading.value = false
+}
+
+// Edit individual territory price
+const editingTerrPrice = ref<{ territory: string; currency: string } | null>(null)
+const editTerrPricePoints = ref<PricePoint[]>([])
+const editTerrPriceLoading = ref(false)
+const editTerrSelectedPP = ref('')
+const editTerrSaving = ref(false)
+
+async function openEditTerritoryPrice(tp: { territory: string; currency: string }) {
+  editingTerrPrice.value = tp
+  editTerrSelectedPP.value = ''
+  editTerrPricePoints.value = []
+  editTerrPriceLoading.value = true
+
+  const result = await window.api.getApplePricePoints(props.projectId, props.product.id, tp.territory)
+  if (result.success) {
+    editTerrPricePoints.value = result.data
+    // Auto-select current price
+    const currentPrice = allPricesData.value?.territoryPrices.find((p) => p.territory === tp.territory)
+    if (currentPrice) {
+      const match = result.data.find((pp: PricePoint) => pp.customerPrice === currentPrice.customerPrice)
+      if (match) editTerrSelectedPP.value = match.id
+    }
+  }
+  editTerrPriceLoading.value = false
+}
+
+async function saveEditTerritoryPrice() {
+  if (!editingTerrPrice.value || !editTerrSelectedPP.value) return
+  editTerrSaving.value = true
+  const result = await window.api.setAppleManualTerritoryPrice(
+    props.projectId,
+    props.product.id,
+    editingTerrPrice.value.territory,
+    editTerrSelectedPP.value
+  )
+  editTerrSaving.value = false
+  if (result.success) {
+    notify.success(`${territoryName(editingTerrPrice.value.territory)} 價格已更新`)
+    editingTerrPrice.value = null
+    await loadAllTerritoryPrices()
+  } else {
+    notify.error(result.error || '更新失敗')
+  }
+}
+
+const editTerrPPOptions = computed(() => {
+  const baseCurrency = allPricesData.value?.baseCurrency || ''
+  const currentPrice = editingTerrPrice.value
+    ? allPricesData.value?.territoryPrices.find((p) => p.territory === editingTerrPrice.value!.territory)?.customerPrice
+    : ''
+
+  const basePrice = allPricesData.value?.basePrice || ''
+
+  return editTerrPricePoints.value.map((pp) => {
+    const isCurrent = pp.customerPrice === currentPrice
+    return {
+      value: pp.id,
+      label: pp.customerPrice,
+      right: isCurrent ? `${basePrice} (${baseCurrency})` : ''
+    }
+  })
+})
+
 async function loadPriceSchedule() {
   priceLoading.value = true
   const result = await window.api.getApplePriceSchedule(props.projectId, props.product.id)
   if (result.success) {
-    prices.value = result.data
+    if (result.data.baseTerritory) {
+      selectedTerritory.value = result.data.baseTerritory
+    }
   }
   priceLoading.value = false
 }
@@ -255,6 +368,11 @@ async function loadPricePoints() {
   )
   if (result.success) {
     pricePoints.value = result.data
+    // Auto-select current base price
+    if (allPricesData.value?.basePrice) {
+      const match = result.data.find((pp: PricePoint) => pp.customerPrice === allPricesData.value!.basePrice)
+      if (match) selectedPricePoint.value = match.id
+    }
   }
   pricePointsLoading.value = false
 }
@@ -274,7 +392,7 @@ async function savePriceSchedule() {
   priceSaving.value = false
   if (result.success) {
     notify.success('價格已更新')
-    await loadPriceSchedule()
+    await Promise.all([loadPriceSchedule(), loadAllTerritoryPrices()])
   } else {
     notify.error(result.error || '更新失敗')
   }
@@ -284,7 +402,13 @@ async function savePriceSchedule() {
 watch(activeTab, (tab) => {
   if (tab === 'availability' && allTerritories.value.length === 0) loadAvailability()
   if (tab === 'localization' && localizations.value.length === 0) loadLocalizations()
-  if (tab === 'price' && prices.value.length === 0) loadPriceSchedule()
+  if (tab === 'price') {
+    if (!allPricesData.value) {
+      loadPriceSchedule()
+      loadAllTerritoryPrices()
+    }
+    if (allTerritories.value.length === 0) loadAvailability()
+  }
 })
 
 onMounted(() => {
@@ -462,79 +586,138 @@ const LOCALES = [
         </div>
 
         <!-- ── Price Schedule Tab ── -->
-        <div v-if="activeTab === 'price'" class="flex-1 overflow-y-auto p-6">
+        <div v-if="activeTab === 'price'" class="flex flex-col flex-1 min-h-0">
           <div v-if="priceLoading" class="text-center py-10 text-gray-500">載入中...</div>
           <template v-else>
-            <!-- Current prices -->
-            <h4 class="text-sm font-medium text-gray-300 mb-3">目前價格</h4>
-            <div v-if="prices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden mb-6">
-              <table class="w-full">
-                <thead>
-                  <tr class="border-b border-[#393b40]">
-                    <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">地區</th>
-                    <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">價格</th>
-                    <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">開始日期</th>
-                    <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">結束日期</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(p, i) in prices" :key="i" class="border-b border-[#393b40] last:border-0">
-                    <td class="px-3 py-2 text-sm text-gray-300">{{ territoryLabel(p.territory) }}</td>
-                    <td class="px-3 py-2 text-sm text-gray-200 font-mono">{{ p.price }}</td>
-                    <td class="px-3 py-2 text-sm text-gray-400">{{ p.startDate || '-' }}</td>
-                    <td class="px-3 py-2 text-sm text-gray-400">{{ p.endDate || '-' }}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- Set base price -->
+            <div class="px-6 pt-6 pb-4 shrink-0">
+              <h4 class="text-sm font-medium text-gray-300 mb-3">Base Country or Region</h4>
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="flex-1">
+                    <SearchableSelect
+                      v-model="selectedTerritory"
+                      :options="territoryOptions.map(t => ({ value: t.code, label: t.label }))"
+                      placeholder="選擇基準地區..."
+                    />
+                  </div>
+                  <button
+                    @click="loadPricePoints"
+                    :disabled="pricePointsLoading"
+                    class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {{ pricePointsLoading ? '載入中...' : '載入價格選項' }}
+                  </button>
+                </div>
+
+                <div v-if="pricePoints.length > 0" class="flex items-center gap-3">
+                  <div class="flex-1">
+                    <SearchableSelect
+                      v-model="selectedPricePoint"
+                      :options="pricePointOptions"
+                      placeholder="選擇價格..."
+                    />
+                  </div>
+                  <button
+                    @click="savePriceSchedule"
+                    :disabled="priceSaving || !selectedPricePoint"
+                    class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 shrink-0"
+                  >
+                    {{ priceSaving ? '儲存中...' : '儲存價格' }}
+                  </button>
+                </div>
+              </div>
             </div>
-            <p v-else class="text-sm text-gray-500 mb-6">尚未設定價格</p>
 
-            <!-- Set price -->
-            <h4 class="text-sm font-medium text-gray-300 mb-3">設定基本價格</h4>
-            <div class="space-y-3">
-              <div class="flex items-center gap-3">
-                <label class="text-sm text-gray-400 shrink-0">基準地區</label>
-                <select
-                  v-model="selectedTerritory"
-                  class="px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="USA">United States (USA)</option>
-                  <option value="TWN">Taiwan (TWN)</option>
-                  <option value="JPN">Japan (JPN)</option>
-                  <option value="GBR">United Kingdom (GBR)</option>
-                  <option value="CAN">Canada (CAN)</option>
-                  <option value="AUS">Australia (AUS)</option>
-                </select>
-                <button
-                  @click="loadPricePoints"
-                  :disabled="pricePointsLoading"
-                  class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50"
-                >
-                  {{ pricePointsLoading ? '載入中...' : '載入價格選項' }}
-                </button>
+            <!-- All territory prices -->
+            <div class="px-6 pb-2 shrink-0 border-t border-[#393b40] pt-4">
+              <div class="flex items-center justify-between">
+                <h4 class="text-sm font-medium text-gray-300">Country or Region Prices</h4>
+                <div class="flex items-center gap-3">
+                  <input
+                    v-model="priceSearch"
+                    type="text"
+                    class="px-2 py-1 bg-[#1e1f22] border border-[#43454a] rounded text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500 w-40"
+                    placeholder="搜尋地區..."
+                  />
+                  <button
+                    v-if="!allPricesLoading"
+                    @click="loadAllTerritoryPrices"
+                    class="text-xs text-blue-400 hover:text-blue-300"
+                  >
+                    重新載入
+                  </button>
+                </div>
               </div>
+              <p v-if="allPricesData" class="text-xs text-gray-500 mt-1">
+                Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{ allPricesData.baseCurrency }}) - {{ allPricesData.basePrice }}
+              </p>
+            </div>
 
-              <div v-if="pricePoints.length > 0">
-                <label class="text-sm text-gray-400 mb-1 block">選擇價格</label>
-                <select
-                  v-model="selectedPricePoint"
-                  class="w-full px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="" disabled>請選擇...</option>
-                  <option v-for="pp in pricePoints" :key="pp.id" :value="pp.id">
-                    {{ pp.customerPrice }} (收益: {{ pp.proceeds }})
-                  </option>
-                </select>
+            <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+              <div v-if="allPricesLoading" class="text-center py-6 text-gray-500">載入地區價格中...</div>
+              <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden">
+                <table class="w-full">
+                  <thead>
+                    <tr class="border-b border-[#393b40]">
+                      <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">Country or Region</th>
+                      <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Price</th>
+                      <th class="text-right px-3 py-2 text-xs font-medium text-gray-500">Proceeds</th>
+                      <th class="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      v-for="tp in filteredPrices"
+                      :key="tp.territory"
+                      class="border-b border-[#393b40] last:border-0"
+                      :class="tp.territory === allPricesData?.baseTerritory ? 'bg-blue-600/10' : tp.isManual ? 'bg-yellow-600/10' : ''"
+                    >
+                      <td class="px-3 py-1.5 text-sm text-gray-300">{{ territoryName(tp.territory) }} ({{ tp.currency }})</td>
+                      <td class="px-3 py-1.5 text-sm text-gray-200 font-mono text-right">{{ tp.customerPrice }}</td>
+                      <td class="px-3 py-1.5 text-sm text-gray-400 font-mono text-right">{{ tp.proceeds }}</td>
+                      <td class="px-3 py-1.5 text-center">
+                        <button
+                          v-if="tp.territory !== allPricesData?.baseTerritory"
+                          @click="openEditTerritoryPrice(tp)"
+                          class="text-gray-500 hover:text-blue-400 transition-colors"
+                          title="修改價格"
+                        >&#9998;</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
+              <p v-else-if="allPricesData && priceSearch" class="text-sm text-gray-500 text-center py-4">找不到符合的地區</p>
+              <p v-else-if="!allPricesLoading" class="text-sm text-gray-500 text-center py-6">尚未設定價格</p>
+            </div>
 
-              <div class="flex justify-end">
-                <button
-                  @click="savePriceSchedule"
-                  :disabled="priceSaving || !selectedPricePoint"
-                  class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
-                >
-                  {{ priceSaving ? '儲存中...' : '儲存價格' }}
-                </button>
+            <!-- Edit territory price modal -->
+            <div v-if="editingTerrPrice" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+              <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
+                <h4 class="text-base font-semibold mb-4 text-gray-100">
+                  修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{ editingTerrPrice.currency }})
+                </h4>
+                <div v-if="editTerrPriceLoading" class="text-center py-6 text-gray-500">載入價格選項中...</div>
+                <template v-else>
+                  <div class="mb-4">
+                    <SearchableSelect
+                      v-model="editTerrSelectedPP"
+                      :options="editTerrPPOptions"
+                      placeholder="選擇價格..."
+                    />
+                  </div>
+                  <div class="flex justify-end gap-2">
+                    <button @click="editingTerrPrice = null" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">取消</button>
+                    <button
+                      @click="saveEditTerritoryPrice"
+                      :disabled="editTerrSaving || !editTerrSelectedPP"
+                      class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {{ editTerrSaving ? '儲存中...' : '儲存' }}
+                    </button>
+                  </div>
+                </template>
               </div>
             </div>
           </template>

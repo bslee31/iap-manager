@@ -9,7 +9,8 @@ import type {
   TerritoryInfo,
   IapLocalization,
   IapPriceInfo,
-  IapPricePoint
+  IapPricePoint,
+  TerritoryPrice
 } from './apple-types'
 
 const API_BASE = 'https://api.appstoreconnect.apple.com'
@@ -461,21 +462,23 @@ export async function deleteIapLocalization(
 export async function getIapPriceSchedule(
   projectId: string,
   iapId: string
-): Promise<IapPriceInfo[]> {
+): Promise<{ baseTerritory: string; prices: IapPriceInfo[] }> {
   try {
     const resp = await appleRequest(
       projectId,
-      `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=manualPrices&fields[inAppPurchasePrices]=startDate,endDate`
+      `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=manualPrices,baseTerritory&fields[inAppPurchasePrices]=startDate,endDate`
     )
 
-    if (!resp.data?.id) return []
+    if (!resp.data?.id) return { baseTerritory: '', prices: [] }
 
-    const manualPrices = resp.included || []
+    const allIncluded = resp.included || []
+    const baseTerrObj = allIncluded.find((i: any) => i.type === 'territories')
+    const baseTerritory = baseTerrObj?.id || ''
+
+    const manualPrices = allIncluded.filter((i: any) => i.type === 'inAppPurchasePrices')
     const prices: IapPriceInfo[] = []
 
     for (const mp of manualPrices) {
-      if (mp.type !== 'inAppPurchasePrices') continue
-      // Fetch territory and price point details for each manual price
       try {
         const priceDetail = await appleRequest(
           projectId,
@@ -497,9 +500,9 @@ export async function getIapPriceSchedule(
       }
     }
 
-    return prices
+    return { baseTerritory, prices }
   } catch {
-    return []
+    return { baseTerritory: '', prices: [] }
   }
 }
 
@@ -567,6 +570,237 @@ export async function setIapPriceSchedule(
       ]
     })
   })
+}
+
+// Set a manual price override for a specific territory
+export async function setManualTerritoryPrice(
+  projectId: string,
+  iapId: string,
+  territory: string,
+  pricePointId: string
+): Promise<void> {
+  // 1. Get current schedule to find base territory and existing manual prices
+  const scheduleResp = await appleRequest(
+    projectId,
+    `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=manualPrices,baseTerritory`
+  )
+
+  if (!scheduleResp.data?.id) throw new Error('尚未設定價格')
+
+  const scheduleId = scheduleResp.data.id
+  const allIncluded = scheduleResp.included || []
+  const baseTerrObj = allIncluded.find((i: any) => i.type === 'territories')
+  const baseTerritory = baseTerrObj?.id || ''
+
+  if (!baseTerritory) throw new Error('找不到基準地區')
+
+  // 2. Get existing manual prices with their price points and territories
+  const existingManual: { territory: string; pricePointId: string }[] = []
+  let url: string | null =
+    `/v1/inAppPurchasePriceSchedules/${scheduleId}/manualPrices?include=inAppPurchasePricePoint,territory&limit=200`
+
+  while (url) {
+    const resp = await appleRequest(projectId, url)
+    const included = resp.included || []
+    const terrMap = new Map<string, string>()
+    const ppMap = new Map<string, string>()
+    for (const item of included) {
+      if (item.type === 'territories') terrMap.set(item.id, item.id)
+      if (item.type === 'inAppPurchasePricePoints') ppMap.set(item.id, item.id)
+    }
+    for (const price of resp.data || []) {
+      const terrId = price.relationships?.territory?.data?.id
+      const ppId = price.relationships?.inAppPurchasePricePoint?.data?.id
+      if (terrId && ppId) {
+        existingManual.push({ territory: terrId, pricePointId: ppId })
+      }
+    }
+    url = resp.links?.next || null
+  }
+
+  // 3. Replace/add the target territory
+  const manualPrices = existingManual.filter((m) => m.territory !== territory)
+  manualPrices.push({ territory, pricePointId })
+
+  // 4. Also need the base territory price point - get from current manual prices for base
+  // The base territory price is always the first manual price
+  const basePriceEntry = existingManual.find((m) => m.territory === baseTerritory)
+
+  // Build the included array and data references
+  const priceData: any[] = []
+  const priceIncluded: any[] = []
+
+  manualPrices.forEach((mp, idx) => {
+    const id = `\${price-${idx}}`
+    priceData.push({ type: 'inAppPurchasePrices', id })
+    priceIncluded.push({
+      type: 'inAppPurchasePrices',
+      id,
+      attributes: { startDate: null, endDate: null },
+      relationships: {
+        inAppPurchasePricePoint: {
+          data: { type: 'inAppPurchasePricePoints', id: mp.pricePointId }
+        }
+      }
+    })
+  })
+
+  // If base territory doesn't have a manual price, add it from existing
+  if (basePriceEntry && !manualPrices.some((m) => m.territory === baseTerritory)) {
+    const id = `\${price-base}`
+    priceData.push({ type: 'inAppPurchasePrices', id })
+    priceIncluded.push({
+      type: 'inAppPurchasePrices',
+      id,
+      attributes: { startDate: null, endDate: null },
+      relationships: {
+        inAppPurchasePricePoint: {
+          data: { type: 'inAppPurchasePricePoints', id: basePriceEntry.pricePointId }
+        }
+      }
+    })
+  }
+
+  // 5. POST new price schedule
+  await appleRequest(projectId, '/v1/inAppPurchasePriceSchedules', {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        type: 'inAppPurchasePriceSchedules',
+        relationships: {
+          inAppPurchase: {
+            data: { type: 'inAppPurchases', id: iapId }
+          },
+          baseTerritory: {
+            data: { type: 'territories', id: baseTerritory }
+          },
+          manualPrices: {
+            data: priceData
+          }
+        }
+      },
+      included: priceIncluded
+    })
+  })
+}
+
+// Get all territory equivalent prices for the current price schedule
+export async function getIapAllTerritoryPrices(
+  projectId: string,
+  iapId: string
+): Promise<{ baseTerritory: string; basePrice: string; baseCurrency: string; territoryPrices: TerritoryPrice[] }> {
+  const resp = await appleRequest(
+    projectId,
+    `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=baseTerritory`
+  )
+
+  if (!resp.data?.id) {
+    return { baseTerritory: '', basePrice: '', baseCurrency: '', territoryPrices: [] }
+  }
+
+  const scheduleId = resp.data.id
+  const baseTerrObj = (resp.included || []).find((i: any) => i.type === 'territories')
+  const baseTerritory = baseTerrObj?.id || ''
+  const baseCurrency = baseTerrObj?.attributes?.currency || ''
+
+  // Fetch automatic prices (paginated)
+  const territoryPrices: TerritoryPrice[] = []
+  let basePrice = ''
+
+  let url: string | null =
+    `/v1/inAppPurchasePriceSchedules/${scheduleId}/automaticPrices?include=inAppPurchasePricePoint,territory&limit=200`
+
+  while (url) {
+    const pricesResp = await appleRequest(projectId, url)
+    const included = pricesResp.included || []
+
+    const territoryMap = new Map<string, any>()
+    const pricePointMap = new Map<string, any>()
+    for (const item of included) {
+      if (item.type === 'territories') territoryMap.set(item.id, item)
+      if (item.type === 'inAppPurchasePricePoints') pricePointMap.set(item.id, item)
+    }
+
+    for (const price of pricesResp.data || []) {
+      const terrId = price.relationships?.territory?.data?.id
+      const ppId = price.relationships?.inAppPurchasePricePoint?.data?.id
+      const territory = terrId ? territoryMap.get(terrId) : null
+      const pricePoint = ppId ? pricePointMap.get(ppId) : null
+
+      if (territory && pricePoint) {
+        const entry: TerritoryPrice = {
+          territory: territory.id,
+          currency: territory.attributes?.currency || '',
+          customerPrice: pricePoint.attributes?.customerPrice || '',
+          proceeds: pricePoint.attributes?.proceeds || '',
+          isManual: false
+        }
+        territoryPrices.push(entry)
+        if (territory.id === baseTerritory) {
+          basePrice = entry.customerPrice
+        }
+      }
+    }
+
+    url = pricesResp.links?.next || null
+  }
+
+  // Also fetch manual prices (overrides)
+  const manualTerritoryIds = new Set<string>()
+  url = `/v1/inAppPurchasePriceSchedules/${scheduleId}/manualPrices?include=inAppPurchasePricePoint,territory&limit=200`
+
+  while (url) {
+    const pricesResp = await appleRequest(projectId, url)
+    const included = pricesResp.included || []
+
+    const territoryMap = new Map<string, any>()
+    const pricePointMap = new Map<string, any>()
+    for (const item of included) {
+      if (item.type === 'territories') territoryMap.set(item.id, item)
+      if (item.type === 'inAppPurchasePricePoints') pricePointMap.set(item.id, item)
+    }
+
+    for (const price of pricesResp.data || []) {
+      const terrId = price.relationships?.territory?.data?.id
+      const ppId = price.relationships?.inAppPurchasePricePoint?.data?.id
+      const territory = terrId ? territoryMap.get(terrId) : null
+      const pricePoint = ppId ? pricePointMap.get(ppId) : null
+
+      if (territory && pricePoint) {
+        // Track which territories have manual overrides (excluding base)
+        if (territory.id !== baseTerritory) {
+          manualTerritoryIds.add(territory.id)
+        }
+
+        // Override the automatic price
+        const idx = territoryPrices.findIndex((tp) => tp.territory === territory.id)
+        const entry: TerritoryPrice = {
+          territory: territory.id,
+          currency: territory.attributes?.currency || '',
+          customerPrice: pricePoint.attributes?.customerPrice || '',
+          proceeds: pricePoint.attributes?.proceeds || '',
+          isManual: false // will be set below
+        }
+        if (idx >= 0) territoryPrices[idx] = entry
+        else territoryPrices.push(entry)
+
+        if (territory.id === baseTerritory) {
+          basePrice = entry.customerPrice
+        }
+      }
+    }
+
+    url = pricesResp.links?.next || null
+  }
+
+  // Mark manual overrides (excluding base territory)
+  for (const tp of territoryPrices) {
+    tp.isManual = manualTerritoryIds.has(tp.territory)
+  }
+
+  territoryPrices.sort((a, b) => a.territory.localeCompare(b.territory))
+
+  return { baseTerritory, basePrice, baseCurrency, territoryPrices }
 }
 
 // Get app primary locale
