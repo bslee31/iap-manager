@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
-import BatchActionBar from '../common/BatchActionBar.vue'
 import AppleProductDetail from './AppleProductDetail.vue'
 
 const props = defineProps<{ projectId: string }>()
@@ -310,10 +309,10 @@ function typeLabel(type: string): string {
 </script>
 
 <template>
-  <div>
+  <div class="flex flex-col h-full">
     <!-- Toolbar -->
-    <div class="flex items-center justify-between mb-4">
-      <div class="flex gap-2">
+    <div class="flex items-center justify-between mb-4 px-6 pt-6 shrink-0">
+      <div class="flex gap-2 items-center">
         <button
           @click="syncProducts"
           :disabled="syncing"
@@ -325,12 +324,9 @@ function typeLabel(type: string): string {
           <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           {{ syncProgress }}
         </span>
-        <button
-          @click="showCreateForm = true"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors"
-        >
-          + 新增商品
-        </button>
+        <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
+          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
+        </span>
       </div>
       <div class="flex items-center gap-3">
         <input
@@ -339,14 +335,40 @@ function typeLabel(type: string): string {
           class="px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 w-52"
           placeholder="搜尋 Product ID / Name..."
         />
-        <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
-          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
-        </span>
+        <button
+          @click="showCreateForm = true"
+          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors whitespace-nowrap"
+        >
+          + 新增商品
+        </button>
       </div>
     </div>
 
+    <!-- Batch Action Bar (inline) -->
+    <div v-if="selected.size > 0" class="flex items-center gap-3 px-6 mb-3 shrink-0">
+      <span class="text-sm text-gray-300 whitespace-nowrap">已選 {{ selected.size }} 項</span>
+      <div class="w-px h-5 bg-[#43454a]" />
+      <button
+        v-for="action in batchActions"
+        :key="action.key"
+        @click="handleBatchAction(action.key)"
+        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
+        :class="action.variant === 'danger'
+          ? 'bg-red-600 hover:bg-red-700 text-white'
+          : 'bg-blue-600 hover:bg-blue-700 text-white'"
+      >
+        {{ action.label }}
+      </button>
+      <button
+        @click="selected.clear(); selected = new Set()"
+        class="text-gray-400 hover:text-white text-sm transition-colors whitespace-nowrap"
+      >
+        取消選取
+      </button>
+    </div>
+
     <!-- Status filter chips -->
-    <div v-if="statusGroups.length > 0" class="flex flex-wrap gap-2 mb-4">
+    <div v-if="statusGroups.length > 0" class="flex flex-wrap gap-2 mb-4 px-6 shrink-0">
       <button
         @click="setFilter(null)"
         class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
@@ -415,8 +437,10 @@ function typeLabel(type: string): string {
     </div>
 
     <!-- Product Table -->
-    <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden">
-      <table class="w-full">
+    <div class="flex-1 min-h-0 px-6 pb-6">
+    <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
+      <!-- Fixed header -->
+      <table class="w-full shrink-0">
         <thead>
           <tr class="bg-[#22252a] border-b border-[#393b40]">
             <th class="w-10 px-3 py-3">
@@ -430,6 +454,10 @@ function typeLabel(type: string): string {
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
           </tr>
         </thead>
+      </table>
+      <!-- Scrollable body -->
+      <div class="flex-1 min-h-0 overflow-y-auto">
+      <table class="w-full">
         <tbody>
           <tr
             v-for="product in filteredProducts"
@@ -509,6 +537,7 @@ function typeLabel(type: string): string {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <!-- Empty state -->
@@ -524,14 +553,7 @@ function typeLabel(type: string): string {
     <div v-if="loading" class="text-center py-20 text-gray-500">
       載入中...
     </div>
-
-    <!-- Batch Action Bar -->
-    <BatchActionBar
-      :count="selected.size"
-      :actions="batchActions"
-      @action="handleBatchAction"
-      @clear="selected.clear(); selected = new Set()"
-    />
+    </div>
 
     <!-- Product Detail Modal -->
     <AppleProductDetail

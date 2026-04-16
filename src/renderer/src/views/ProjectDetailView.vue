@@ -58,12 +58,14 @@ onMounted(async () => {
     </div>
 
     <!-- Tab content -->
-    <div class="flex-1 overflow-y-auto p-6">
-      <keep-alive :key="id">
-        <AppleProductTable v-if="activeTab === 'apple'" :project-id="id" :key="'apple-' + id" />
-        <GoogleProductTable v-else-if="activeTab === 'google'" :project-id="id" :key="'google-' + id" />
-        <CredentialSettings v-else-if="activeTab === 'credentials'" :project-id="id" :key="'cred-' + id" />
-      </keep-alive>
+    <div class="flex-1 min-h-0 overflow-y-auto p-6" v-if="activeTab === 'credentials'">
+      <CredentialSettings :project-id="id" :key="'cred-' + id" />
+    </div>
+    <div class="flex-1 min-h-0 flex flex-col" v-else-if="activeTab === 'apple'">
+      <AppleProductTable :project-id="id" :key="'apple-' + id" />
+    </div>
+    <div class="flex-1 min-h-0 overflow-y-auto p-6" v-else-if="activeTab === 'google'">
+      <GoogleProductTable :project-id="id" :key="'google-' + id" />
     </div>
   </div>
 </template>

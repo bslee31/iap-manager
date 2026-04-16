@@ -673,10 +673,11 @@ const LOCALES = [
               </p>
             </div>
 
-            <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-4">
+            <div class="flex-1 min-h-0 px-6 pb-4">
               <div v-if="allPricesLoading" class="text-center py-6 text-gray-500">載入地區價格中...</div>
-              <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden">
-                <table class="w-full">
+              <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden h-full flex flex-col">
+                <!-- Fixed header -->
+                <table class="w-full shrink-0">
                   <thead>
                     <tr class="border-b border-[#393b40]">
                       <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">Country or Region</th>
@@ -685,27 +686,32 @@ const LOCALES = [
                       <th class="w-10"></th>
                     </tr>
                   </thead>
-                  <tbody>
-                    <tr
-                      v-for="tp in filteredPrices"
-                      :key="tp.territory"
-                      class="border-b border-[#393b40] last:border-0"
-                      :class="tp.territory === allPricesData?.baseTerritory ? 'bg-blue-600/10' : tp.isManual ? 'bg-yellow-600/10' : ''"
-                    >
-                      <td class="px-3 py-1.5 text-sm text-gray-300">{{ territoryName(tp.territory) }} ({{ tp.currency }})</td>
-                      <td class="px-3 py-1.5 text-sm text-gray-200 font-mono text-right">{{ tp.customerPrice }}</td>
-                      <td class="px-3 py-1.5 text-sm text-gray-400 font-mono text-right">{{ tp.proceeds }}</td>
-                      <td class="px-3 py-1.5 text-center">
-                        <button
-                          v-if="tp.territory !== allPricesData?.baseTerritory"
-                          @click="openEditTerritoryPrice(tp)"
-                          class="text-gray-500 hover:text-blue-400 transition-colors"
-                          title="修改價格"
-                        >&#9998;</button>
-                      </td>
-                    </tr>
-                  </tbody>
                 </table>
+                <!-- Scrollable body -->
+                <div class="flex-1 min-h-0 overflow-y-auto">
+                  <table class="w-full">
+                    <tbody>
+                      <tr
+                        v-for="tp in filteredPrices"
+                        :key="tp.territory"
+                        class="border-b border-[#393b40] last:border-0"
+                        :class="tp.territory === allPricesData?.baseTerritory ? 'bg-blue-600/10' : tp.isManual ? 'bg-yellow-600/10' : ''"
+                      >
+                        <td class="px-3 py-1.5 text-sm text-gray-300">{{ territoryName(tp.territory) }} ({{ tp.currency }})</td>
+                        <td class="px-3 py-1.5 text-sm text-gray-200 font-mono text-right">{{ tp.customerPrice }}</td>
+                        <td class="px-3 py-1.5 text-sm text-gray-400 font-mono text-right">{{ tp.proceeds }}</td>
+                        <td class="px-3 py-1.5 text-center">
+                          <button
+                            v-if="tp.territory !== allPricesData?.baseTerritory"
+                            @click="openEditTerritoryPrice(tp)"
+                            class="text-gray-500 hover:text-blue-400 transition-colors"
+                            title="修改價格"
+                          >&#9998;</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <p v-else-if="allPricesData && priceSearch" class="text-sm text-gray-500 text-center py-4">找不到符合的地區</p>
               <p v-else-if="!allPricesLoading" class="text-sm text-gray-500 text-center py-6">尚未設定價格</p>
