@@ -146,6 +146,12 @@ function onPriceUpdated(price: string, currency: string) {
   }
 }
 
+function onReferenceNameUpdated(referenceName: string) {
+  if (selectedProduct.value) {
+    selectedProduct.value.referenceName = referenceName
+  }
+}
+
 
 function toggleAll() {
   if (allSelected.value) {
@@ -617,6 +623,7 @@ function typeLabel(type: string): string {
       @close="selectedProduct = null"
       @update-availability="onAvailabilityUpdated"
       @update-price="onPriceUpdated"
+      @update-reference-name="onReferenceNameUpdated"
     />
 
     <!-- Import Dialog -->

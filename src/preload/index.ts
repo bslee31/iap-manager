@@ -33,6 +33,11 @@ const api = {
     ipcRenderer.invoke('apple:sync-availability', projectId, iapId),
   createAppleProduct: (projectId: string, data: unknown) =>
     ipcRenderer.invoke('apple:create-product', projectId, data),
+  updateAppleProduct: (
+    projectId: string,
+    iapId: string,
+    updates: { referenceName?: string }
+  ) => ipcRenderer.invoke('apple:update-product', projectId, iapId, updates),
   batchUpdateAppleAvailability: (projectId: string, ids: string[], available: boolean) =>
     ipcRenderer.invoke('apple:batch-availability', projectId, ids, available),
 

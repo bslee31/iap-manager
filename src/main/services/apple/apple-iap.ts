@@ -143,6 +143,30 @@ export async function deleteInAppPurchase(
   })
 }
 
+// Update editable attributes on an IAP (currently just reference name).
+// Apple rejects updates when the product is under review.
+export async function updateInAppPurchase(
+  projectId: string,
+  iapId: string,
+  attributes: { name?: string }
+): Promise<AppleInAppPurchase> {
+  const resp: AppleApiResponse<AppleInAppPurchase> = await appleRequest(
+    projectId,
+    `/v2/inAppPurchases/${iapId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({
+        data: {
+          type: 'inAppPurchases',
+          id: iapId,
+          attributes
+        }
+      })
+    }
+  )
+  return resp.data
+}
+
 // Fetch all available territory IDs from Apple
 async function fetchAllTerritoryIds(projectId: string): Promise<string[]> {
   const allIds: string[] = []

@@ -20,6 +20,7 @@ import { getDatabase } from './db/database'
 import {
   listInAppPurchases,
   createInAppPurchase,
+  updateInAppPurchase,
   batchUpdateAvailability,
   getExistingAvailability,
   testConnection as testAppleConnection,
@@ -315,6 +316,33 @@ export function registerIpcHandlers(): void {
       try {
         const product = await createInAppPurchase(projectId, data)
         return { success: true, data: product }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'apple:update-product',
+    async (
+      _event,
+      projectId: string,
+      iapId: string,
+      updates: { referenceName?: string }
+    ) => {
+      try {
+        const attributes: { name?: string } = {}
+        if (updates.referenceName !== undefined) attributes.name = updates.referenceName
+        const product = await updateInAppPurchase(projectId, iapId, attributes)
+
+        // Sync local cache
+        const newRefName = product.attributes.referenceName || product.attributes.name
+        const db = getDatabase()
+        db.prepare('UPDATE apple_products SET reference_name = ? WHERE id = ?').run(
+          newRefName,
+          iapId
+        )
+        return { success: true, data: { referenceName: newRefName } }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

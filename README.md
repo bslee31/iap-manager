@@ -13,6 +13,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 - 依狀態篩選（已核准、已下架、缺少資料等）
 - 新增商品（消耗型 / 非消耗型）
 - 商品詳情 Modal（點擊商品列開啟）：
+  - **Info** — 顯示 Product ID / Type / State（唯讀），修改 Reference Name（審核中狀態自動 disable）
   - **Availability** — 依區域分組勾選上架地區（匹配 App Store Connect 佈局）
   - **Price Schedule** — 設定基準價格、查看所有地區等價、修改個別地區價格
   - **Localization** — 新增/編輯/刪除多語言名稱與描述
@@ -94,6 +95,7 @@ npm run dist:linux    # Linux
 - [App Store Connect API v1/v2](https://developer.apple.com/documentation/appstoreconnectapi)
 - 列表：`GET /v1/apps/{appId}/inAppPurchasesV2`
 - 建立：`POST /v2/inAppPurchases`
+- 更新（Reference Name 等）：`PATCH /v2/inAppPurchases/{id}`
 - Availability：`GET /v2/inAppPurchases/{id}/inAppPurchaseAvailability`
 - 上下架：`POST /v1/inAppPurchaseAvailabilities`
 - Price Schedule：`GET /v2/inAppPurchases/{id}/iapPriceSchedule`
