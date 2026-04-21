@@ -65,6 +65,10 @@ const api = {
     ipcRenderer.invoke('apple:sync-base-price', projectId, iapId),
   getAppleAllTerritoryPrices: (projectId: string, iapId: string) =>
     ipcRenderer.invoke('apple:get-all-territory-prices', projectId, iapId),
+  exportAppleProducts: (
+    projectId: string,
+    products: { id: string; productId: string; referenceName: string; type: string }[]
+  ) => ipcRenderer.invoke('apple:export-products', projectId, products),
 
   // Google Products
   fetchGoogleProducts: (projectId: string) =>
@@ -81,6 +85,11 @@ const api = {
     const listener = (_event: any, data: any) => callback(data)
     ipcRenderer.on('sync:progress', listener)
     return () => ipcRenderer.removeListener('sync:progress', listener)
+  },
+  onExportProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {
+    const listener = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('export:progress', listener)
+    return () => ipcRenderer.removeListener('export:progress', listener)
   }
 }
 

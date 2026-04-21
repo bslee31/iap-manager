@@ -1,4 +1,5 @@
-import { ipcMain, BrowserWindow } from 'electron'
+import { ipcMain, BrowserWindow, dialog } from 'electron'
+import { writeFileSync } from 'fs'
 import {
   findAllProjects,
   createProject,
@@ -37,6 +38,11 @@ import {
   setIapPriceSchedule
 } from './services/apple/apple-iap'
 import type { CreateIapPayload } from './services/apple/apple-types'
+import {
+  exportAppleProducts,
+  buildExportFileName,
+  type ExportProductInput
+} from './services/apple/apple-export'
 import {
   listOneTimeProducts,
   createOneTimeProduct,
@@ -474,6 +480,52 @@ export function registerIpcHandlers(): void {
       return { success: false, error: e.message }
     }
   })
+
+  ipcMain.handle(
+    'apple:export-products',
+    async (event, projectId: string, products: ExportProductInput[]) => {
+      try {
+        if (!products || products.length === 0) {
+          return { success: false, error: '沒有可匯出的商品' }
+        }
+
+        const win = BrowserWindow.fromWebContents(event.sender)
+        const creds = loadCredentials(projectId)
+        const appId = creds.apple?.appId || 'unknown'
+
+        const saveResult = await dialog.showSaveDialog(win!, {
+          title: '匯出 Apple IAP',
+          defaultPath: buildExportFileName(appId),
+          filters: [{ name: 'JSON', extensions: ['json'] }]
+        })
+
+        if (saveResult.canceled || !saveResult.filePath) {
+          return { success: true, data: { cancelled: true } }
+        }
+
+        const onProgress = (current: number, total: number, phase: string): void => {
+          win?.webContents.send('export:progress', { current, total, phase })
+        }
+
+        const { data, errors } = await exportAppleProducts(projectId, products, onProgress)
+
+        writeFileSync(saveResult.filePath, JSON.stringify(data, null, 2), 'utf-8')
+
+        return {
+          success: true,
+          data: {
+            cancelled: false,
+            filePath: saveResult.filePath,
+            total: products.length,
+            exported: data.products.length,
+            errors
+          }
+        }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
 
   ipcMain.handle('apple:get-all-territory-prices', async (_event, projectId: string, iapId: string) => {
     try {

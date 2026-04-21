@@ -112,3 +112,59 @@ export interface TerritoryPrice {
   proceeds: string
   isManual: boolean
 }
+
+// ── Export / Import format ──
+// formatVersion bumped only when incompatible changes are made
+export const EXPORT_FORMAT_VERSION = 1
+
+export interface ExportedAvailability {
+  territories: string[]
+  availableInNewTerritories: boolean
+}
+
+export interface ExportedCustomPrice {
+  territory: string
+  price: string
+}
+
+export interface ExportedPriceSchedule {
+  baseTerritory: string
+  basePrice: string
+  customPrices?: ExportedCustomPrice[]
+}
+
+export interface ExportedLocalization {
+  locale: string
+  name: string
+  description: string
+}
+
+export interface ExportedProduct {
+  productId: string
+  referenceName: string
+  type: string
+  availability: ExportedAvailability
+  priceSchedule?: ExportedPriceSchedule
+  localizations?: ExportedLocalization[]
+}
+
+export interface ExportData {
+  formatVersion: number
+  exportedAt: string
+  appId: string
+  products: ExportedProduct[]
+}
+
+export interface ExportError {
+  productId: string
+  referenceName: string
+  error: string
+}
+
+export interface ExportResult {
+  cancelled: boolean
+  filePath?: string
+  total: number
+  exported: number
+  errors: ExportError[]
+}

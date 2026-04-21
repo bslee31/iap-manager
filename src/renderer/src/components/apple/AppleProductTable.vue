@@ -22,21 +22,28 @@ const products = ref<AppleProduct[]>([])
 const selected = ref<Set<string>>(new Set())
 const loading = ref(false)
 const syncing = ref(false)
+const exporting = ref(false)
+const exportProgress = ref('')
 const showCreateForm = ref(false)
 const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
 const syncProgress = ref('')
 const selectedProduct = ref<AppleProduct | null>(null)
 
-// Listen for sync progress from main process
+// Listen for sync/export progress from main process
 let cleanupProgress: (() => void) | null = null
+let cleanupExportProgress: (() => void) | null = null
 onMounted(() => {
   cleanupProgress = window.api.onSyncProgress((data) => {
     syncProgress.value = data.phase
   })
+  cleanupExportProgress = window.api.onExportProgress((data) => {
+    exportProgress.value = data.phase
+  })
 })
 onUnmounted(() => {
   cleanupProgress?.()
+  cleanupExportProgress?.()
 })
 
 // Create form
@@ -234,6 +241,49 @@ async function handleBatchAction(key: string) {
   }
 }
 
+async function exportProducts() {
+  if (products.value.length === 0) {
+    notify.error('沒有可匯出的商品，請先同步')
+    return
+  }
+
+  // 有勾選就匯出勾選的，沒勾選就匯出全部
+  const source =
+    selected.value.size > 0
+      ? products.value.filter((p) => selected.value.has(p.id))
+      : products.value
+
+  const payload = source.map((p) => ({
+    id: p.id,
+    productId: p.productId,
+    referenceName: p.referenceName,
+    type: p.type
+  }))
+
+  exporting.value = true
+  exportProgress.value = '準備匯出...'
+  const result = await window.api.exportAppleProducts(props.projectId, payload)
+  exporting.value = false
+  exportProgress.value = ''
+
+  if (!result.success) {
+    notify.error(result.error || '匯出失敗')
+    return
+  }
+
+  const data = result.data
+  if (data.cancelled) return
+
+  if (data.errors.length > 0) {
+    const lines = data.errors
+      .map((e: any) => `${e.productId}: ${e.error}`)
+      .join('\n')
+    notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
+  } else {
+    notify.success(`匯出完成：${data.exported} 個商品`)
+  }
+}
+
 async function createProduct() {
   if (!newProduct.value.productId || !newProduct.value.referenceName) {
     notify.error('請填寫商品 ID 和名稱')
@@ -295,9 +345,20 @@ function typeLabel(type: string): string {
         >
           同步商品
         </button>
+        <button
+          @click="exportProducts"
+          :disabled="exporting || syncing || products.length === 0"
+          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          匯出
+        </button>
         <span v-if="syncing" class="text-sm text-gray-400 flex items-center gap-2">
           <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
           {{ syncProgress }}
+        </span>
+        <span v-if="exporting" class="text-sm text-gray-400 flex items-center gap-2">
+          <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+          {{ exportProgress }}
         </span>
         <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
           {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
