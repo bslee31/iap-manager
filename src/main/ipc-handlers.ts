@@ -44,6 +44,11 @@ import {
   type ExportProductInput
 } from './services/apple/apple-export'
 import {
+  validateImport,
+  executeImport
+} from './services/apple/apple-import'
+import type { ExportedProduct } from './services/apple/apple-types'
+import {
   listOneTimeProducts,
   createOneTimeProduct,
   batchUpdateStatus as googleBatchUpdateStatus,
@@ -521,6 +526,114 @@ export function registerIpcHandlers(): void {
             errors
           }
         }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'apple:import-validate',
+    async (
+      _event,
+      projectId: string,
+      fileContent: string,
+      existingProductIds: string[]
+    ) => {
+      try {
+        const preview = await validateImport(projectId, fileContent, existingProductIds)
+        return { success: true, data: preview }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'apple:import-execute',
+    async (
+      event,
+      projectId: string,
+      products: ExportedProduct[],
+      territoryCurrencyMap: Record<string, string>
+    ) => {
+      try {
+        if (!products || products.length === 0) {
+          return { success: false, error: '沒有可匯入的商品' }
+        }
+        const win = BrowserWindow.fromWebContents(event.sender)
+        const onProgress = (current: number, total: number, phase: string): void => {
+          win?.webContents.send('import:progress', { current, total, phase })
+        }
+        const { results } = await executeImport(projectId, products, onProgress)
+
+        // Write successfully created products to local cache so the UI reflects
+        // the new rows without requiring a full re-sync. Fields are only written
+        // when their corresponding step succeeded.
+        const db = getDatabase()
+        const now = new Date().toISOString()
+        const maxRow = db
+          .prepare(
+            'SELECT COALESCE(MAX(sort_order), -1) as maxOrder FROM apple_products WHERE project_id = ?'
+          )
+          .get(projectId) as { maxOrder: number }
+        let nextOrder = maxRow.maxOrder + 1
+
+        const upsert = db.prepare(
+          `INSERT INTO apple_products (
+             id, project_id, product_id, reference_name, product_type, state,
+             available, territory_count, base_price, base_currency, sort_order, synced_at
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(id) DO UPDATE SET
+             product_id = excluded.product_id,
+             reference_name = excluded.reference_name,
+             product_type = excluded.product_type,
+             state = excluded.state,
+             available = excluded.available,
+             territory_count = excluded.territory_count,
+             base_price = excluded.base_price,
+             base_currency = excluded.base_currency,
+             synced_at = excluded.synced_at`
+        )
+
+        const productByProductId = new Map(products.map((p) => [p.productId, p]))
+
+        const tx = db.transaction(() => {
+          for (const r of results) {
+            if (!r.created || !r.iapId) continue
+            const product = productByProductId.get(r.productId)
+            if (!product) continue
+
+            const territoryCount = r.availabilityApplied
+              ? product.availability.territories.length
+              : 0
+            const available = territoryCount > 0 ? 1 : 0
+            const basePrice =
+              r.priceApplied && product.priceSchedule ? product.priceSchedule.basePrice : ''
+            const baseCurrency =
+              r.priceApplied && product.priceSchedule
+                ? territoryCurrencyMap[product.priceSchedule.baseTerritory] || ''
+                : ''
+
+            upsert.run(
+              r.iapId,
+              projectId,
+              product.productId,
+              product.referenceName,
+              product.type,
+              r.createdState || 'MISSING_METADATA',
+              available,
+              territoryCount,
+              basePrice,
+              baseCurrency,
+              nextOrder++,
+              now
+            )
+          }
+        })
+        tx()
+
+        return { success: true, data: { results } }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
 import AppleProductDetail from './AppleProductDetail.vue'
+import AppleImportDialog from './AppleImportDialog.vue'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -24,6 +25,8 @@ const loading = ref(false)
 const syncing = ref(false)
 const exporting = ref(false)
 const exportProgress = ref('')
+const importFileContent = ref<string | null>(null)
+const existingProductIds = computed(() => products.value.map((p) => p.productId))
 const showCreateForm = ref(false)
 const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
@@ -241,6 +244,19 @@ async function handleBatchAction(key: string) {
   }
 }
 
+async function importProducts() {
+  const result = await window.api.importFile([{ name: 'JSON', extensions: ['json'] }])
+  if (!result.success || !result.data) return
+  importFileContent.value = result.data
+}
+
+async function onImportDone() {
+  importFileContent.value = null
+  // Main process has already updated local DB with imported products,
+  // so just reload the cached list (no extra Apple API calls).
+  await loadCached()
+}
+
 async function exportProducts() {
   if (products.value.length === 0) {
     notify.error('沒有可匯出的商品，請先同步')
@@ -351,6 +367,13 @@ function typeLabel(type: string): string {
           class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
         >
           匯出
+        </button>
+        <button
+          @click="importProducts"
+          :disabled="exporting || syncing"
+          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          匯入
         </button>
         <span v-if="syncing" class="text-sm text-gray-400 flex items-center gap-2">
           <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -594,6 +617,16 @@ function typeLabel(type: string): string {
       @close="selectedProduct = null"
       @update-availability="onAvailabilityUpdated"
       @update-price="onPriceUpdated"
+    />
+
+    <!-- Import Dialog -->
+    <AppleImportDialog
+      v-if="importFileContent !== null"
+      :project-id="props.projectId"
+      :file-content="importFileContent"
+      :existing-product-ids="existingProductIds"
+      @close="importFileContent = null"
+      @imported="onImportDone"
     />
   </div>
 </template>

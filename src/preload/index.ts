@@ -69,6 +69,13 @@ const api = {
     projectId: string,
     products: { id: string; productId: string; referenceName: string; type: string }[]
   ) => ipcRenderer.invoke('apple:export-products', projectId, products),
+  validateAppleImport: (projectId: string, fileContent: string, existingProductIds: string[]) =>
+    ipcRenderer.invoke('apple:import-validate', projectId, fileContent, existingProductIds),
+  executeAppleImport: (
+    projectId: string,
+    products: unknown[],
+    territoryCurrencyMap: Record<string, string>
+  ) => ipcRenderer.invoke('apple:import-execute', projectId, products, territoryCurrencyMap),
 
   // Google Products
   fetchGoogleProducts: (projectId: string) =>
@@ -90,6 +97,11 @@ const api = {
     const listener = (_event: any, data: any) => callback(data)
     ipcRenderer.on('export:progress', listener)
     return () => ipcRenderer.removeListener('export:progress', listener)
+  },
+  onImportProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {
+    const listener = (_event: any, data: any) => callback(data)
+    ipcRenderer.on('import:progress', listener)
+    return () => ipcRenderer.removeListener('import:progress', listener)
   }
 }
 

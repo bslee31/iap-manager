@@ -168,3 +168,41 @@ export interface ExportResult {
   exported: number
   errors: ExportError[]
 }
+
+export interface ImportValidationIssue {
+  index: number // position in file.products array
+  productId?: string
+  field: string
+  message: string
+}
+
+export interface ImportPreview {
+  valid: boolean
+  formatVersion?: number
+  exportedAt?: string
+  appId?: string
+  products: ExportedProduct[]
+  issues: ImportValidationIssue[]
+  territoryCurrencyMap?: Record<string, string>
+}
+
+export interface ImportStepError {
+  step: string
+  target?: string
+  error: string
+}
+
+export interface ImportProductResult {
+  productId: string
+  referenceName: string
+  created: boolean
+  iapId?: string
+  stepErrors: ImportStepError[]
+  createdState?: string
+  availabilityApplied: boolean
+  priceApplied: boolean
+}
+
+export interface ImportResult {
+  results: ImportProductResult[]
+}

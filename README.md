@@ -16,6 +16,11 @@ Apple & Google 應用程式內購商品批次管理工具。
   - **Availability** — 依區域分組勾選上架地區（匹配 App Store Connect 佈局）
   - **Price Schedule** — 設定基準價格、查看所有地區等價、修改個別地區價格
   - **Localization** — 新增/編輯/刪除多語言名稱與描述
+- **匯出 / 匯入（批次建立商品）**
+  - JSON 格式（`formatVersion: 1`），包含 Product ID / Reference Name / Type / Availability / Price Schedule / Localization
+  - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目
+  - 匯入：兩階段流程 — 先驗證（格式、欄位長度、唯一性、地區代碼）並顯示預覽，確認後才批次建立
+  - 匯入併發 3，單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果
 
 ### Google One-time Products
 - 同步商品列表（含 Purchase Option 狀態）

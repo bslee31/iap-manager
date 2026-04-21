@@ -526,6 +526,48 @@ export async function setIapPriceSchedule(
   })
 }
 
+// Set full price schedule in one request: base + multiple manual prices
+// Each pricePointId is already territory-scoped (Apple's API returns per-territory points)
+export async function setIapPriceScheduleBatch(
+  projectId: string,
+  iapId: string,
+  baseTerritory: string,
+  pricePointIds: string[]
+): Promise<void> {
+  const priceData: any[] = []
+  const priceIncluded: any[] = []
+
+  pricePointIds.forEach((ppid, idx) => {
+    const id = `\${price-${idx}}`
+    priceData.push({ type: 'inAppPurchasePrices', id })
+    priceIncluded.push({
+      type: 'inAppPurchasePrices',
+      id,
+      attributes: { startDate: null, endDate: null },
+      relationships: {
+        inAppPurchasePricePoint: {
+          data: { type: 'inAppPurchasePricePoints', id: ppid }
+        }
+      }
+    })
+  })
+
+  await appleRequest(projectId, '/v1/inAppPurchasePriceSchedules', {
+    method: 'POST',
+    body: JSON.stringify({
+      data: {
+        type: 'inAppPurchasePriceSchedules',
+        relationships: {
+          inAppPurchase: { data: { type: 'inAppPurchases', id: iapId } },
+          baseTerritory: { data: { type: 'territories', id: baseTerritory } },
+          manualPrices: { data: priceData }
+        }
+      },
+      included: priceIncluded
+    })
+  })
+}
+
 // Set a manual price override for a specific territory
 export async function setManualTerritoryPrice(
   projectId: string,
