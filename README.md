@@ -28,6 +28,19 @@ Apple & Google 應用程式內購商品批次管理工具。
 - 批次上架 / 下架（透過 Purchase Options 狀態管理）
 - 依狀態篩選（上架中、已下架、草稿、未設定方案等）
 - 新增商品
+  - 指定 Purchase Option ID、Base Region 與 Base Price，後端以 `convertRegionPrices` 套用到所有支援地區並以 DRAFT 狀態建立
+  - Base Region 價格強制使用使用者輸入值（不讓 Google 市場最佳化將 TWD 200 調整為 210 之類），其他地區仍使用 Google 建議換算
+  - `regionsVersion 2022/02` 拒絕的地區（例如歐元過渡期的 BG、已不可計費地區）會從錯誤回應解析出來並重試，不讓少數失效地區擋住整筆建立；略過的地區會在成功提示中列出
+  - Listing 語言下拉選單以專案預設值為基準，亦提供「從 Play Console 偵測」按鈕（透過 Edits API 取得預設語言）並同步更新專案設定
+- 商品詳情 Modal（點擊商品列開啟，佈局對齊 Apple）：
+  - **Info** — 顯示 Product ID / Status 與 Purchase Options 清單，支援逐一啟用 / 停用
+  - **Availability** — 列出目前 Purchase Option 已設定的所有地區，固定表頭、支援搜尋，專案 Base Region 置頂
+  - **Pricing** — 檢視 / 修改各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
+  - **Listings** — 新增 / 編輯 / 刪除多語言標題與描述
+
+### Google 專案設定
+- **Default Language** — 新增商品 / Listings 的預設語言，可從 Play Console 自動偵測或手動選擇
+- **Base Region** — 每專案持久化的基準地區（migration 009），首次建立商品時自動填入，可於專案設定頁手動覆寫；商品詳情的 Availability / Pricing 會將此地區置頂
 
 ### 多專案管理
 - 每個專案獨立的 Apple / Google 憑證
@@ -108,5 +121,8 @@ npm run dist:linux    # Linux
 ### Google
 - [Google Play Developer API v3 - Monetization](https://developers.google.com/android-publisher/api-ref/rest/v3/monetization.onetimeproducts)
 - 列表：`GET /applications/{pkg}/oneTimeProducts`
+- 建立 / 更新：`PATCH /applications/{pkg}/onetimeproducts/{id}` (`updateMask` + `allowMissing=true` + `regionsVersion=2022/02`)
+- 價格換算：`POST /applications/{pkg}/pricing:convertRegionPrices`
 - 上下架：`POST /applications/{pkg}/oneTimeProducts/{id}/purchaseOptions:batchUpdateStates`
+- Edits API（取得 Play Console 預設語言）：`POST /applications/{pkg}/edits` → `GET /edits/{editId}/listings`
 - 注意：URL 大小寫不一致（LIST 用 `oneTimeProducts`，PATCH 用 `onetimeproducts`）
