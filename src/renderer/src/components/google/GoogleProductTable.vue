@@ -16,6 +16,28 @@ const languageOptions = GOOGLE_LANGUAGES.map((l) => ({
 const projectDefaultLanguage = ref('')
 const detectingLanguage = ref(false)
 
+interface RegionInfo {
+  regionCode: string
+  currencyCode: string
+}
+const supportedRegions = ref<RegionInfo[]>([])
+const loadingRegions = ref(false)
+
+const regionDisplayNames = new Intl.DisplayNames(['en'], { type: 'region' })
+const regionOptions = computed(() =>
+  supportedRegions.value
+    .map((r) => ({
+      value: r.regionCode,
+      label: `${regionDisplayNames.of(r.regionCode) || r.regionCode}`,
+      right: `${r.regionCode} · ${r.currencyCode}`
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'en'))
+)
+
+function currencyForRegion(regionCode: string): string {
+  return supportedRegions.value.find((r) => r.regionCode === regionCode)?.currencyCode || ''
+}
+
 interface GoogleProduct {
   productId: string
   name: string
@@ -48,7 +70,10 @@ const newProduct = ref({
   productId: '',
   name: '',
   description: '',
-  languageCode: ''
+  languageCode: '',
+  purchaseOptionId: 'base',
+  baseRegionCode: '',
+  basePrice: ''
 })
 const activeFilter = ref<string | null>(null)
 
@@ -118,14 +143,27 @@ async function loadCached() {
   loading.value = false
 }
 
-function openCreateForm() {
+async function openCreateForm() {
   newProduct.value = {
     productId: '',
     name: '',
     description: '',
-    languageCode: projectDefaultLanguage.value
+    languageCode: projectDefaultLanguage.value,
+    purchaseOptionId: 'base',
+    baseRegionCode: '',
+    basePrice: ''
   }
   showCreateForm.value = true
+  if (supportedRegions.value.length === 0) {
+    loadingRegions.value = true
+    const result = await window.api.getGoogleRegions(props.projectId)
+    loadingRegions.value = false
+    if (result.success && result.data) {
+      supportedRegions.value = result.data
+    } else {
+      notify.error(result.error || '無法取得支援地區')
+    }
+  }
 }
 
 async function detectLanguageInModal() {
@@ -203,6 +241,15 @@ async function handleBatchAction(key: string) {
   }
 }
 
+function parsePriceToUnitsNanos(input: string): { units: string; nanos: number } | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null
+  const [intPart, fracPart = ''] = trimmed.split('.')
+  const paddedFrac = (fracPart + '000000000').slice(0, 9)
+  return { units: intPart, nanos: Number(paddedFrac) }
+}
+
 async function createProduct() {
   if (!newProduct.value.productId || !newProduct.value.name) {
     notify.error('請填寫商品 ID 和名稱')
@@ -212,16 +259,52 @@ async function createProduct() {
     notify.error('請選擇語言')
     return
   }
+  if (!newProduct.value.baseRegionCode) {
+    notify.error('請選擇基準國家')
+    return
+  }
+  const baseCurrency = currencyForRegion(newProduct.value.baseRegionCode)
+  if (!baseCurrency) {
+    notify.error('找不到該國家的幣別')
+    return
+  }
+  const parsed = parsePriceToUnitsNanos(newProduct.value.basePrice)
+  if (!parsed) {
+    notify.error('請輸入有效的基準價格')
+    return
+  }
+  if (!newProduct.value.purchaseOptionId.trim()) {
+    notify.error('請填寫 Purchase Option ID')
+    return
+  }
 
-  const result = await window.api.createGoogleProduct(props.projectId, newProduct.value)
+  const result = await window.api.createGoogleProduct(props.projectId, {
+    productId: newProduct.value.productId,
+    name: newProduct.value.name,
+    description: newProduct.value.description,
+    languageCode: newProduct.value.languageCode,
+    purchaseOptionId: newProduct.value.purchaseOptionId.trim(),
+    baseRegionCode: newProduct.value.baseRegionCode,
+    baseCurrencyCode: baseCurrency,
+    basePriceUnits: parsed.units,
+    basePriceNanos: parsed.nanos
+  })
   if (result.success) {
-    notify.success('商品已建立')
+    const skipped = (result as any).skippedRegions as string[] | undefined
+    if (skipped && skipped.length > 0) {
+      notify.success(`商品已建立（草稿）。略過 ${skipped.length} 個地區：${skipped.join(', ')}（可到 Play Console 手動設定）`)
+    } else {
+      notify.success('商品已建立（草稿）')
+    }
     showCreateForm.value = false
     newProduct.value = {
       productId: '',
       name: '',
       description: '',
-      languageCode: projectDefaultLanguage.value
+      languageCode: projectDefaultLanguage.value,
+      purchaseOptionId: 'base',
+      baseRegionCode: '',
+      basePrice: ''
     }
     await syncProducts()
   } else {
@@ -336,12 +419,12 @@ function statusColor(status: string): string {
 
     <!-- Create Form Modal -->
     <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="showCreateForm = false">
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-md border border-[#393b40] titlebar-no-drag flex flex-col max-h-[85vh]">
+        <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
           <h3 class="text-lg font-semibold text-gray-100">新增 Google 商品</h3>
           <button @click="showCreateForm = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
         </div>
-        <div class="space-y-4">
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-2 space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">Product ID</label>
             <input
@@ -391,8 +474,62 @@ function statusColor(status: string): string {
               placeholder="商品描述"
             />
           </div>
+
+          <div class="border-t border-[#393b40] pt-4">
+            <div class="text-xs text-gray-500 mb-3">方案設定（建立為草稿狀態，需到 Play Console 再上架）</div>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Purchase Option ID</label>
+                <input
+                  v-model="newProduct.purchaseOptionId"
+                  type="text"
+                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+                  placeholder="例：base"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">Purchase type</label>
+                <select
+                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="BUY" selected>Buy</option>
+                  <option value="RENT" disabled>Rent（尚未支援）</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">
+                  基準國家
+                  <span v-if="loadingRegions" class="text-xs text-gray-500 font-normal ml-1">載入中...</span>
+                </label>
+                <SearchableSelect
+                  v-model="newProduct.baseRegionCode"
+                  :options="regionOptions"
+                  placeholder="請選擇基準國家"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1">基準價格</label>
+                <div class="flex items-center gap-2">
+                  <input
+                    v-model="newProduct.basePrice"
+                    type="text"
+                    inputmode="decimal"
+                    class="flex-1 px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+                    placeholder="例：30"
+                  />
+                  <span class="px-3 py-2 text-sm text-gray-300 bg-[#22252a] border border-[#43454a] rounded-lg min-w-[4rem] text-center">
+                    {{ currencyForRegion(newProduct.baseRegionCode) || '---' }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500 mt-1">其他國家的價格會由 Google 依基準價自動換算。</p>
+                <p class="text-xs text-yellow-500/80 mt-1">
+                  ⚠ 此價格為未稅價。Google 會依各國稅率自動加稅（例如台灣 +5%）顯示給使用者。若要「含稅最終價」，請自行反算後再輸入。
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="flex justify-end gap-2 mt-6">
+        <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
           <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
             取消
           </button>

@@ -97,6 +97,8 @@ const api = {
     ipcRenderer.invoke('google:set-default-language', projectId, languageCode),
   detectGoogleDefaultLanguage: (projectId: string) =>
     ipcRenderer.invoke('google:detect-default-language', projectId),
+  getGoogleRegions: (projectId: string) =>
+    ipcRenderer.invoke('google:get-regions', projectId),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {

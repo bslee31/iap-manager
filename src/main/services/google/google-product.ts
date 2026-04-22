@@ -133,24 +133,163 @@ export async function batchUpdateStatus(
   return { success, failed }
 }
 
-// Create a one-time product (uses lowercase: onetimeproducts)
-export async function createOneTimeProduct(
-  projectId: string,
-  data: { productId: string; name: string; description: string; languageCode: string }
-): Promise<any> {
-  return googleRequest(projectId, `/onetimeproducts/${data.productId}?allowMissing=true`, {
-    method: 'PATCH',
+export interface RegionInfo {
+  regionCode: string
+  currencyCode: string
+}
+
+export interface ConvertedPrice {
+  regionCode: string
+  currencyCode: string
+  units: string
+  nanos: number
+}
+
+// Used for onetimeproducts.patch. "2022/02" is currently the only accepted
+// value; update when Google publishes a new regions version.
+const REGIONS_VERSION = '2022/02'
+
+// Fetch Google Play's supported regions and their currencies.
+export async function fetchSupportedRegions(projectId: string): Promise<RegionInfo[]> {
+  const resp = await googleRequest(projectId, '/pricing:convertRegionPrices', {
+    method: 'POST',
     body: {
-      productId: data.productId,
-      listings: [
-        {
-          languageCode: data.languageCode,
-          title: data.name,
-          description: data.description
-        }
-      ]
+      price: { currencyCode: 'USD', units: '1', nanos: 0 }
     }
   })
+  const converted = resp?.convertedRegionPrices || {}
+  return Object.entries(converted).map(([regionCode, v]: [string, any]) => ({
+    regionCode,
+    currencyCode: v?.price?.currencyCode || ''
+  }))
+}
+
+// Convert a base price to every supported region's local price via Google.
+async function convertRegionPrices(
+  projectId: string,
+  basePrice: { currencyCode: string; units: string; nanos: number }
+): Promise<ConvertedPrice[]> {
+  const resp = await googleRequest(projectId, '/pricing:convertRegionPrices', {
+    method: 'POST',
+    body: { price: basePrice }
+  })
+  const converted = resp?.convertedRegionPrices || {}
+  return Object.entries(converted).map(([regionCode, v]: [string, any]) => ({
+    regionCode,
+    currencyCode: v?.price?.currencyCode || '',
+    units: v?.price?.units || '0',
+    nanos: v?.price?.nanos || 0
+  }))
+}
+
+export interface CreateOneTimeProductInput {
+  productId: string
+  name: string
+  description: string
+  languageCode: string
+  purchaseOptionId: string
+  baseRegionCode: string
+  baseCurrencyCode: string
+  basePriceUnits: string
+  basePriceNanos: number
+}
+
+// Parse per-region errors out of the API response so we can drop the
+// offending regions and retry. This covers mid-transition currency changes
+// (e.g. BG joining the Eurozone after regionsVersion 2022/02) and regions
+// that are no longer billable under the old version — without hard-coding
+// region lists.
+function parseProblematicRegions(message: string): string[] {
+  const codes = new Set<string>()
+  const patterns = [
+    /Invalid currency for region code ([A-Z]{2,3})/g,
+    /Region code ([A-Z]{2,3}) is not billable/g
+  ]
+  for (const re of patterns) {
+    let m: RegExpExecArray | null
+    while ((m = re.exec(message)) !== null) codes.add(m[1])
+  }
+  return [...codes]
+}
+
+// Create a DRAFT one-time product with a Buy purchase option and regional
+// pricing converted from the user-supplied base price. Retries up to a few
+// times dropping regions whose currency the patch endpoint rejects, so a few
+// mid-transition regions don't block the whole create.
+export async function createOneTimeProduct(
+  projectId: string,
+  data: CreateOneTimeProductInput
+): Promise<{ result: any; skippedRegions: string[] }> {
+  const regionalPrices = await convertRegionPrices(projectId, {
+    currencyCode: data.baseCurrencyCode,
+    units: data.basePriceUnits,
+    nanos: data.basePriceNanos
+  })
+
+  let configs = regionalPrices.map((p) => ({
+    regionCode: p.regionCode,
+    availability: 'AVAILABLE' as const,
+    price: {
+      currencyCode: p.currencyCode,
+      units: p.units,
+      nanos: p.nanos
+    }
+  }))
+
+  const params = new URLSearchParams({
+    allowMissing: 'true',
+    updateMask: 'listings,purchaseOptions',
+    'regionsVersion.version': REGIONS_VERSION
+  })
+
+  const skipped: string[] = []
+  let lastError = ''
+  // Retry up to 20 times; each retry drops regions Google rejected. The limit
+  // exists only to prevent infinite loops — in practice we stop as soon as an
+  // error reveals no new region codes to drop.
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      const result = await googleRequest(
+        projectId,
+        `/onetimeproducts/${data.productId}?${params}`,
+        {
+          method: 'PATCH',
+          body: {
+            productId: data.productId,
+            listings: [
+              {
+                languageCode: data.languageCode,
+                title: data.name,
+                description: data.description
+              }
+            ],
+            purchaseOptions: [
+              {
+                purchaseOptionId: data.purchaseOptionId,
+                state: 'DRAFT',
+                buyOption: {
+                  legacyCompatible: true,
+                  multiQuantityEnabled: false
+                },
+                regionalPricingAndAvailabilityConfigs: configs
+              }
+            ]
+          }
+        }
+      )
+      return { result, skippedRegions: skipped }
+    } catch (e: any) {
+      lastError = e?.message || ''
+      const bad = parseProblematicRegions(lastError)
+      // Only keep codes we actually still have — if the same region keeps
+      // appearing, something else is wrong and we should stop retrying.
+      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
+      if (newBad.length === 0) throw e
+      skipped.push(...newBad)
+      configs = configs.filter((c) => !newBad.includes(c.regionCode))
+    }
+  }
+  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
 }
 
 // Test connection

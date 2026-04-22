@@ -53,7 +53,9 @@ import {
   listOneTimeProducts,
   createOneTimeProduct,
   batchUpdateStatus as googleBatchUpdateStatus,
-  testConnection as testGoogleConnection
+  testConnection as testGoogleConnection,
+  fetchSupportedRegions,
+  type CreateOneTimeProductInput
 } from './services/google/google-product'
 import { fetchAppDefaultLanguage } from './services/google/google-app'
 import {
@@ -744,22 +746,28 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'google:create-product',
-    async (
-      _event,
-      projectId: string,
-      data: { productId: string; name: string; description: string; languageCode: string }
-    ) => {
+    async (_event, projectId: string, data: CreateOneTimeProductInput) => {
       try {
-        if (!data.languageCode) {
-          return { success: false, error: '請選擇語言' }
-        }
-        const product = await createOneTimeProduct(projectId, data)
-        return { success: true, data: product }
+        if (!data.languageCode) return { success: false, error: '請選擇語言' }
+        if (!data.baseRegionCode) return { success: false, error: '請選擇基準國家' }
+        if (!data.baseCurrencyCode) return { success: false, error: '請選擇基準幣別' }
+        if (!data.purchaseOptionId) return { success: false, error: '請填寫 Purchase Option ID' }
+        const { result, skippedRegions } = await createOneTimeProduct(projectId, data)
+        return { success: true, data: result, skippedRegions }
       } catch (e: any) {
         return { success: false, error: e.message }
       }
     }
   )
+
+  ipcMain.handle('google:get-regions', async (_event, projectId: string) => {
+    try {
+      const regions = await fetchSupportedRegions(projectId)
+      return { success: true, data: regions }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
 
   ipcMain.handle('google:get-settings', async (_event, projectId: string) => {
     try {
