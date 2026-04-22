@@ -23,6 +23,9 @@ const googleJsonContent = ref('')
 const googleTesting = ref(false)
 const googleDefaultLanguage = ref('')
 const googleDetectingLanguage = ref(false)
+const googleBaseRegion = ref('')
+const googleRegions = ref<{ regionCode: string; currencyCode: string }[]>([])
+const googleRegionsLoading = ref(false)
 
 const languageOptions = computed(() =>
   GOOGLE_LANGUAGES.map((l) => ({
@@ -30,6 +33,17 @@ const languageOptions = computed(() =>
     label: l.label,
     right: l.code
   }))
+)
+
+const regionDisplay = new Intl.DisplayNames(['en'], { type: 'region' })
+const regionOptions = computed(() =>
+  googleRegions.value
+    .map((r) => ({
+      value: r.regionCode,
+      label: regionDisplay.of(r.regionCode) || r.regionCode,
+      right: `${r.regionCode} · ${r.currencyCode}`
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'en'))
 )
 
 onMounted(async () => {
@@ -50,8 +64,28 @@ onMounted(async () => {
   const settings = await window.api.getGoogleSettings(props.projectId)
   if (settings.success && settings.data) {
     googleDefaultLanguage.value = settings.data.defaultLanguage || ''
+    googleBaseRegion.value = settings.data.baseRegion || ''
+  }
+  // Load supported regions for the priority-region dropdown.
+  if (googleSavedAccount.value) {
+    googleRegionsLoading.value = true
+    const regionsResult = await window.api.getGoogleRegions(props.projectId)
+    googleRegionsLoading.value = false
+    if (regionsResult.success && regionsResult.data) {
+      googleRegions.value = regionsResult.data
+    }
   }
 })
+
+async function onGoogleBaseRegionChange(value: string) {
+  googleBaseRegion.value = value
+  const result = await window.api.setGoogleBaseRegion(props.projectId, value || null)
+  if (result.success) {
+    notify.success('已更新優先顯示國家')
+  } else {
+    notify.error(result.error || '儲存失敗')
+  }
+}
 
 async function onGoogleLanguageChange(value: string) {
   googleDefaultLanguage.value = value
@@ -289,6 +323,18 @@ async function testGoogle() {
               {{ googleDetectingLanguage ? '偵測中...' : '從 Play Console 偵測' }}
             </button>
           </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">
+            優先顯示國家
+            <span class="text-xs text-gray-500 font-normal ml-1">（商品詳情 Price / Availability 會把此國家排在第一）</span>
+          </label>
+          <SearchableSelect
+            :model-value="googleBaseRegion"
+            :options="regionOptions"
+            :placeholder="googleRegionsLoading ? '載入中...' : '未設定（自動從預設語言推斷）'"
+            @update:model-value="onGoogleBaseRegionChange"
+          />
         </div>
         <div class="flex gap-2 pt-2">
           <button

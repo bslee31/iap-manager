@@ -95,10 +95,40 @@ const api = {
     ipcRenderer.invoke('google:get-settings', projectId),
   setGoogleDefaultLanguage: (projectId: string, languageCode: string | null) =>
     ipcRenderer.invoke('google:set-default-language', projectId, languageCode),
+  setGoogleBaseRegion: (projectId: string, regionCode: string | null) =>
+    ipcRenderer.invoke('google:set-base-region', projectId, regionCode),
   detectGoogleDefaultLanguage: (projectId: string) =>
     ipcRenderer.invoke('google:detect-default-language', projectId),
   getGoogleRegions: (projectId: string) =>
     ipcRenderer.invoke('google:get-regions', projectId),
+  getGoogleProductDetail: (projectId: string, productId: string) =>
+    ipcRenderer.invoke('google:get-product-detail', projectId, productId),
+  updateGoogleListings: (
+    projectId: string,
+    productId: string,
+    listings: { languageCode: string; title: string; description: string }[]
+  ) => ipcRenderer.invoke('google:update-listings', projectId, productId, listings),
+  setGooglePurchaseOptionState: (
+    projectId: string,
+    productId: string,
+    purchaseOptionId: string,
+    active: boolean
+  ) => ipcRenderer.invoke('google:set-po-state', projectId, productId, purchaseOptionId, active),
+  updateGooglePurchaseOptionPricing: (
+    projectId: string,
+    productId: string,
+    purchaseOptionId: string,
+    basePrice: { currencyCode: string; units: string; nanos: number },
+    baseRegionCode: string
+  ) =>
+    ipcRenderer.invoke(
+      'google:update-po-pricing',
+      projectId,
+      productId,
+      purchaseOptionId,
+      basePrice,
+      baseRegionCode
+    ),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {

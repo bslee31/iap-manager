@@ -55,12 +55,19 @@ import {
   batchUpdateStatus as googleBatchUpdateStatus,
   testConnection as testGoogleConnection,
   fetchSupportedRegions,
-  type CreateOneTimeProductInput
+  getOneTimeProduct,
+  updateOneTimeProductListings,
+  setPurchaseOptionState,
+  updatePurchaseOptionPricing,
+  type CreateOneTimeProductInput,
+  type OneTimeProductListing
 } from './services/google/google-product'
 import { fetchAppDefaultLanguage } from './services/google/google-app'
 import {
   getGoogleDefaultLanguage,
-  setGoogleDefaultLanguage
+  setGoogleDefaultLanguage,
+  getGoogleBaseRegion,
+  setGoogleBaseRegion
 } from './db/repositories/google-settings.repo'
 
 export function registerIpcHandlers(): void {
@@ -753,6 +760,78 @@ export function registerIpcHandlers(): void {
         if (!data.baseCurrencyCode) return { success: false, error: '請選擇基準幣別' }
         if (!data.purchaseOptionId) return { success: false, error: '請填寫 Purchase Option ID' }
         const { result, skippedRegions } = await createOneTimeProduct(projectId, data)
+        // Remember the chosen base region as the project default if none set,
+        // so detail views can show it first.
+        if (!getGoogleBaseRegion(projectId)) {
+          setGoogleBaseRegion(projectId, data.baseRegionCode)
+        }
+        return { success: true, data: result, skippedRegions }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:get-product-detail',
+    async (_event, projectId: string, productId: string) => {
+      try {
+        const data = await getOneTimeProduct(projectId, productId)
+        return { success: true, data }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:update-listings',
+    async (_event, projectId: string, productId: string, listings: OneTimeProductListing[]) => {
+      try {
+        const data = await updateOneTimeProductListings(projectId, productId, listings)
+        return { success: true, data }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:set-po-state',
+    async (
+      _event,
+      projectId: string,
+      productId: string,
+      purchaseOptionId: string,
+      active: boolean
+    ) => {
+      try {
+        await setPurchaseOptionState(projectId, productId, purchaseOptionId, active)
+        return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:update-po-pricing',
+    async (
+      _event,
+      projectId: string,
+      productId: string,
+      purchaseOptionId: string,
+      basePrice: { currencyCode: string; units: string; nanos: number },
+      baseRegionCode: string
+    ) => {
+      try {
+        const { result, skippedRegions } = await updatePurchaseOptionPricing(
+          projectId,
+          productId,
+          purchaseOptionId,
+          basePrice,
+          baseRegionCode
+        )
         return { success: true, data: result, skippedRegions }
       } catch (e: any) {
         return { success: false, error: e.message }
@@ -773,12 +852,27 @@ export function registerIpcHandlers(): void {
     try {
       return {
         success: true,
-        data: { defaultLanguage: getGoogleDefaultLanguage(projectId) }
+        data: {
+          defaultLanguage: getGoogleDefaultLanguage(projectId),
+          baseRegion: getGoogleBaseRegion(projectId)
+        }
       }
     } catch (e: any) {
       return { success: false, error: e.message }
     }
   })
+
+  ipcMain.handle(
+    'google:set-base-region',
+    async (_event, projectId: string, regionCode: string | null) => {
+      try {
+        setGoogleBaseRegion(projectId, regionCode)
+        return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
 
   ipcMain.handle(
     'google:set-default-language',

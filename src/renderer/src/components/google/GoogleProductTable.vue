@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
+import GoogleProductDetail from './GoogleProductDetail.vue'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -15,6 +16,7 @@ const languageOptions = GOOGLE_LANGUAGES.map((l) => ({
 
 const projectDefaultLanguage = ref('')
 const detectingLanguage = ref(false)
+const creating = ref(false)
 
 interface RegionInfo {
   regionCode: string
@@ -55,6 +57,7 @@ const syncing = ref(false)
 const showCreateForm = ref(false)
 const searchQuery = ref('')
 const syncProgress = ref('')
+const selectedProduct = ref<GoogleProduct | null>(null)
 
 let cleanupProgress: (() => void) | null = null
 onMounted(() => {
@@ -278,6 +281,7 @@ async function createProduct() {
     return
   }
 
+  creating.value = true
   const result = await window.api.createGoogleProduct(props.projectId, {
     productId: newProduct.value.productId,
     name: newProduct.value.name,
@@ -289,6 +293,7 @@ async function createProduct() {
     basePriceUnits: parsed.units,
     basePriceNanos: parsed.nanos
   })
+  creating.value = false
   if (result.success) {
     const skipped = (result as any).skippedRegions as string[] | undefined
     if (skipped && skipped.length > 0) {
@@ -530,11 +535,19 @@ function statusColor(status: string): string {
           </div>
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
+          <button
+            @click="showCreateForm = false"
+            :disabled="creating"
+            class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors disabled:opacity-50"
+          >
             取消
           </button>
-          <button @click="createProduct" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors">
-            建立
+          <button
+            @click="createProduct"
+            :disabled="creating"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+          >
+            {{ creating ? '建立中...' : '建立' }}
           </button>
         </div>
       </div>
@@ -583,7 +596,8 @@ function statusColor(status: string): string {
           <tr
             v-for="product in filteredProducts"
             :key="product.productId"
-            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors"
+            @click="selectedProduct = product"
+            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors cursor-pointer"
             :class="{ 'bg-green-600/10': selected.has(product.productId) }"
           >
             <td class="w-10 px-3 py-3" @click.stop>
@@ -623,5 +637,14 @@ function statusColor(status: string): string {
 
     <div v-if="loading" class="text-center py-20 text-gray-500">載入中...</div>
     </div>
+
+    <!-- Product Detail Modal -->
+    <GoogleProductDetail
+      v-if="selectedProduct"
+      :project-id="projectId"
+      :product="selectedProduct"
+      @close="selectedProduct = null"
+      @updated="syncProducts"
+    />
   </div>
 </template>

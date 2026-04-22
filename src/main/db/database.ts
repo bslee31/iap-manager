@@ -123,6 +123,12 @@ function runMigrations(db: Database.Database): void {
       sql: `
         ALTER TABLE project_credentials ADD COLUMN google_default_language TEXT;
       `
+    },
+    {
+      name: '009-google-base-region',
+      sql: `
+        ALTER TABLE project_credentials ADD COLUMN google_base_region TEXT;
+      `
     }
   ]
 

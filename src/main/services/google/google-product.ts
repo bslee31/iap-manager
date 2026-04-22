@@ -226,14 +226,23 @@ export async function createOneTimeProduct(
     nanos: data.basePriceNanos
   })
 
+  // Google auto-rounds to "nice" market prices, which can shift the base
+  // region's price. Force the base region to exactly what the user typed.
   let configs = regionalPrices.map((p) => ({
     regionCode: p.regionCode,
     availability: 'AVAILABLE' as const,
-    price: {
-      currencyCode: p.currencyCode,
-      units: p.units,
-      nanos: p.nanos
-    }
+    price:
+      p.regionCode === data.baseRegionCode
+        ? {
+            currencyCode: data.baseCurrencyCode,
+            units: data.basePriceUnits,
+            nanos: data.basePriceNanos
+          }
+        : {
+            currencyCode: p.currencyCode,
+            units: p.units,
+            nanos: p.nanos
+          }
   }))
 
   const params = new URLSearchParams({
@@ -290,6 +299,197 @@ export async function createOneTimeProduct(
     }
   }
   throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+}
+
+export interface OneTimeProductListing {
+  languageCode: string
+  title: string
+  description: string
+}
+
+export interface OneTimeProductRegionalConfig {
+  regionCode: string
+  availability: string
+  price?: { currencyCode: string; units: string; nanos: number }
+}
+
+export interface OneTimeProductPurchaseOption {
+  purchaseOptionId: string
+  state: string
+  type: 'BUY' | 'RENT' | 'UNKNOWN'
+  regionalConfigs: OneTimeProductRegionalConfig[]
+}
+
+export interface OneTimeProductDetail {
+  productId: string
+  listings: OneTimeProductListing[]
+  purchaseOptions: OneTimeProductPurchaseOption[]
+}
+
+// Fetch a single one-time product (uses camelCase: oneTimeProducts).
+export async function getOneTimeProduct(
+  projectId: string,
+  productId: string
+): Promise<OneTimeProductDetail> {
+  const resp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
+
+  // listings may be returned as array or map; normalize to array.
+  let listings: OneTimeProductListing[] = []
+  if (Array.isArray(resp?.listings)) {
+    listings = resp.listings.map((l: any) => ({
+      languageCode: l.languageCode || '',
+      title: l.title || '',
+      description: l.description || ''
+    }))
+  } else if (resp?.listings && typeof resp.listings === 'object') {
+    listings = Object.entries(resp.listings).map(([languageCode, l]: [string, any]) => ({
+      languageCode,
+      title: l?.title || '',
+      description: l?.description || ''
+    }))
+  }
+
+  const purchaseOptions: OneTimeProductPurchaseOption[] = (resp?.purchaseOptions || []).map(
+    (po: any) => ({
+      purchaseOptionId: po.purchaseOptionId || '',
+      state: po.state || 'UNKNOWN',
+      type: po.buyOption ? 'BUY' : po.rentOption ? 'RENT' : 'UNKNOWN',
+      regionalConfigs: (po.regionalPricingAndAvailabilityConfigs || []).map((c: any) => ({
+        regionCode: c.regionCode || '',
+        availability: c.availability || 'UNKNOWN',
+        price: c.price
+          ? {
+              currencyCode: c.price.currencyCode || '',
+              units: c.price.units || '0',
+              nanos: c.price.nanos || 0
+            }
+          : undefined
+      }))
+    })
+  )
+
+  return {
+    productId: resp?.productId || productId,
+    listings,
+    purchaseOptions
+  }
+}
+
+// Update the regional pricing of a single purchase option. Other purchase
+// options are preserved. Internally re-uses the same drop-and-retry logic as
+// createOneTimeProduct to handle regions Google rejects.
+export async function updatePurchaseOptionPricing(
+  projectId: string,
+  productId: string,
+  purchaseOptionId: string,
+  basePrice: { currencyCode: string; units: string; nanos: number },
+  baseRegionCode: string
+): Promise<{ result: any; skippedRegions: string[] }> {
+  const regionalPrices = await convertRegionPrices(projectId, basePrice)
+  // Raw fetch so we can preserve all fields on the other purchase options.
+  const currentResp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
+  const currentPOs: any[] = currentResp?.purchaseOptions || []
+  if (!currentPOs.some((po) => po.purchaseOptionId === purchaseOptionId)) {
+    throw new Error(`找不到 Purchase Option：${purchaseOptionId}`)
+  }
+
+  // Google auto-rounds to "nice" market prices, which can shift the base
+  // region's price (e.g. TWD 200 -> 210). Force the base region to exactly
+  // what the user typed so the UX matches expectation; other regions keep
+  // Google's market-optimized conversions.
+  let configs = regionalPrices.map((p) => ({
+    regionCode: p.regionCode,
+    availability: 'AVAILABLE' as const,
+    price:
+      p.regionCode === baseRegionCode
+        ? {
+            currencyCode: basePrice.currencyCode,
+            units: basePrice.units,
+            nanos: basePrice.nanos
+          }
+        : {
+            currencyCode: p.currencyCode,
+            units: p.units,
+            nanos: p.nanos
+          }
+  }))
+
+  const params = new URLSearchParams({
+    updateMask: 'purchaseOptions',
+    'regionsVersion.version': REGIONS_VERSION
+  })
+
+  const skipped: string[] = []
+  let lastError = ''
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const poArray = currentPOs.map((po) =>
+      po.purchaseOptionId === purchaseOptionId
+        ? { ...po, regionalPricingAndAvailabilityConfigs: configs }
+        : po
+    )
+    try {
+      const result = await googleRequest(
+        projectId,
+        `/onetimeproducts/${productId}?${params}`,
+        {
+          method: 'PATCH',
+          body: { productId, purchaseOptions: poArray }
+        }
+      )
+      return { result, skippedRegions: skipped }
+    } catch (e: any) {
+      lastError = e?.message || ''
+      const bad = parseProblematicRegions(lastError)
+      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
+      if (newBad.length === 0) throw e
+      skipped.push(...newBad)
+      configs = configs.filter((c) => !newBad.includes(c.regionCode))
+    }
+  }
+  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+}
+
+// Activate or deactivate a single purchase option.
+export async function setPurchaseOptionState(
+  projectId: string,
+  productId: string,
+  purchaseOptionId: string,
+  active: boolean
+): Promise<void> {
+  const packageName = getPackageName(projectId)
+  const reqBody = active
+    ? { activatePurchaseOptionRequest: { packageName, productId, purchaseOptionId } }
+    : { deactivatePurchaseOptionRequest: { packageName, productId, purchaseOptionId } }
+  await googleRequest(
+    projectId,
+    `/oneTimeProducts/${productId}/purchaseOptions:batchUpdateStates`,
+    {
+      method: 'POST',
+      body: { requests: [reqBody] }
+    }
+  )
+}
+
+// Replace all listings of a one-time product (create/update/delete via full
+// replacement). Google's patch with updateMask=listings replaces the entire
+// listings set with what we send.
+export async function updateOneTimeProductListings(
+  projectId: string,
+  productId: string,
+  listings: OneTimeProductListing[]
+): Promise<OneTimeProductDetail> {
+  const params = new URLSearchParams({
+    updateMask: 'listings',
+    'regionsVersion.version': REGIONS_VERSION
+  })
+  await googleRequest(projectId, `/onetimeproducts/${productId}?${params}`, {
+    method: 'PATCH',
+    body: {
+      productId,
+      listings
+    }
+  })
+  return getOneTimeProduct(projectId, productId)
 }
 
 // Test connection
