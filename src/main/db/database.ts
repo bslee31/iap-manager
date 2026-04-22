@@ -117,6 +117,12 @@ function runMigrations(db: Database.Database): void {
         ALTER TABLE apple_products ADD COLUMN base_price TEXT;
         ALTER TABLE apple_products ADD COLUMN base_currency TEXT;
       `
+    },
+    {
+      name: '008-google-default-language',
+      sql: `
+        ALTER TABLE project_credentials ADD COLUMN google_default_language TEXT;
+      `
     }
   ]
 

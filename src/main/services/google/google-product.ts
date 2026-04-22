@@ -136,7 +136,7 @@ export async function batchUpdateStatus(
 // Create a one-time product (uses lowercase: onetimeproducts)
 export async function createOneTimeProduct(
   projectId: string,
-  data: { productId: string; name: string; description: string }
+  data: { productId: string; name: string; description: string; languageCode: string }
 ): Promise<any> {
   return googleRequest(projectId, `/onetimeproducts/${data.productId}?allowMissing=true`, {
     method: 'PATCH',
@@ -144,7 +144,7 @@ export async function createOneTimeProduct(
       productId: data.productId,
       listings: [
         {
-          languageCode: 'zh-TW',
+          languageCode: data.languageCode,
           title: data.name,
           description: data.description
         }

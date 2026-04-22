@@ -61,9 +61,9 @@ export function saveAppleCredentials(projectId: string, apple: AppleCredentials)
   saveCredentials(projectId, creds)
 }
 
-export function saveGoogleCredentials(projectId: string, google: GoogleCredentials): void {
+export function saveGoogleCredentials(projectId: string, google: Partial<GoogleCredentials>): void {
   const creds = loadCredentials(projectId)
-  creds.google = google
+  creds.google = { ...creds.google, ...google } as GoogleCredentials
   saveCredentials(projectId, creds)
 }
 

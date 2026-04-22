@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import SearchableSelect from '../common/SearchableSelect.vue'
+import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
+
+const languageOptions = GOOGLE_LANGUAGES.map((l) => ({
+  value: l.code,
+  label: l.label,
+  right: l.code
+}))
+
+const projectDefaultLanguage = ref('')
+const detectingLanguage = ref(false)
 
 interface GoogleProduct {
   productId: string
@@ -36,7 +47,8 @@ onUnmounted(() => {
 const newProduct = ref({
   productId: '',
   name: '',
-  description: ''
+  description: '',
+  languageCode: ''
 })
 const activeFilter = ref<string | null>(null)
 
@@ -86,7 +98,16 @@ const batchActions = [
   { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
 ]
 
-onMounted(loadCached)
+onMounted(async () => {
+  await Promise.all([loadCached(), loadProjectSettings()])
+})
+
+async function loadProjectSettings() {
+  const result = await window.api.getGoogleSettings(props.projectId)
+  if (result.success && result.data) {
+    projectDefaultLanguage.value = result.data.defaultLanguage || ''
+  }
+}
 
 async function loadCached() {
   loading.value = true
@@ -95,6 +116,29 @@ async function loadCached() {
     products.value = result.data
   }
   loading.value = false
+}
+
+function openCreateForm() {
+  newProduct.value = {
+    productId: '',
+    name: '',
+    description: '',
+    languageCode: projectDefaultLanguage.value
+  }
+  showCreateForm.value = true
+}
+
+async function detectLanguageInModal() {
+  detectingLanguage.value = true
+  const result = await window.api.detectGoogleDefaultLanguage(props.projectId)
+  detectingLanguage.value = false
+  if (result.success && result.data) {
+    projectDefaultLanguage.value = result.data.defaultLanguage
+    newProduct.value.languageCode = result.data.defaultLanguage
+    notify.success(`已偵測到預設語言：${result.data.defaultLanguage}`)
+  } else {
+    notify.error(result.error || '偵測失敗')
+  }
 }
 
 async function syncProducts() {
@@ -164,12 +208,21 @@ async function createProduct() {
     notify.error('請填寫商品 ID 和名稱')
     return
   }
+  if (!newProduct.value.languageCode) {
+    notify.error('請選擇語言')
+    return
+  }
 
   const result = await window.api.createGoogleProduct(props.projectId, newProduct.value)
   if (result.success) {
     notify.success('商品已建立')
     showCreateForm.value = false
-    newProduct.value = { productId: '', name: '', description: '' }
+    newProduct.value = {
+      productId: '',
+      name: '',
+      description: '',
+      languageCode: projectDefaultLanguage.value
+    }
     await syncProducts()
   } else {
     notify.error(result.error || '建立失敗')
@@ -226,7 +279,7 @@ function statusColor(status: string): string {
           placeholder="搜尋 Product ID / Name..."
         />
         <button
-          @click="showCreateForm = true"
+          @click="openCreateForm"
           class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors whitespace-nowrap"
         >
           + 新增商品
@@ -297,6 +350,28 @@ function statusColor(status: string): string {
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
               placeholder="例：coins_100"
             />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">語言</label>
+            <div class="flex items-center gap-2">
+              <div class="flex-1">
+                <SearchableSelect
+                  v-model="newProduct.languageCode"
+                  :options="languageOptions"
+                  placeholder="請選擇語言"
+                />
+              </div>
+              <button
+                @click="detectLanguageInModal"
+                :disabled="detectingLanguage"
+                class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+              >
+                {{ detectingLanguage ? '偵測中...' : '偵測' }}
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              按「偵測」會從 Play Console 讀取並設為專案預設；手動選擇則只影響此次建立。
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">名稱</label>

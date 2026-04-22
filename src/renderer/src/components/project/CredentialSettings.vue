@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import SearchableSelect from '../common/SearchableSelect.vue'
+import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -16,8 +18,19 @@ const appleTesting = ref(false)
 // Google
 const googlePackageName = ref('')
 const googleHasAccount = ref(false)
+const googleSavedAccount = ref(false) // true iff credentials are persisted to disk
 const googleJsonContent = ref('')
 const googleTesting = ref(false)
+const googleDefaultLanguage = ref('')
+const googleDetectingLanguage = ref(false)
+
+const languageOptions = computed(() =>
+  GOOGLE_LANGUAGES.map((l) => ({
+    value: l.code,
+    label: l.label,
+    right: l.code
+  }))
+)
 
 onMounted(async () => {
   const result = await window.api.getCredentials(props.projectId)
@@ -31,9 +44,40 @@ onMounted(async () => {
     if (result.data.google) {
       googlePackageName.value = result.data.google.packageName
       googleHasAccount.value = result.data.google.hasServiceAccount
+      googleSavedAccount.value = result.data.google.hasServiceAccount
     }
   }
+  const settings = await window.api.getGoogleSettings(props.projectId)
+  if (settings.success && settings.data) {
+    googleDefaultLanguage.value = settings.data.defaultLanguage || ''
+  }
 })
+
+async function onGoogleLanguageChange(value: string) {
+  googleDefaultLanguage.value = value
+  const result = await window.api.setGoogleDefaultLanguage(props.projectId, value || null)
+  if (result.success) {
+    notify.success('已更新預設語言')
+  } else {
+    notify.error(result.error || '儲存預設語言失敗')
+  }
+}
+
+async function detectGoogleLanguage() {
+  if (!googleSavedAccount.value) {
+    notify.error('請先儲存 Google 憑證')
+    return
+  }
+  googleDetectingLanguage.value = true
+  const result = await window.api.detectGoogleDefaultLanguage(props.projectId)
+  googleDetectingLanguage.value = false
+  if (result.success && result.data) {
+    googleDefaultLanguage.value = result.data.defaultLanguage
+    notify.success(`已從 Play Console 偵測到預設語言：${result.data.defaultLanguage}`)
+  } else {
+    notify.error(result.error || '偵測失敗')
+  }
+}
 
 async function importP8() {
   const result = await window.api.importFile([
@@ -114,6 +158,7 @@ async function saveGoogle() {
 
   const result = await window.api.saveGoogleCredentials(props.projectId, creds)
   if (result.success) {
+    googleSavedAccount.value = true
     notify.success('Google 憑證已儲存')
   } else {
     notify.error(result.error || '儲存失敗')
@@ -220,6 +265,29 @@ async function testGoogle() {
             </button>
             <span v-if="googleHasAccount" class="text-sm text-green-400">&#10003; 已設定</span>
             <span v-else class="text-sm text-gray-500">未設定</span>
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1">
+            預設語言
+            <span class="text-xs text-gray-500 font-normal ml-1">（新增商品時使用的 listing 語言）</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <div class="flex-1">
+              <SearchableSelect
+                :model-value="googleDefaultLanguage"
+                :options="languageOptions"
+                placeholder="未設定"
+                @update:model-value="onGoogleLanguageChange"
+              />
+            </div>
+            <button
+              @click="detectGoogleLanguage"
+              :disabled="googleDetectingLanguage || !googleSavedAccount"
+              class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {{ googleDetectingLanguage ? '偵測中...' : '從 Play Console 偵測' }}
+            </button>
           </div>
         </div>
         <div class="flex gap-2 pt-2">

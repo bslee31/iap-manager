@@ -55,6 +55,11 @@ import {
   batchUpdateStatus as googleBatchUpdateStatus,
   testConnection as testGoogleConnection
 } from './services/google/google-product'
+import { fetchAppDefaultLanguage } from './services/google/google-app'
+import {
+  getGoogleDefaultLanguage,
+  setGoogleDefaultLanguage
+} from './db/repositories/google-settings.repo'
 
 export function registerIpcHandlers(): void {
   // ── Project CRUD ──
@@ -133,7 +138,7 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'credential:save-google',
-    async (_event, projectId: string, creds: GoogleCredentials) => {
+    async (_event, projectId: string, creds: Partial<GoogleCredentials>) => {
       try {
         saveGoogleCredentials(projectId, creds)
         const db = getDatabase()
@@ -739,8 +744,15 @@ export function registerIpcHandlers(): void {
 
   ipcMain.handle(
     'google:create-product',
-    async (_event, projectId: string, data: { productId: string; name: string; description: string }) => {
+    async (
+      _event,
+      projectId: string,
+      data: { productId: string; name: string; description: string; languageCode: string }
+    ) => {
       try {
+        if (!data.languageCode) {
+          return { success: false, error: '請選擇語言' }
+        }
         const product = await createOneTimeProduct(projectId, data)
         return { success: true, data: product }
       } catch (e: any) {
@@ -748,6 +760,39 @@ export function registerIpcHandlers(): void {
       }
     }
   )
+
+  ipcMain.handle('google:get-settings', async (_event, projectId: string) => {
+    try {
+      return {
+        success: true,
+        data: { defaultLanguage: getGoogleDefaultLanguage(projectId) }
+      }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
+
+  ipcMain.handle(
+    'google:set-default-language',
+    async (_event, projectId: string, languageCode: string | null) => {
+      try {
+        setGoogleDefaultLanguage(projectId, languageCode)
+        return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle('google:detect-default-language', async (_event, projectId: string) => {
+    try {
+      const languageCode = await fetchAppDefaultLanguage(projectId)
+      setGoogleDefaultLanguage(projectId, languageCode)
+      return { success: true, data: { defaultLanguage: languageCode } }
+    } catch (e: any) {
+      return { success: false, error: e.message }
+    }
+  })
 
   ipcMain.handle(
     'google:batch-status',

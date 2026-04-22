@@ -91,6 +91,12 @@ const api = {
     ipcRenderer.invoke('google:create-product', projectId, data),
   batchUpdateGoogleStatus: (projectId: string, ids: string[], active: boolean, products: unknown[]) =>
     ipcRenderer.invoke('google:batch-status', projectId, ids, active, products),
+  getGoogleSettings: (projectId: string) =>
+    ipcRenderer.invoke('google:get-settings', projectId),
+  setGoogleDefaultLanguage: (projectId: string, languageCode: string | null) =>
+    ipcRenderer.invoke('google:set-default-language', projectId, languageCode),
+  detectGoogleDefaultLanguage: (projectId: string) =>
+    ipcRenderer.invoke('google:detect-default-language', projectId),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {
