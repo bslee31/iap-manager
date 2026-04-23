@@ -63,6 +63,22 @@ const derivedStatus = computed(() => {
   }
   return 'DRAFT'
 })
+// Title shown in the modal header. Picks the listing using the same
+// priority as the list backend (zh-TW > en-US > first) so it stays
+// consistent with the list column, and updates reactively when the user
+// edits listings inside this modal.
+const displayName = computed(() => {
+  const listings = detail.value?.listings || []
+  if (listings.length > 0) {
+    const pick =
+      listings.find((l) => l.languageCode === 'zh-TW') ||
+      listings.find((l) => l.languageCode === 'en-US') ||
+      listings[0]
+    if (pick?.title) return pick.title
+  }
+  return props.product.name || ''
+})
+
 const derivedStatusLabel = computed(() => {
   const pos = detail.value?.purchaseOptions || []
   const total = pos.length
@@ -552,7 +568,7 @@ watch(selectedPoId, () => {
       <!-- Header -->
       <div class="flex items-center justify-between px-6 py-4 border-b border-[#393b40] shrink-0">
         <div>
-          <h3 class="text-lg font-semibold text-gray-100">{{ product.name || product.productId }}</h3>
+          <h3 class="text-lg font-semibold text-gray-100">{{ displayName || product.productId }}</h3>
           <p class="text-sm text-gray-400 font-mono">{{ product.productId }}</p>
         </div>
         <button @click="emit('close')" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
