@@ -60,6 +60,7 @@ import {
   setPurchaseOptionState,
   updatePurchaseOptionPricing,
   addPurchaseOption,
+  setLegacyCompatiblePurchaseOption,
   type CreateOneTimeProductInput,
   type OneTimeProductListing
 } from './services/google/google-product'
@@ -878,6 +879,23 @@ export function registerIpcHandlers(): void {
           baseRegionCode
         )
         return { success: true, data: result, skippedRegions }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:set-legacy-compatible',
+    async (
+      _event,
+      projectId: string,
+      productId: string,
+      purchaseOptionId: string
+    ) => {
+      try {
+        await setLegacyCompatiblePurchaseOption(projectId, productId, purchaseOptionId)
+        return { success: true }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

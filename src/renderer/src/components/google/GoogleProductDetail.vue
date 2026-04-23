@@ -342,6 +342,20 @@ function availableRegionCount(po: PurchaseOption): number {
   return po.regionalConfigs.filter((c) => c.availability === 'AVAILABLE').length
 }
 
+// Formatted base-region price for a PO, suitable for inline display in the
+// Purchase Options list. Uses "amount currency" order (e.g. "200.00 TWD")
+// to match the product list Price column.
+function basePriceLabel(po: PurchaseOption): string {
+  if (!baseRegion.value) return ''
+  const cfg = po.regionalConfigs.find((c) => c.regionCode === baseRegion.value)
+  if (!cfg?.price) return ''
+  const whole = cfg.price.units || '0'
+  const frac = Math.round((cfg.price.nanos || 0) / 1e7)
+    .toString()
+    .padStart(2, '0')
+  return `${whole}.${frac} ${cfg.price.currencyCode}`
+}
+
 // ── Add purchase option ──
 const showAddPoForm = ref(false)
 const addPoSaving = ref(false)
@@ -411,6 +425,38 @@ async function saveNewPurchaseOption() {
     emit('updated')
   } else {
     notify.error(result.error || '新增失敗')
+  }
+}
+
+// ── Set as Backwards compatible ──
+const settingLegacyPoId = ref('')
+
+async function setAsBackwardsCompatible(po: PurchaseOption) {
+  if (!detail.value) return
+  if (po.legacyCompatible) return
+  if (po.type !== 'BUY') {
+    notify.error('只有 BUY 型方案可以設為主方案')
+    return
+  }
+  const confirmMsg =
+    `將「${po.purchaseOptionId}」設為主方案（Backwards compatible）？\n\n` +
+    `設定後，使用舊版 Billing Library（v5 以前）的 client 會看到這個方案的定價。` +
+    `原本的主方案會失去此標記，但其狀態（上架/下架）不變。`
+  if (!confirm(confirmMsg)) return
+
+  settingLegacyPoId.value = po.purchaseOptionId
+  const result = await window.api.setGoogleLegacyCompatible(
+    props.projectId,
+    props.product.productId,
+    po.purchaseOptionId
+  )
+  settingLegacyPoId.value = ''
+  if (result.success) {
+    notify.success(`「${po.purchaseOptionId}」已設為主方案`)
+    await loadDetail()
+    emit('updated')
+  } else {
+    notify.error(result.error || '設定失敗')
   }
 }
 
@@ -585,6 +631,9 @@ watch(selectedPoId, () => {
                   <div class="min-w-0 flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-mono text-gray-200">{{ po.purchaseOptionId }}</span>
                     <span class="text-xs text-gray-500">{{ po.type }}</span>
+                    <span v-if="basePriceLabel(po)" class="text-xs text-gray-300 font-mono">
+                      · {{ basePriceLabel(po) }}
+                    </span>
                     <span class="text-xs text-gray-500">· {{ availableRegionCount(po) }} countries / regions</span>
                     <span
                       v-if="po.legacyCompatible"
@@ -597,6 +646,14 @@ watch(selectedPoId, () => {
                     <span class="text-xs px-2 py-0.5 rounded-full" :class="statusColor(po.state)">
                       {{ statusLabel(po.state) }}
                     </span>
+                    <button
+                      v-if="!po.legacyCompatible && po.type === 'BUY'"
+                      @click="setAsBackwardsCompatible(po)"
+                      :disabled="settingLegacyPoId === po.purchaseOptionId"
+                      class="text-xs px-2 py-1 border border-[#43454a] text-gray-300 hover:bg-[#393b40] rounded transition-colors disabled:opacity-50"
+                    >
+                      {{ settingLegacyPoId === po.purchaseOptionId ? '...' : '設為主方案' }}
+                    </button>
                     <button
                       v-if="po.state === 'ACTIVE'"
                       @click="togglePurchaseOptionState(po)"

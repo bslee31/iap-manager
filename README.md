@@ -28,7 +28,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 - 列表欄位：Product ID / Product name / Price / Status，佈局對齊 Apple
   - Price 取「主 PO」（`buyOption.legacyCompatible=true`，Play Console 的 Backwards compatible）在 Base Region 的價格
   - Status 採優先級聚合（ACTIVE > INACTIVE > DRAFT > NO_PURCHASE_OPTION）；多 PO 混合狀態會顯示 `N/M 上架中`
-- 批次上架 / 下架（透過 Purchase Options 狀態管理）
+- 批次上架 / 下架（作用於主 PO / Backwards compatible，對齊列表 Price 欄的語意；alternate PO 不受影響，如需個別操作請進 Detail）
 - 依狀態篩選（上架中、已下架、草稿、未設定方案等）
 - 新增商品
   - 指定 Purchase Option ID、Base Region 與 Base Price，後端以 `convertRegionPrices` 套用到所有支援地區並以 DRAFT 狀態建立
@@ -37,7 +37,7 @@ Apple & Google 應用程式內購商品批次管理工具。
   - Listing 語言下拉選單以專案預設值為基準，亦提供「從 Play Console 偵測」按鈕（透過 Edits API 取得預設語言）並同步更新專案設定
 - 商品詳情 Modal（點擊商品列開啟，佈局對齊 Apple）：
   - **Info** — 顯示 Product ID / Status 與 Purchase Options、Listings 的數量摘要
-  - **Purchase Options** — 列出所有方案並可逐一啟用 / 停用；每行顯示方案類型、`N countries / regions` 計數，主 PO 加註 `Backwards compatible` 標籤；支援新增方案（指定 POid + Base Region + Base Price，以 DRAFT 狀態追加，沿用 `convertRegionPrices` + drop-and-retry 邏輯）
+  - **Purchase Options** — 列出所有方案並可逐一啟用 / 停用；每行顯示方案類型、Base Region 的基準價（便於跨方案比對）、`N countries / regions` 計數，主 PO 加註 `Backwards compatible` 標籤；非主 PO 的 BUY 方案可一鍵「設為主方案」切換 `buyOption.legacyCompatible`（Google 規定每個商品至多一個，切換時會自動清除其他 PO 的旗標）；支援新增方案（指定 POid + Base Region + Base Price，以 DRAFT 狀態追加，沿用 `convertRegionPrices` + drop-and-retry 邏輯）
   - **Pricing** — 檢視 / 修改主 PO（或選定 PO）各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
   - **Listings** — 新增 / 編輯 / 刪除多語言標題與描述
 

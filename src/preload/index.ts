@@ -144,6 +144,17 @@ const api = {
       basePrice,
       baseRegionCode
     ),
+  setGoogleLegacyCompatible: (
+    projectId: string,
+    productId: string,
+    purchaseOptionId: string
+  ) =>
+    ipcRenderer.invoke(
+      'google:set-legacy-compatible',
+      projectId,
+      productId,
+      purchaseOptionId
+    ),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {

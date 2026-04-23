@@ -65,8 +65,6 @@ export async function listOneTimeProducts(
       // Get purchase options info
       const purchaseOptions = Array.isArray(p.purchaseOptions) ? p.purchaseOptions : []
       const activePOs = purchaseOptions.filter((po: any) => po.state === 'ACTIVE')
-      const activePO = activePOs[0]
-      const firstPO = purchaseOptions[0]
 
       // Priority-based aggregation so the summary is deterministic and
       // independent of PO order returned by the API:
@@ -86,11 +84,16 @@ export async function listOneTimeProducts(
         }
       }
 
-      // Resolve the primary PO's base region price, if available.
+      // Pick the primary PO once — used for both the list Price column and
+      // the cached purchaseOptionId (which drives batch activate/deactivate).
+      // Using the primary PO makes batch ops target the same "representative"
+      // option the Price column and Status reflect, instead of whichever PO
+      // happens to be active at sync time.
+      const primaryPO = pickPrimaryPurchaseOption(purchaseOptions)
+
       let basePrice: string | undefined
       let baseCurrency: string | undefined
       if (baseRegion) {
-        const primaryPO = pickPrimaryPurchaseOption(purchaseOptions)
         const cfg = primaryPO?.regionalPricingAndAvailabilityConfigs?.find(
           (c: any) => c.regionCode === baseRegion
         )
@@ -105,7 +108,7 @@ export async function listOneTimeProducts(
         name: listing.title || p.productId || '',
         description: listing.description || '',
         status,
-        purchaseOptionId: (activePO || firstPO)?.purchaseOptionId || '',
+        purchaseOptionId: primaryPO?.purchaseOptionId || '',
         purchaseOptionCount: purchaseOptions.length,
         activePurchaseOptionCount: activePOs.length,
         basePrice,
@@ -596,6 +599,51 @@ export async function setPurchaseOptionState(
     {
       method: 'POST',
       body: { requests: [reqBody] }
+    }
+  )
+}
+
+// Flip the "Backwards compatible" flag (buyOption.legacyCompatible) to the
+// given purchase option. Google allows at most one legacyCompatible PO per
+// product, so we also clear the flag on every other BUY PO. RENT POs have
+// no legacyCompatible concept and are preserved as-is.
+export async function setLegacyCompatiblePurchaseOption(
+  projectId: string,
+  productId: string,
+  purchaseOptionId: string
+): Promise<void> {
+  const currentResp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
+  const currentPOs: any[] = currentResp?.purchaseOptions || []
+  const target = currentPOs.find((po) => po.purchaseOptionId === purchaseOptionId)
+  if (!target) {
+    throw new Error(`找不到 Purchase Option：${purchaseOptionId}`)
+  }
+  if (!target.buyOption) {
+    throw new Error('只有 BUY 型方案可以設為主方案')
+  }
+
+  const updatedPOs = currentPOs.map((po) => {
+    if (!po.buyOption) return po
+    return {
+      ...po,
+      buyOption: {
+        ...po.buyOption,
+        legacyCompatible: po.purchaseOptionId === purchaseOptionId
+      }
+    }
+  })
+
+  const params = new URLSearchParams({
+    updateMask: 'purchaseOptions',
+    'regionsVersion.version': REGIONS_VERSION
+  })
+
+  await googleRequest(
+    projectId,
+    `/onetimeproducts/${productId}?${params}`,
+    {
+      method: 'PATCH',
+      body: { productId, purchaseOptions: updatedPOs }
     }
   )
 }
