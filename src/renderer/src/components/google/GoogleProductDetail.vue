@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>()
 const notify = useNotificationStore()
 
-type Tab = 'info' | 'purchaseOptions' | 'availability' | 'pricing' | 'listings'
+type Tab = 'info' | 'purchaseOptions' | 'pricing' | 'listings'
 const activeTab = ref<Tab>('info')
 
 interface Listing {
@@ -128,7 +128,7 @@ async function loadDetail() {
 
 onMounted(loadDetail)
 
-// ── Availability / Pricing shared: purchase option selection ──
+// ── Pricing: purchase option selection ──
 const selectedPoId = ref('')
 const poOptions = computed(() =>
   (detail.value?.purchaseOptions || []).map((po) => ({
@@ -338,6 +338,10 @@ async function applyNewPricing() {
   }
 }
 
+function availableRegionCount(po: PurchaseOption): number {
+  return po.regionalConfigs.filter((c) => c.availability === 'AVAILABLE').length
+}
+
 // ── Add purchase option ──
 const showAddPoForm = ref(false)
 const addPoSaving = ref(false)
@@ -486,21 +490,6 @@ function statusColor(status: string): string {
   }
 }
 
-function availabilityLabel(a: string): string {
-  const map: Record<string, string> = {
-    AVAILABLE: '販售中',
-    NO_LONGER_AVAILABLE: '已停售',
-    AVAILABILITY_UNSPECIFIED: '未指定'
-  }
-  return map[a] || a
-}
-
-function availabilityColor(a: string): string {
-  if (a === 'AVAILABLE') return 'text-green-400'
-  if (a === 'NO_LONGER_AVAILABLE') return 'text-red-400'
-  return 'text-gray-400'
-}
-
 // Refetch when switching tabs is not needed (we load everything upfront).
 watch(activeTab, (tab) => {
   regionSearch.value = ''
@@ -526,7 +515,7 @@ watch(selectedPoId, () => {
       <!-- Tabs -->
       <div class="flex border-b border-[#393b40] px-6 shrink-0">
         <button
-          v-for="tab in (['info', 'purchaseOptions', 'availability', 'pricing', 'listings'] as Tab[])"
+          v-for="tab in (['info', 'purchaseOptions', 'pricing', 'listings'] as Tab[])"
           :key="tab"
           @click="activeTab = tab"
           class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
@@ -534,7 +523,7 @@ watch(selectedPoId, () => {
             ? 'border-green-500 text-green-400'
             : 'border-transparent text-gray-400 hover:text-gray-200'"
         >
-          {{ tab === 'info' ? 'Info' : tab === 'purchaseOptions' ? 'Purchase Options' : tab === 'availability' ? 'Availability' : tab === 'pricing' ? 'Pricing' : 'Listings' }}
+          {{ tab === 'info' ? 'Info' : tab === 'purchaseOptions' ? 'Purchase Options' : tab === 'pricing' ? 'Pricing' : 'Listings' }}
         </button>
       </div>
 
@@ -596,6 +585,7 @@ watch(selectedPoId, () => {
                   <div class="min-w-0 flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-mono text-gray-200">{{ po.purchaseOptionId }}</span>
                     <span class="text-xs text-gray-500">{{ po.type }}</span>
+                    <span class="text-xs text-gray-500">· {{ availableRegionCount(po) }} countries / regions</span>
                     <span
                       v-if="po.legacyCompatible"
                       class="text-xs px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400"
@@ -629,8 +619,8 @@ watch(selectedPoId, () => {
             </div>
           </div>
 
-          <!-- ── Availability / Pricing shared controls ── -->
-          <div v-if="activeTab === 'availability' || activeTab === 'pricing'" class="shrink-0 px-6 pt-4">
+          <!-- ── Pricing shared controls ── -->
+          <div v-if="activeTab === 'pricing'" class="shrink-0 px-6 pt-4">
             <div class="flex items-center gap-3">
               <div class="flex-1">
                 <label class="block text-xs font-medium text-gray-500 uppercase mb-1">方案</label>
@@ -656,58 +646,6 @@ watch(selectedPoId, () => {
                   placeholder="代碼或名稱"
                   class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
                 />
-              </div>
-            </div>
-          </div>
-
-          <!-- ── Availability Tab ── -->
-          <div v-if="activeTab === 'availability'" class="flex-1 min-h-0 flex flex-col px-6 pb-6 pt-4">
-            <div v-if="!selectedPo" class="text-center py-10 text-gray-500">沒有方案</div>
-            <div v-else class="flex-1 min-h-0 bg-[#1e1f22] border border-[#43454a] rounded-lg flex flex-col overflow-hidden">
-              <div class="shrink-0 pr-[6px]">
-                <table class="w-full text-sm table-fixed">
-                  <colgroup>
-                    <col class="w-[50%]" />
-                    <col class="w-[25%]" />
-                    <col class="w-[25%]" />
-                  </colgroup>
-                  <thead>
-                    <tr class="text-left text-xs text-gray-500 uppercase bg-[#22252a] border-b border-[#393b40]">
-                      <th class="px-3 py-2 font-medium">地區</th>
-                      <th class="px-3 py-2 font-medium">代碼</th>
-                      <th class="px-3 py-2 font-medium">狀態</th>
-                    </tr>
-                  </thead>
-                </table>
-              </div>
-              <div class="flex-1 min-h-0 overflow-y-auto">
-                <table class="w-full text-sm table-fixed">
-                  <colgroup>
-                    <col class="w-[50%]" />
-                    <col class="w-[25%]" />
-                    <col class="w-[25%]" />
-                  </colgroup>
-                  <tbody>
-                    <tr
-                      v-for="c in filteredConfigs"
-                      :key="c.regionCode"
-                      class="border-b border-[#393b40]/50 hover:bg-[#2e3038] transition-colors"
-                      :class="{ 'bg-green-600/10': c.regionCode === baseRegion }"
-                    >
-                      <td class="px-3 py-2 text-gray-200">
-                        {{ regionLabel(c.regionCode) }}
-                        <span v-if="c.regionCode === baseRegion" class="ml-2 text-xs text-green-400">(基準)</span>
-                      </td>
-                      <td class="px-3 py-2 text-gray-500 font-mono">{{ c.regionCode }}</td>
-                      <td class="px-3 py-2 font-medium" :class="availabilityColor(c.availability)">
-                        {{ availabilityLabel(c.availability) }}
-                      </td>
-                    </tr>
-                    <tr v-if="filteredConfigs.length === 0">
-                      <td colspan="3" class="px-3 py-6 text-center text-gray-500">找不到地區</td>
-                    </tr>
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
@@ -784,7 +722,6 @@ watch(selectedPoId, () => {
                     >
                       <td class="px-3 py-2 text-gray-200">
                         {{ regionLabel(c.regionCode) }}
-                        <span v-if="c.regionCode === baseRegion" class="ml-2 text-xs text-green-400">(基準)</span>
                       </td>
                       <td class="px-3 py-2 text-gray-500 font-mono">{{ c.regionCode }}</td>
                       <td class="px-3 py-2 text-gray-300 font-mono">{{ formatPrice(c.price) }}</td>
