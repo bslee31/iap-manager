@@ -35,9 +35,13 @@ function formatPriceAmount(units: string, nanos: number): string {
 // List one-time products (uses camelCase: oneTimeProducts).
 // baseRegion, when provided, is used to extract the primary PO's price at
 // that region for the list-level Price column.
+// defaultLanguage, when provided, picks which listing's title/description
+// populates the list row; falls back to the first listing if not set or
+// not present.
 export async function listOneTimeProducts(
   projectId: string,
-  baseRegion?: string
+  baseRegion?: string,
+  defaultLanguage?: string
 ): Promise<GoogleProductItem[]> {
   const allProducts: GoogleProductItem[] = []
   let pageToken: string | undefined
@@ -51,15 +55,19 @@ export async function listOneTimeProducts(
 
     const products = resp.oneTimeProducts || []
     for (const p of products) {
-      // Get listing: prefer zh-TW, then en-US, then first available
+      // Get listing: prefer the project's defaultLanguage if set, otherwise
+      // fall back to the first available listing — no hardcoded locale.
       let listing: any = {}
       if (Array.isArray(p.listings)) {
-        listing = p.listings.find((l: any) => l.languageCode === 'zh-TW')
-          || p.listings.find((l: any) => l.languageCode === 'en-US')
-          || p.listings[0] || {}
+        listing =
+          (defaultLanguage && p.listings.find((l: any) => l.languageCode === defaultLanguage)) ||
+          p.listings[0] ||
+          {}
       } else if (p.listings && typeof p.listings === 'object') {
-        listing = p.listings['zh-TW'] || p.listings['en-US']
-          || Object.values(p.listings)[0] || {}
+        listing =
+          (defaultLanguage && p.listings[defaultLanguage]) ||
+          Object.values(p.listings)[0] ||
+          {}
       }
 
       // Get purchase options info
@@ -202,7 +210,7 @@ export interface ConvertedPrice {
 
 // Used for onetimeproducts.patch. "2022/02" is currently the only accepted
 // value; update when Google publishes a new regions version.
-const REGIONS_VERSION = '2022/02'
+export const REGIONS_VERSION = '2022/02'
 
 // Fetch Google Play's supported regions and their currencies.
 export async function fetchSupportedRegions(projectId: string): Promise<RegionInfo[]> {
@@ -254,7 +262,7 @@ export interface CreateOneTimeProductInput {
 // (e.g. BG joining the Eurozone after regionsVersion 2022/02) and regions
 // that are no longer billable under the old version — without hard-coding
 // region lists.
-function parseProblematicRegions(message: string): string[] {
+export function parseProblematicRegions(message: string): string[] {
   const codes = new Set<string>()
   const patterns = [
     /Invalid currency for region code ([A-Z]{2,3})/g,

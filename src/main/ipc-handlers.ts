@@ -71,6 +71,11 @@ import {
   type ExportGoogleProductInput
 } from './services/google/google-export'
 import {
+  validateImport as validateGoogleImport,
+  executeImport as executeGoogleImport
+} from './services/google/google-import'
+import type { ExportedGoogleProduct } from './services/google/google-types'
+import {
   getGoogleDefaultLanguage,
   setGoogleDefaultLanguage,
   getGoogleBaseRegion,
@@ -711,7 +716,8 @@ export function registerIpcHandlers(): void {
       const win = BrowserWindow.fromWebContents(event.sender)
       win?.webContents.send('sync:progress', { current: 0, total: 0, phase: '正在從 Google Play 同步...' })
       const baseRegion = getGoogleBaseRegion(projectId) || undefined
-      const products = await listOneTimeProducts(projectId, baseRegion)
+      const defaultLanguage = getGoogleDefaultLanguage(projectId) || undefined
+      const products = await listOneTimeProducts(projectId, baseRegion, defaultLanguage)
       win?.webContents.send('sync:progress', { current: products.length, total: products.length, phase: `已取得 ${products.length} 個商品` })
       // Cache to local DB
       const db = getDatabase()
@@ -947,6 +953,39 @@ export function registerIpcHandlers(): void {
             errors
           }
         }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:import-validate',
+    async (
+      _event,
+      projectId: string,
+      fileContent: string,
+      existingProductIds: string[]
+    ) => {
+      try {
+        const preview = await validateGoogleImport(projectId, fileContent, existingProductIds)
+        return { success: true, data: preview }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:import-execute',
+    async (event, projectId: string, products: ExportedGoogleProduct[]) => {
+      try {
+        const win = BrowserWindow.fromWebContents(event.sender)
+        const onProgress = (current: number, total: number, phase: string): void => {
+          win?.webContents.send('import:progress', { current, total, phase })
+        }
+        const { results } = await executeGoogleImport(projectId, products, onProgress)
+        return { success: true, data: { results } }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

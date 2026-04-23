@@ -76,3 +76,36 @@ export interface GoogleExportResult {
   exported: number
   errors: GoogleExportError[]
 }
+
+export interface GoogleImportValidationIssue {
+  index: number // position in file.products array
+  productId?: string
+  field: string
+  message: string
+}
+
+export interface GoogleImportPreview {
+  valid: boolean
+  formatVersion?: number
+  exportedAt?: string
+  packageName?: string
+  products: ExportedGoogleProduct[]
+  issues: GoogleImportValidationIssue[]
+}
+
+export interface GoogleImportStepError {
+  step: string
+  target?: string
+  error: string
+}
+
+export interface GoogleImportProductResult {
+  productId: string
+  created: boolean
+  stepErrors: GoogleImportStepError[]
+  skippedRegions: string[]
+}
+
+export interface GoogleImportResult {
+  results: GoogleImportProductResult[]
+}

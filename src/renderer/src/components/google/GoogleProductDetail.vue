@@ -49,6 +49,7 @@ interface ProductDetail {
 const detail = ref<ProductDetail | null>(null)
 const loading = ref(false)
 const baseRegion = ref<string>('')
+const defaultLanguage = ref<string>('')
 
 // Derive status from the freshly loaded detail so toggling a PO state
 // updates the Info tab without waiting for a parent re-render. Uses the same
@@ -63,16 +64,16 @@ const derivedStatus = computed(() => {
   }
   return 'DRAFT'
 })
-// Title shown in the modal header. Picks the listing using the same
-// priority as the list backend (zh-TW > en-US > first) so it stays
-// consistent with the list column, and updates reactively when the user
-// edits listings inside this modal.
+// Title shown in the modal header. Picks the listing using the project's
+// configured defaultLanguage, then falls back to the first listing — no
+// hardcoded locale fallbacks. Updates reactively when the user edits
+// listings inside this modal.
 const displayName = computed(() => {
   const listings = detail.value?.listings || []
   if (listings.length > 0) {
     const pick =
-      listings.find((l) => l.languageCode === 'zh-TW') ||
-      listings.find((l) => l.languageCode === 'en-US') ||
+      (defaultLanguage.value &&
+        listings.find((l) => l.languageCode === defaultLanguage.value)) ||
       listings[0]
     if (pick?.title) return pick.title
   }
@@ -136,6 +137,7 @@ async function loadDetail() {
     baseRegion.value =
       settingsResult.data.baseRegion ||
       inferRegionFromLanguage(settingsResult.data.defaultLanguage)
+    defaultLanguage.value = settingsResult.data.defaultLanguage || ''
   }
   if (regionsResult.success && regionsResult.data) {
     supportedRegions.value = regionsResult.data
@@ -399,6 +401,10 @@ async function saveNewPurchaseOption() {
   const id = newPo.value.purchaseOptionId.trim()
   if (!id) {
     notify.error('請輸入 Purchase Option ID')
+    return
+  }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+    notify.error('Purchase Option ID 必須以小寫英數開頭，只能含小寫英數和 -')
     return
   }
   if (detail.value.purchaseOptions.some((po) => po.purchaseOptionId === id)) {
@@ -865,10 +871,13 @@ watch(selectedPoId, () => {
             <input
               v-model="newPo.purchaseOptionId"
               type="text"
+              maxlength="63"
               placeholder="例如：premium"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 font-mono"
             />
-            <p class="text-xs text-gray-500 mt-1">建立後無法修改</p>
+            <p class="text-xs text-gray-500 mt-1">
+              以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）；建立後無法修改
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">基準國家</label>
@@ -940,16 +949,20 @@ watch(selectedPoId, () => {
             <input
               v-model="editingListing.title"
               type="text"
+              maxlength="55"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
             />
+            <p class="text-xs text-gray-500 mt-1 text-right">{{ editingListing.title.length }} / 55</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">描述 (description)</label>
             <textarea
               v-model="editingListing.description"
               rows="4"
+              maxlength="200"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
             />
+            <p class="text-xs text-gray-500 mt-1 text-right">{{ editingListing.description.length }} / 200</p>
           </div>
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">

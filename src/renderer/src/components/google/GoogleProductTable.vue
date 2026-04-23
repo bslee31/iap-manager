@@ -4,6 +4,7 @@ import { useNotificationStore } from '../../stores/notification.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
 import GoogleProductDetail from './GoogleProductDetail.vue'
+import GoogleImportDialog from './GoogleImportDialog.vue'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -59,10 +60,13 @@ const loading = ref(false)
 const syncing = ref(false)
 const exporting = ref(false)
 const exportProgress = ref('')
+const importFileContent = ref<string | null>(null)
 const showCreateForm = ref(false)
 const searchQuery = ref('')
 const syncProgress = ref('')
 const selectedProduct = ref<GoogleProduct | null>(null)
+
+const existingProductIds = computed(() => products.value.map((p) => p.productId))
 
 let cleanupProgress: (() => void) | null = null
 let cleanupExportProgress: (() => void) | null = null
@@ -207,6 +211,19 @@ async function syncProducts() {
   }
 }
 
+async function importProducts() {
+  const result = await window.api.importFile([{ name: 'JSON', extensions: ['json'] }])
+  if (!result.success || !result.data) return
+  importFileContent.value = result.data
+}
+
+async function onImportDone() {
+  importFileContent.value = null
+  // Re-sync so the list reflects the newly created products (and their
+  // status / price via the usual listOneTimeProducts aggregation).
+  await syncProducts()
+}
+
 async function exportProducts() {
   if (products.value.length === 0) {
     notify.error('沒有可匯出的商品，請先同步')
@@ -304,6 +321,10 @@ async function createProduct() {
     notify.error('請填寫商品 ID 和名稱')
     return
   }
+  if (!/^[a-z0-9][a-z0-9._]*$/.test(newProduct.value.productId)) {
+    notify.error('Product ID 必須以小寫英數開頭，只能含小寫英數、_、.')
+    return
+  }
   if (!newProduct.value.languageCode) {
     notify.error('請選擇語言')
     return
@@ -322,8 +343,13 @@ async function createProduct() {
     notify.error('請輸入有效的基準價格')
     return
   }
-  if (!newProduct.value.purchaseOptionId.trim()) {
+  const poid = newProduct.value.purchaseOptionId.trim()
+  if (!poid) {
     notify.error('請填寫 Purchase Option ID')
+    return
+  }
+  if (!/^[a-z0-9][a-z0-9-]*$/.test(poid)) {
+    notify.error('Purchase Option ID 必須以小寫英數開頭，只能含小寫英數和 -')
     return
   }
 
@@ -333,7 +359,7 @@ async function createProduct() {
     name: newProduct.value.name,
     description: newProduct.value.description,
     languageCode: newProduct.value.languageCode,
-    purchaseOptionId: newProduct.value.purchaseOptionId.trim(),
+    purchaseOptionId: poid,
     baseRegionCode: newProduct.value.baseRegionCode,
     baseCurrencyCode: baseCurrency,
     basePriceUnits: parsed.units,
@@ -420,6 +446,13 @@ function statusColor(status: string): string {
           class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
         >
           匯出
+        </button>
+        <button
+          @click="importProducts"
+          :disabled="exporting || syncing"
+          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          匯入
         </button>
         <span v-if="syncing" class="text-sm text-gray-400 flex items-center gap-2">
           <span class="inline-block w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
@@ -509,9 +542,13 @@ function statusColor(status: string): string {
             <input
               v-model="newProduct.productId"
               type="text"
+              maxlength="139"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
               placeholder="例：coins_100"
             />
+            <p class="text-xs text-gray-500 mt-1">
+              以小寫英數開頭，只能含小寫英數、_、.；建立後無法修改
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">語言</label>
@@ -540,18 +577,22 @@ function statusColor(status: string): string {
             <input
               v-model="newProduct.name"
               type="text"
+              maxlength="55"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
               placeholder="例：100 金幣"
             />
+            <p class="text-xs text-gray-500 mt-1 text-right">{{ newProduct.name.length }} / 55</p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-400 mb-1">描述</label>
             <textarea
               v-model="newProduct.description"
+              maxlength="200"
               class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
               rows="3"
               placeholder="商品描述"
             />
+            <p class="text-xs text-gray-500 mt-1 text-right">{{ newProduct.description.length }} / 200</p>
           </div>
 
           <div class="border-t border-[#393b40] pt-4">
@@ -562,9 +603,13 @@ function statusColor(status: string): string {
                 <input
                   v-model="newProduct.purchaseOptionId"
                   type="text"
-                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+                  maxlength="63"
+                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 font-mono"
                   placeholder="例：base"
                 />
+                <p class="text-xs text-gray-500 mt-1">
+                  以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）
+                </p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1">Purchase type</label>
@@ -712,6 +757,16 @@ function statusColor(status: string): string {
       :product="selectedProduct"
       @close="selectedProduct = null"
       @updated="syncProducts"
+    />
+
+    <!-- Import Dialog -->
+    <GoogleImportDialog
+      v-if="importFileContent !== null"
+      :project-id="projectId"
+      :file-content="importFileContent"
+      :existing-product-ids="existingProductIds"
+      @close="importFileContent = null"
+      @imported="onImportDone"
     />
   </div>
 </template>
