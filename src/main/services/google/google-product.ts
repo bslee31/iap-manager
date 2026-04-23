@@ -7,6 +7,7 @@ export interface GoogleProductItem {
   status: string
   purchaseOptionId?: string
   purchaseOptionCount?: number
+  activePurchaseOptionCount?: number
   defaultPrice?: string
 }
 
@@ -39,15 +40,26 @@ export async function listOneTimeProducts(
 
       // Get purchase options info
       const purchaseOptions = Array.isArray(p.purchaseOptions) ? p.purchaseOptions : []
-      const activePO = purchaseOptions.find((po: any) => po.state === 'ACTIVE')
+      const activePOs = purchaseOptions.filter((po: any) => po.state === 'ACTIVE')
+      const activePO = activePOs[0]
       const firstPO = purchaseOptions[0]
 
-      // Determine status: if any PO is ACTIVE -> active, else use first PO state, else no PO
+      // Priority-based aggregation so the summary is deterministic and
+      // independent of PO order returned by the API:
+      //   ACTIVE > INACTIVE/INACTIVE_PUBLISHED > DRAFT > NO_PURCHASE_OPTION.
       let status = 'NO_PURCHASE_OPTION'
-      if (activePO) {
-        status = 'ACTIVE'
-      } else if (firstPO) {
-        status = firstPO.state || 'DRAFT'
+      if (purchaseOptions.length > 0) {
+        if (activePOs.length > 0) {
+          status = 'ACTIVE'
+        } else if (
+          purchaseOptions.some(
+            (po: any) => po.state === 'INACTIVE' || po.state === 'INACTIVE_PUBLISHED'
+          )
+        ) {
+          status = 'INACTIVE'
+        } else {
+          status = 'DRAFT'
+        }
       }
 
       allProducts.push({
@@ -57,6 +69,7 @@ export async function listOneTimeProducts(
         status,
         purchaseOptionId: (activePO || firstPO)?.purchaseOptionId || '',
         purchaseOptionCount: purchaseOptions.length,
+        activePurchaseOptionCount: activePOs.length,
         defaultPrice: undefined
       })
     }
@@ -427,6 +440,80 @@ export async function updatePurchaseOptionPricing(
         ? { ...po, regionalPricingAndAvailabilityConfigs: configs }
         : po
     )
+    try {
+      const result = await googleRequest(
+        projectId,
+        `/onetimeproducts/${productId}?${params}`,
+        {
+          method: 'PATCH',
+          body: { productId, purchaseOptions: poArray }
+        }
+      )
+      return { result, skippedRegions: skipped }
+    } catch (e: any) {
+      lastError = e?.message || ''
+      const bad = parseProblematicRegions(lastError)
+      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
+      if (newBad.length === 0) throw e
+      skipped.push(...newBad)
+      configs = configs.filter((c) => !newBad.includes(c.regionCode))
+    }
+  }
+  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+}
+
+// Add a new purchase option (BUY, DRAFT) to an existing one-time product.
+// Preserves existing purchase options. Base region is forced to the exact
+// user-supplied price; other regions use Google's convertRegionPrices output.
+export async function addPurchaseOption(
+  projectId: string,
+  productId: string,
+  purchaseOptionId: string,
+  basePrice: { currencyCode: string; units: string; nanos: number },
+  baseRegionCode: string
+): Promise<{ result: any; skippedRegions: string[] }> {
+  const currentResp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
+  const currentPOs: any[] = currentResp?.purchaseOptions || []
+  if (currentPOs.some((po) => po.purchaseOptionId === purchaseOptionId)) {
+    throw new Error(`Purchase Option 已存在：${purchaseOptionId}`)
+  }
+
+  const regionalPrices = await convertRegionPrices(projectId, basePrice)
+  let configs = regionalPrices.map((p) => ({
+    regionCode: p.regionCode,
+    availability: 'AVAILABLE' as const,
+    price:
+      p.regionCode === baseRegionCode
+        ? {
+            currencyCode: basePrice.currencyCode,
+            units: basePrice.units,
+            nanos: basePrice.nanos
+          }
+        : {
+            currencyCode: p.currencyCode,
+            units: p.units,
+            nanos: p.nanos
+          }
+  }))
+
+  const params = new URLSearchParams({
+    updateMask: 'purchaseOptions',
+    'regionsVersion.version': REGIONS_VERSION
+  })
+
+  const skipped: string[] = []
+  let lastError = ''
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const newPO = {
+      purchaseOptionId,
+      state: 'DRAFT',
+      buyOption: {
+        legacyCompatible: false,
+        multiQuantityEnabled: false
+      },
+      regionalPricingAndAvailabilityConfigs: configs
+    }
+    const poArray = [...currentPOs, newPO]
     try {
       const result = await googleRequest(
         projectId,

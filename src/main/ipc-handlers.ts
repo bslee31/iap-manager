@@ -59,6 +59,7 @@ import {
   updateOneTimeProductListings,
   setPurchaseOptionState,
   updatePurchaseOptionPricing,
+  addPurchaseOption,
   type CreateOneTimeProductInput,
   type OneTimeProductListing
 } from './services/google/google-product'
@@ -709,13 +710,25 @@ export function registerIpcHandlers(): void {
       const db = getDatabase()
       const now = new Date().toISOString()
       const upsert = db.prepare(
-        `INSERT OR REPLACE INTO google_products (id, project_id, product_id, name, description, status, purchase_option_id, sort_order, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT OR REPLACE INTO google_products (id, project_id, product_id, name, description, status, purchase_option_id, purchase_option_count, active_purchase_option_count, sort_order, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       const tx = db.transaction(() => {
         let idx = 0
         for (const p of products) {
-          upsert.run(p.productId, projectId, p.productId, p.name, p.description, p.status, p.purchaseOptionId || null, idx++, now)
+          upsert.run(
+            p.productId,
+            projectId,
+            p.productId,
+            p.name,
+            p.description,
+            p.status,
+            p.purchaseOptionId || null,
+            p.purchaseOptionCount ?? 0,
+            p.activePurchaseOptionCount ?? 0,
+            idx++,
+            now
+          )
         }
       })
       tx()
@@ -743,6 +756,8 @@ export function registerIpcHandlers(): void {
           description: r.description,
           status: r.status,
           purchaseOptionId: r.purchase_option_id || '',
+          purchaseOptionCount: r.purchase_option_count ?? 0,
+          activePurchaseOptionCount: r.active_purchase_option_count ?? 0,
           syncedAt: r.synced_at
         }))
       }
@@ -826,6 +841,31 @@ export function registerIpcHandlers(): void {
     ) => {
       try {
         const { result, skippedRegions } = await updatePurchaseOptionPricing(
+          projectId,
+          productId,
+          purchaseOptionId,
+          basePrice,
+          baseRegionCode
+        )
+        return { success: true, data: result, skippedRegions }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:add-purchase-option',
+    async (
+      _event,
+      projectId: string,
+      productId: string,
+      purchaseOptionId: string,
+      basePrice: { currencyCode: string; units: string; nanos: number },
+      baseRegionCode: string
+    ) => {
+      try {
+        const { result, skippedRegions } = await addPurchaseOption(
           projectId,
           productId,
           purchaseOptionId,

@@ -20,7 +20,7 @@ const emit = defineEmits<{
 }>()
 const notify = useNotificationStore()
 
-type Tab = 'info' | 'availability' | 'pricing' | 'listings'
+type Tab = 'info' | 'purchaseOptions' | 'availability' | 'pricing' | 'listings'
 const activeTab = ref<Tab>('info')
 
 interface Listing {
@@ -48,6 +48,29 @@ interface ProductDetail {
 const detail = ref<ProductDetail | null>(null)
 const loading = ref(false)
 const baseRegion = ref<string>('')
+
+// Derive status from the freshly loaded detail so toggling a PO state
+// updates the Info tab without waiting for a parent re-render. Uses the same
+// priority-based aggregation as the list backend for consistency:
+// ACTIVE > INACTIVE/INACTIVE_PUBLISHED > DRAFT > NO_PURCHASE_OPTION.
+const derivedStatus = computed(() => {
+  const pos = detail.value?.purchaseOptions || []
+  if (pos.length === 0) return 'NO_PURCHASE_OPTION'
+  if (pos.some((po) => po.state === 'ACTIVE')) return 'ACTIVE'
+  if (pos.some((po) => po.state === 'INACTIVE' || po.state === 'INACTIVE_PUBLISHED')) {
+    return 'INACTIVE'
+  }
+  return 'DRAFT'
+})
+const derivedStatusLabel = computed(() => {
+  const pos = detail.value?.purchaseOptions || []
+  const total = pos.length
+  const active = pos.filter((po) => po.state === 'ACTIVE').length
+  if (total > 1 && active > 0 && active < total) {
+    return `${active}/${total} 上架中`
+  }
+  return statusLabel(derivedStatus.value)
+})
 
 interface RegionInfo {
   regionCode: string
@@ -314,6 +337,78 @@ async function applyNewPricing() {
   }
 }
 
+// ── Add purchase option ──
+const showAddPoForm = ref(false)
+const addPoSaving = ref(false)
+const newPo = ref({
+  purchaseOptionId: '',
+  baseRegionCode: '',
+  basePrice: ''
+})
+
+function openAddPoForm() {
+  newPo.value = {
+    purchaseOptionId: '',
+    baseRegionCode: baseRegion.value || '',
+    basePrice: ''
+  }
+  showAddPoForm.value = true
+}
+
+function cancelAddPoForm() {
+  showAddPoForm.value = false
+}
+
+async function saveNewPurchaseOption() {
+  if (!detail.value) return
+  const id = newPo.value.purchaseOptionId.trim()
+  if (!id) {
+    notify.error('請輸入 Purchase Option ID')
+    return
+  }
+  if (detail.value.purchaseOptions.some((po) => po.purchaseOptionId === id)) {
+    notify.error('此 Purchase Option ID 已存在')
+    return
+  }
+  if (!newPo.value.baseRegionCode) {
+    notify.error('請選擇基準國家')
+    return
+  }
+  const currency = currencyForRegion(newPo.value.baseRegionCode)
+  if (!currency) {
+    notify.error('找不到該國家的幣別')
+    return
+  }
+  const parsed = parsePriceToUnitsNanos(newPo.value.basePrice)
+  if (!parsed) {
+    notify.error('請輸入有效的價格')
+    return
+  }
+
+  addPoSaving.value = true
+  const result = await window.api.addGooglePurchaseOption(
+    props.projectId,
+    props.product.productId,
+    id,
+    { currencyCode: currency, units: parsed.units, nanos: parsed.nanos },
+    newPo.value.baseRegionCode
+  )
+  addPoSaving.value = false
+  if (result.success) {
+    const skipped = (result as any).skippedRegions as string[] | undefined
+    if (skipped && skipped.length > 0) {
+      notify.success(`方案已新增，略過 ${skipped.length} 個地區：${skipped.join(', ')}`)
+    } else {
+      notify.success('方案已新增')
+    }
+    showAddPoForm.value = false
+    await loadDetail()
+    emit('updated')
+  } else {
+    notify.error(result.error || '新增失敗')
+  }
+}
+
 // ── Purchase option state toggle ──
 const togglingPoId = ref('')
 
@@ -430,7 +525,7 @@ watch(selectedPoId, () => {
       <!-- Tabs -->
       <div class="flex border-b border-[#393b40] px-6 shrink-0">
         <button
-          v-for="tab in (['info', 'availability', 'pricing', 'listings'] as Tab[])"
+          v-for="tab in (['info', 'purchaseOptions', 'availability', 'pricing', 'listings'] as Tab[])"
           :key="tab"
           @click="activeTab = tab"
           class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
@@ -438,7 +533,7 @@ watch(selectedPoId, () => {
             ? 'border-green-500 text-green-400'
             : 'border-transparent text-gray-400 hover:text-gray-200'"
         >
-          {{ tab === 'info' ? 'Info' : tab === 'availability' ? 'Availability' : tab === 'pricing' ? 'Pricing' : 'Listings' }}
+          {{ tab === 'info' ? 'Info' : tab === 'purchaseOptions' ? 'Purchase Options' : tab === 'availability' ? 'Availability' : tab === 'pricing' ? 'Pricing' : 'Listings' }}
         </button>
       </div>
 
@@ -459,18 +554,43 @@ watch(selectedPoId, () => {
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Status</label>
               <div>
-                <span class="inline-block text-xs px-2 py-0.5 rounded-full" :class="statusColor(product.status)">
-                  {{ statusLabel(product.status) }}
+                <span class="inline-block text-xs px-2 py-0.5 rounded-full" :class="statusColor(derivedStatus)">
+                  {{ derivedStatusLabel }}
                 </span>
               </div>
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Purchase Options</label>
-              <div class="space-y-2">
+              <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+                共 {{ detail.purchaseOptions.length }} 個方案
+              </div>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Listings</label>
+              <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+                共 {{ detail.listings.length }} 個語言
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Purchase Options Tab ── -->
+          <div v-if="activeTab === 'purchaseOptions'" class="flex-1 min-h-0 flex flex-col overflow-hidden">
+            <div class="shrink-0 px-6 pt-4 pb-3 flex items-center justify-between">
+              <span class="text-sm text-gray-400">共 {{ detail.purchaseOptions.length }} 個方案</span>
+              <button
+                @click="openAddPoForm"
+                class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+              >
+                + 新增方案
+              </button>
+            </div>
+            <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
+              <div v-if="detail.purchaseOptions.length === 0" class="text-center py-10 text-gray-500">尚無方案</div>
+              <div v-else class="space-y-2">
                 <div
                   v-for="po in detail.purchaseOptions"
                   :key="po.purchaseOptionId"
-                  class="flex items-center justify-between gap-3 px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg"
+                  class="flex items-center justify-between gap-3 px-3 py-3 bg-[#1e1f22] border border-[#43454a] rounded-lg"
                 >
                   <div class="min-w-0">
                     <span class="text-sm font-mono text-gray-200">{{ po.purchaseOptionId }}</span>
@@ -498,13 +618,6 @@ watch(selectedPoId, () => {
                     </button>
                   </div>
                 </div>
-                <p v-if="detail.purchaseOptions.length === 0" class="text-sm text-gray-500">尚無方案</p>
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Listings</label>
-              <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
-                共 {{ detail.listings.length }} 個語言
               </div>
             </div>
           </div>
@@ -721,6 +834,68 @@ watch(selectedPoId, () => {
             </div>
           </div>
         </template>
+      </div>
+    </div>
+
+    <!-- Add Purchase Option Dialog -->
+    <div
+      v-if="showAddPoForm"
+      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      @click.self="cancelAddPoForm"
+    >
+      <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-md border border-[#393b40] titlebar-no-drag flex flex-col max-h-[85vh]">
+        <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+          <h3 class="text-lg font-semibold text-gray-100">新增 Purchase Option</h3>
+          <button @click="cancelAddPoForm" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+        </div>
+        <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-2 space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">Purchase Option ID</label>
+            <input
+              v-model="newPo.purchaseOptionId"
+              type="text"
+              placeholder="例如：premium"
+              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 font-mono"
+            />
+            <p class="text-xs text-gray-500 mt-1">建立後無法修改</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">基準國家</label>
+            <SearchableSelect
+              v-model="newPo.baseRegionCode"
+              :options="regionOptionsForEdit"
+              placeholder="選擇基準國家"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1">基準價格</label>
+            <div class="flex items-center gap-2">
+              <input
+                v-model="newPo.basePrice"
+                type="text"
+                inputmode="decimal"
+                placeholder="0"
+                class="flex-1 px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              />
+              <span class="text-sm text-gray-400 min-w-[3.5rem] text-center">
+                {{ currencyForRegion(newPo.baseRegionCode) || '---' }}
+              </span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">其他國家的價格由 Google 自動換算。新方案建立後為 DRAFT 狀態，需要手動上架。</p>
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
+          <button @click="cancelAddPoForm" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
+            取消
+          </button>
+          <button
+            @click="saveNewPurchaseOption"
+            :disabled="addPoSaving"
+            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+          >
+            {{ addPoSaving ? '新增中...' : '新增' }}
+          </button>
+        </div>
       </div>
     </div>
 

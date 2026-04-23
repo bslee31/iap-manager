@@ -129,6 +129,13 @@ function runMigrations(db: Database.Database): void {
       sql: `
         ALTER TABLE project_credentials ADD COLUMN google_base_region TEXT;
       `
+    },
+    {
+      name: '010-google-purchase-option-counts',
+      sql: `
+        ALTER TABLE google_products ADD COLUMN purchase_option_count INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE google_products ADD COLUMN active_purchase_option_count INTEGER NOT NULL DEFAULT 0;
+      `
     }
   ]
 

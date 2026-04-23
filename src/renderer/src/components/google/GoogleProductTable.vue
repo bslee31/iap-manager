@@ -46,6 +46,8 @@ interface GoogleProduct {
   description: string
   status: string
   purchaseOptionId?: string
+  purchaseOptionCount?: number
+  activePurchaseOptionCount?: number
   defaultPrice?: string
   syncedAt: string
 }
@@ -326,6 +328,17 @@ function statusLabel(status: string): string {
     NO_PURCHASE_OPTION: '未設定方案'
   }
   return map[status] || status
+}
+
+function productStatusLabel(product: GoogleProduct): string {
+  const total = product.purchaseOptionCount ?? 0
+  const active = product.activePurchaseOptionCount ?? 0
+  // Only show the split when states are actually mixed; uniform states fall
+  // back to the aggregated label to avoid noisy "0/2" or "2/2" displays.
+  if (total > 1 && active > 0 && active < total) {
+    return `${active}/${total} 上架中`
+  }
+  return statusLabel(product.status)
 }
 
 function statusColor(status: string): string {
@@ -616,7 +629,7 @@ function statusColor(status: string): string {
                 class="text-xs px-2 py-0.5 rounded-full"
                 :class="statusColor(product.status)"
               >
-                {{ statusLabel(product.status) }}
+                {{ productStatusLabel(product) }}
               </span>
             </td>
             <td class="px-3 py-3 text-sm text-gray-300">{{ product.defaultPrice || '-' }}</td>

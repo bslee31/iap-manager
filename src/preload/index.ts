@@ -129,6 +129,21 @@ const api = {
       basePrice,
       baseRegionCode
     ),
+  addGooglePurchaseOption: (
+    projectId: string,
+    productId: string,
+    purchaseOptionId: string,
+    basePrice: { currencyCode: string; units: string; nanos: number },
+    baseRegionCode: string
+  ) =>
+    ipcRenderer.invoke(
+      'google:add-purchase-option',
+      projectId,
+      productId,
+      purchaseOptionId,
+      basePrice,
+      baseRegionCode
+    ),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {
