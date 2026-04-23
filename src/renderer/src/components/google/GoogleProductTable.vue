@@ -547,9 +547,6 @@ function statusColor(status: string): string {
                   </span>
                 </div>
                 <p class="text-xs text-gray-500 mt-1">其他國家的價格會由 Google 依基準價自動換算。</p>
-                <p class="text-xs text-yellow-500/80 mt-1">
-                  ⚠ 此價格為未稅價。Google 會依各國稅率自動加稅（例如台灣 +5%）顯示給使用者。若要「含稅最終價」，請自行反算後再輸入。
-                </p>
               </div>
             </div>
           </div>

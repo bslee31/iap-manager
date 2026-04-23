@@ -405,6 +405,9 @@ async function loadPriceSchedule() {
   const result = await window.api.getApplePriceSchedule(props.projectId, props.product.id)
   if (result.success) {
     if (result.data.baseTerritory) {
+      // Setting selectedTerritory will trigger the watcher that loads
+      // matching price points, so we don't need to call loadPricePoints
+      // explicitly here.
       selectedTerritory.value = result.data.baseTerritory
     }
   }
@@ -461,9 +464,20 @@ watch(activeTab, (tab) => {
     if (!allPricesData.value) {
       loadPriceSchedule()
       loadAllTerritoryPrices()
+    } else if (pricePoints.value.length === 0 && selectedTerritory.value) {
+      // allPricesData already populated but price points never loaded
+      // (e.g. user came back to this tab without changing territory).
+      loadPricePoints()
     }
     if (allTerritories.value.length === 0) loadAvailability()
   }
+})
+
+// Auto-refresh price points whenever the base territory changes while the
+// price tab is open, so users don't have to press a load button manually.
+watch(selectedTerritory, (code) => {
+  if (activeTab.value !== 'price' || !code) return
+  loadPricePoints()
 })
 
 onMounted(() => {
@@ -721,42 +735,35 @@ const LOCALES = [
           <div v-if="priceLoading" class="text-center py-10 text-gray-500">載入中...</div>
           <template v-else>
             <!-- Set base price -->
-            <div class="px-6 pt-6 pb-4 shrink-0">
-              <h4 class="text-sm font-medium text-gray-300 mb-3">Base Country or Region</h4>
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <div class="flex-1">
+            <div class="px-6 pt-4 pb-3 shrink-0">
+              <div class="p-3 bg-[#1e1f22] border border-[#43454a] rounded-lg">
+                <div class="text-xs font-medium text-gray-500 uppercase mb-2">調整基準定價</div>
+                <div class="flex items-end gap-2">
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs text-gray-500 mb-1">基準地區</label>
                     <SearchableSelect
                       v-model="selectedTerritory"
                       :options="territoryOptions.map(t => ({ value: t.code, label: t.label }))"
                       placeholder="選擇基準地區..."
                     />
                   </div>
-                  <button
-                    @click="loadPricePoints"
-                    :disabled="pricePointsLoading"
-                    class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 shrink-0"
-                  >
-                    {{ pricePointsLoading ? '載入中...' : '載入價格選項' }}
-                  </button>
-                </div>
-
-                <div v-if="pricePoints.length > 0" class="flex items-center gap-3">
-                  <div class="flex-1">
+                  <div class="flex-1 min-w-0">
+                    <label class="block text-xs text-gray-500 mb-1">價格</label>
                     <SearchableSelect
                       v-model="selectedPricePoint"
                       :options="pricePointOptions"
-                      placeholder="選擇價格..."
+                      :placeholder="pricePointsLoading ? '載入價格選項中...' : '選擇價格...'"
                     />
                   </div>
                   <button
                     @click="savePriceSchedule"
-                    :disabled="priceSaving || !selectedPricePoint"
-                    class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 shrink-0"
+                    :disabled="priceSaving || pricePointsLoading || !selectedPricePoint"
+                    class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
                   >
                     {{ priceSaving ? '儲存中...' : '儲存價格' }}
                   </button>
                 </div>
+                <p class="text-xs text-gray-500 mt-2">Apple 會依所選價格點自動換算其他地區。</p>
               </div>
             </div>
 
