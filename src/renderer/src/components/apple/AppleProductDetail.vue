@@ -901,10 +901,8 @@ const LOCALES = [
                 class="bg-[#1e1f22] rounded-lg border border-[#393b40] px-4 py-3 flex items-start justify-between gap-3"
               >
                 <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ localeLabel(loc.locale) }}</span>
-                    <span class="text-sm text-gray-200 font-medium truncate">{{ loc.name }}</span>
-                  </div>
+                  <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ localeLabel(loc.locale) }}</span>
+                  <div class="text-sm text-gray-200 font-medium mt-1 truncate">{{ loc.name }}</div>
                   <p v-if="loc.description" class="text-xs text-gray-400 mt-1 line-clamp-2">{{ loc.description }}</p>
                 </div>
                 <div class="flex gap-1 shrink-0">

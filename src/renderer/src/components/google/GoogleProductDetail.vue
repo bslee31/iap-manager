@@ -810,26 +810,20 @@ watch(selectedPoId, () => {
                 <div
                   v-for="l in detail.listings"
                   :key="l.languageCode"
-                  class="p-3 bg-[#1e1f22] border border-[#43454a] rounded-lg"
+                  class="bg-[#1e1f22] rounded-lg border border-[#43454a] px-4 py-3 flex items-start justify-between gap-3"
                 >
-                  <div class="flex items-center justify-between mb-2">
+                  <div class="flex-1 min-w-0">
                     <div>
-                      <span class="text-sm font-medium text-gray-200">{{ getLanguageLabel(l.languageCode) }}</span>
+                      <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ getLanguageLabel(l.languageCode) }}</span>
                       <span class="text-xs text-gray-500 ml-2 font-mono">{{ l.languageCode }}</span>
                     </div>
-                    <div class="flex gap-2">
-                      <button
-                        @click="openEditListing(l)"
-                        class="text-xs text-gray-400 hover:text-gray-200 px-2 py-1 rounded hover:bg-[#393b40] transition-colors"
-                      >編輯</button>
-                      <button
-                        @click="deleteListing(l.languageCode)"
-                        class="text-xs text-red-400 hover:text-red-300 px-2 py-1 rounded hover:bg-[#393b40] transition-colors"
-                      >刪除</button>
-                    </div>
+                    <div class="text-sm text-gray-200 font-medium mt-1 truncate">{{ l.title }}</div>
+                    <p v-if="l.description" class="text-xs text-gray-400 mt-1 line-clamp-2">{{ l.description }}</p>
                   </div>
-                  <div class="text-sm text-gray-200 mb-1">{{ l.title }}</div>
-                  <div class="text-xs text-gray-500 whitespace-pre-wrap">{{ l.description || '（無描述）' }}</div>
+                  <div class="flex gap-1 shrink-0">
+                    <button @click="openEditListing(l)" class="p-1 text-gray-500 hover:text-blue-400 transition-colors" title="編輯">&#9998;</button>
+                    <button @click="deleteListing(l.languageCode)" class="p-1 text-gray-500 hover:text-red-400 transition-colors" title="刪除">&#10005;</button>
+                  </div>
                 </div>
               </div>
             </div>
