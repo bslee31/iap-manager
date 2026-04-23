@@ -24,7 +24,10 @@ Apple & Google 應用程式內購商品批次管理工具。
   - 匯入併發 3，單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果
 
 ### Google One-time Products
-- 同步商品列表（含 Purchase Option 狀態）
+- 同步商品列表（含 Purchase Option 匯總狀態與主 PO 在 Base Region 的價格）
+- 列表欄位：Product ID / Product name / Price / Status，佈局對齊 Apple
+  - Price 取「主 PO」（`buyOption.legacyCompatible=true`，Play Console 的 Backwards compatible）在 Base Region 的價格
+  - Status 採優先級聚合（ACTIVE > INACTIVE > DRAFT > NO_PURCHASE_OPTION）；多 PO 混合狀態會顯示 `N/M 上架中`
 - 批次上架 / 下架（透過 Purchase Options 狀態管理）
 - 依狀態篩選（上架中、已下架、草稿、未設定方案等）
 - 新增商品
@@ -33,9 +36,9 @@ Apple & Google 應用程式內購商品批次管理工具。
   - `regionsVersion 2022/02` 拒絕的地區（例如歐元過渡期的 BG、已不可計費地區）會從錯誤回應解析出來並重試，不讓少數失效地區擋住整筆建立；略過的地區會在成功提示中列出
   - Listing 語言下拉選單以專案預設值為基準，亦提供「從 Play Console 偵測」按鈕（透過 Edits API 取得預設語言）並同步更新專案設定
 - 商品詳情 Modal（點擊商品列開啟，佈局對齊 Apple）：
-  - **Info** — 顯示 Product ID / Status 與 Purchase Options 清單，支援逐一啟用 / 停用
-  - **Availability** — 列出目前 Purchase Option 已設定的所有地區，固定表頭、支援搜尋，專案 Base Region 置頂
-  - **Pricing** — 檢視 / 修改各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
+  - **Info** — 顯示 Product ID / Status 與 Purchase Options、Listings 的數量摘要
+  - **Purchase Options** — 列出所有方案並可逐一啟用 / 停用；每行顯示方案類型、`N countries / regions` 計數，主 PO 加註 `Backwards compatible` 標籤；支援新增方案（指定 POid + Base Region + Base Price，以 DRAFT 狀態追加，沿用 `convertRegionPrices` + drop-and-retry 邏輯）
+  - **Pricing** — 檢視 / 修改主 PO（或選定 PO）各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
   - **Listings** — 新增 / 編輯 / 刪除多語言標題與描述
 
 ### Google 專案設定
