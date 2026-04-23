@@ -136,6 +136,13 @@ function runMigrations(db: Database.Database): void {
         ALTER TABLE google_products ADD COLUMN purchase_option_count INTEGER NOT NULL DEFAULT 0;
         ALTER TABLE google_products ADD COLUMN active_purchase_option_count INTEGER NOT NULL DEFAULT 0;
       `
+    },
+    {
+      name: '011-google-base-price',
+      sql: `
+        ALTER TABLE google_products ADD COLUMN base_price TEXT;
+        ALTER TABLE google_products ADD COLUMN base_currency TEXT;
+      `
     }
   ]
 

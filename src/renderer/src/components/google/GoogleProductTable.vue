@@ -48,7 +48,8 @@ interface GoogleProduct {
   purchaseOptionId?: string
   purchaseOptionCount?: number
   activePurchaseOptionCount?: number
-  defaultPrice?: string
+  basePrice?: string
+  baseCurrency?: string
   syncedAt: string
 }
 
@@ -341,6 +342,12 @@ function productStatusLabel(product: GoogleProduct): string {
   return statusLabel(product.status)
 }
 
+function productPriceLabel(product: GoogleProduct): string {
+  if (!product.basePrice || !product.baseCurrency) return '-'
+  // Format matches the Apple table: amount then currency (e.g. "200.00 TWD").
+  return `${product.basePrice} ${product.baseCurrency}`
+}
+
 function statusColor(status: string): string {
   switch (status) {
     case 'ACTIVE': return 'bg-green-600/20 text-green-400'
@@ -570,15 +577,14 @@ function statusColor(status: string): string {
     <div class="flex-1 min-h-0 px-6 pb-6">
     <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
       <!-- Fixed header -->
-      <div class="shrink-0 pr-[6px]">
+      <div class="shrink-0" style="scrollbar-gutter: stable">
       <table class="w-full table-fixed">
         <colgroup>
           <col class="w-10" />
-          <col class="w-[22%]" />
-          <col class="w-[22%]" />
-          <col class="w-[26%]" />
-          <col class="w-[14%]" />
-          <col class="w-[14%]" />
+          <col class="w-[30%]" />
+          <col class="w-[35%]" />
+          <col class="w-[17%]" />
+          <col class="w-[18%]" />
         </colgroup>
         <thead>
           <tr class="bg-[#22252a] border-b border-[#393b40]">
@@ -587,23 +593,21 @@ function statusColor(status: string): string {
             </th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product ID</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product name</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Description</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
             <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
+            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
           </tr>
         </thead>
       </table>
       </div>
       <!-- Scrollable body -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
+      <div class="flex-1 min-h-0 overflow-y-auto" style="scrollbar-gutter: stable">
       <table class="w-full table-fixed">
         <colgroup>
           <col class="w-10" />
-          <col class="w-[22%]" />
-          <col class="w-[22%]" />
-          <col class="w-[26%]" />
-          <col class="w-[14%]" />
-          <col class="w-[14%]" />
+          <col class="w-[30%]" />
+          <col class="w-[35%]" />
+          <col class="w-[17%]" />
+          <col class="w-[18%]" />
         </colgroup>
         <tbody>
           <tr
@@ -623,7 +627,7 @@ function statusColor(status: string): string {
             </td>
             <td class="px-3 py-3 text-sm font-mono text-gray-200">{{ product.productId }}</td>
             <td class="px-3 py-3 text-sm text-gray-300">{{ product.name }}</td>
-            <td class="px-3 py-3 text-sm text-gray-500 max-w-[200px] truncate">{{ product.description }}</td>
+            <td class="px-3 py-3 text-sm text-gray-300 font-mono">{{ productPriceLabel(product) }}</td>
             <td class="px-3 py-3">
               <span
                 class="text-xs px-2 py-0.5 rounded-full"
@@ -632,7 +636,6 @@ function statusColor(status: string): string {
                 {{ productStatusLabel(product) }}
               </span>
             </td>
-            <td class="px-3 py-3 text-sm text-gray-300">{{ product.defaultPrice || '-' }}</td>
           </tr>
         </tbody>
       </table>

@@ -37,6 +37,7 @@ interface PurchaseOption {
   purchaseOptionId: string
   state: string
   type: 'BUY' | 'RENT' | 'UNKNOWN'
+  legacyCompatible: boolean
   regionalConfigs: RegionalConfig[]
 }
 interface ProductDetail {
@@ -592,9 +593,15 @@ watch(selectedPoId, () => {
                   :key="po.purchaseOptionId"
                   class="flex items-center justify-between gap-3 px-3 py-3 bg-[#1e1f22] border border-[#43454a] rounded-lg"
                 >
-                  <div class="min-w-0">
+                  <div class="min-w-0 flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-mono text-gray-200">{{ po.purchaseOptionId }}</span>
-                    <span class="text-xs text-gray-500 ml-2">{{ po.type }}</span>
+                    <span class="text-xs text-gray-500">{{ po.type }}</span>
+                    <span
+                      v-if="po.legacyCompatible"
+                      class="text-xs px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400"
+                    >
+                      Backwards compatible
+                    </span>
                   </div>
                   <div class="flex items-center gap-2 shrink-0">
                     <span class="text-xs px-2 py-0.5 rounded-full" :class="statusColor(po.state)">

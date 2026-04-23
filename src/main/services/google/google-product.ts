@@ -8,12 +8,36 @@ export interface GoogleProductItem {
   purchaseOptionId?: string
   purchaseOptionCount?: number
   activePurchaseOptionCount?: number
-  defaultPrice?: string
+  // Primary PO's price at the project's base region, when resolvable.
+  // Stored as a formatted amount string (e.g. "200.00") plus currency code.
+  basePrice?: string
+  baseCurrency?: string
 }
 
-// List one-time products (uses camelCase: oneTimeProducts)
+// Pick the representative PO for list-level display: Google guarantees at
+// most one PO with buyOption.legacyCompatible=true per product (the "main"
+// one). Fall back to first ACTIVE, then first overall.
+function pickPrimaryPurchaseOption(purchaseOptions: any[]): any | null {
+  if (!purchaseOptions.length) return null
+  const legacy = purchaseOptions.find((po) => po.buyOption?.legacyCompatible === true)
+  if (legacy) return legacy
+  return purchaseOptions.find((po) => po.state === 'ACTIVE') || purchaseOptions[0]
+}
+
+function formatPriceAmount(units: string, nanos: number): string {
+  const whole = units || '0'
+  const frac = Math.round((nanos || 0) / 1e7)
+    .toString()
+    .padStart(2, '0')
+  return `${whole}.${frac}`
+}
+
+// List one-time products (uses camelCase: oneTimeProducts).
+// baseRegion, when provided, is used to extract the primary PO's price at
+// that region for the list-level Price column.
 export async function listOneTimeProducts(
-  projectId: string
+  projectId: string,
+  baseRegion?: string
 ): Promise<GoogleProductItem[]> {
   const allProducts: GoogleProductItem[] = []
   let pageToken: string | undefined
@@ -62,6 +86,20 @@ export async function listOneTimeProducts(
         }
       }
 
+      // Resolve the primary PO's base region price, if available.
+      let basePrice: string | undefined
+      let baseCurrency: string | undefined
+      if (baseRegion) {
+        const primaryPO = pickPrimaryPurchaseOption(purchaseOptions)
+        const cfg = primaryPO?.regionalPricingAndAvailabilityConfigs?.find(
+          (c: any) => c.regionCode === baseRegion
+        )
+        if (cfg?.price) {
+          basePrice = formatPriceAmount(cfg.price.units || '0', cfg.price.nanos || 0)
+          baseCurrency = cfg.price.currencyCode
+        }
+      }
+
       allProducts.push({
         productId: p.productId || '',
         name: listing.title || p.productId || '',
@@ -70,7 +108,8 @@ export async function listOneTimeProducts(
         purchaseOptionId: (activePO || firstPO)?.purchaseOptionId || '',
         purchaseOptionCount: purchaseOptions.length,
         activePurchaseOptionCount: activePOs.length,
-        defaultPrice: undefined
+        basePrice,
+        baseCurrency
       })
     }
 
@@ -330,6 +369,9 @@ export interface OneTimeProductPurchaseOption {
   purchaseOptionId: string
   state: string
   type: 'BUY' | 'RENT' | 'UNKNOWN'
+  // True when Google Play marks this as the "Backwards compatible" PO —
+  // the one seen by pre-Billing-Library-5 clients.
+  legacyCompatible: boolean
   regionalConfigs: OneTimeProductRegionalConfig[]
 }
 
@@ -367,6 +409,7 @@ export async function getOneTimeProduct(
       purchaseOptionId: po.purchaseOptionId || '',
       state: po.state || 'UNKNOWN',
       type: po.buyOption ? 'BUY' : po.rentOption ? 'RENT' : 'UNKNOWN',
+      legacyCompatible: po.buyOption?.legacyCompatible === true,
       regionalConfigs: (po.regionalPricingAndAvailabilityConfigs || []).map((c: any) => ({
         regionCode: c.regionCode || '',
         availability: c.availability || 'UNKNOWN',

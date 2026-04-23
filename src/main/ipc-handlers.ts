@@ -704,14 +704,15 @@ export function registerIpcHandlers(): void {
     try {
       const win = BrowserWindow.fromWebContents(event.sender)
       win?.webContents.send('sync:progress', { current: 0, total: 0, phase: '正在從 Google Play 同步...' })
-      const products = await listOneTimeProducts(projectId)
+      const baseRegion = getGoogleBaseRegion(projectId) || undefined
+      const products = await listOneTimeProducts(projectId, baseRegion)
       win?.webContents.send('sync:progress', { current: products.length, total: products.length, phase: `已取得 ${products.length} 個商品` })
       // Cache to local DB
       const db = getDatabase()
       const now = new Date().toISOString()
       const upsert = db.prepare(
-        `INSERT OR REPLACE INTO google_products (id, project_id, product_id, name, description, status, purchase_option_id, purchase_option_count, active_purchase_option_count, sort_order, synced_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT OR REPLACE INTO google_products (id, project_id, product_id, name, description, status, purchase_option_id, purchase_option_count, active_purchase_option_count, base_price, base_currency, sort_order, synced_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       const tx = db.transaction(() => {
         let idx = 0
@@ -726,6 +727,8 @@ export function registerIpcHandlers(): void {
             p.purchaseOptionId || null,
             p.purchaseOptionCount ?? 0,
             p.activePurchaseOptionCount ?? 0,
+            p.basePrice || null,
+            p.baseCurrency || null,
             idx++,
             now
           )
@@ -758,6 +761,8 @@ export function registerIpcHandlers(): void {
           purchaseOptionId: r.purchase_option_id || '',
           purchaseOptionCount: r.purchase_option_count ?? 0,
           activePurchaseOptionCount: r.active_purchase_option_count ?? 0,
+          basePrice: r.base_price || undefined,
+          baseCurrency: r.base_currency || undefined,
           syncedAt: r.synced_at
         }))
       }
