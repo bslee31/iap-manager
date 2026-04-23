@@ -40,10 +40,15 @@ Apple & Google 應用程式內購商品批次管理工具。
   - **Purchase Options** — 列出所有方案並可逐一啟用 / 停用；每行顯示方案類型、Base Region 的基準價（便於跨方案比對）、`N countries / regions` 計數，主 PO 加註 `Backwards compatible` 標籤；非主 PO 的 BUY 方案可一鍵「設為主方案」切換 `buyOption.legacyCompatible`（Google 規定每個商品至多一個，切換時會自動清除其他 PO 的旗標）；支援新增方案（指定 POid + Base Region + Base Price，以 DRAFT 狀態追加，沿用 `convertRegionPrices` + drop-and-retry 邏輯）
   - **Pricing** — 檢視 / 修改主 PO（或選定 PO）各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
   - **Listings** — 新增 / 編輯 / 刪除多語言標題與描述
+- **匯出**
+  - JSON 格式（`formatVersion: 1`），以 Product ID 排序；每個商品包含完整 listings 與 purchaseOptions（含每個 PO 的 `state` / `type` / `legacyCompatible` 以及所有地區的 `availability` + `currencyCode` + `units` / `nanos`，全保真，便於未來匯入直接套回）
+  - 併發 5 個商品、進度顯示，單商品失敗不中斷其他商品；完成後列出失敗項
+  - 預設匯出全部商品，有勾選時只匯出勾選項目
+  - 匯入功能規劃中
 
 ### Google 專案設定
 - **Default Language** — 新增商品 / Listings 的預設語言，可從 Play Console 自動偵測或手動選擇
-- **Base Region** — 每專案持久化的基準地區（migration 009），首次建立商品時自動填入，可於專案設定頁手動覆寫；商品詳情的 Availability / Pricing 會將此地區置頂
+- **Base Region** — 每專案持久化的基準地區（migration 009），首次建立商品時自動填入，可於專案設定頁手動覆寫；商品詳情的 Pricing 會將此地區置頂
 
 ### 多專案管理
 - 每個專案獨立的 Apple / Google 憑證

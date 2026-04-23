@@ -66,6 +66,11 @@ import {
 } from './services/google/google-product'
 import { fetchAppDefaultLanguage } from './services/google/google-app'
 import {
+  exportGoogleProducts,
+  buildGoogleExportFileName,
+  type ExportGoogleProductInput
+} from './services/google/google-export'
+import {
   getGoogleDefaultLanguage,
   setGoogleDefaultLanguage,
   getGoogleBaseRegion,
@@ -896,6 +901,52 @@ export function registerIpcHandlers(): void {
       try {
         await setLegacyCompatiblePurchaseOption(projectId, productId, purchaseOptionId)
         return { success: true }
+      } catch (e: any) {
+        return { success: false, error: e.message }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'google:export-products',
+    async (event, projectId: string, products: ExportGoogleProductInput[]) => {
+      try {
+        if (!products || products.length === 0) {
+          return { success: false, error: '沒有可匯出的商品' }
+        }
+
+        const win = BrowserWindow.fromWebContents(event.sender)
+        const creds = loadCredentials(projectId)
+        const packageName = creds.google?.packageName || 'unknown'
+
+        const saveResult = await dialog.showSaveDialog(win!, {
+          title: '匯出 Google One-time Products',
+          defaultPath: buildGoogleExportFileName(packageName),
+          filters: [{ name: 'JSON', extensions: ['json'] }]
+        })
+
+        if (saveResult.canceled || !saveResult.filePath) {
+          return { success: true, data: { cancelled: true } }
+        }
+
+        const onProgress = (current: number, total: number, phase: string): void => {
+          win?.webContents.send('export:progress', { current, total, phase })
+        }
+
+        const { data, errors } = await exportGoogleProducts(projectId, products, onProgress)
+
+        writeFileSync(saveResult.filePath, JSON.stringify(data, null, 2), 'utf-8')
+
+        return {
+          success: true,
+          data: {
+            cancelled: false,
+            filePath: saveResult.filePath,
+            total: products.length,
+            exported: data.products.length,
+            errors
+          }
+        }
       } catch (e: any) {
         return { success: false, error: e.message }
       }

@@ -155,6 +155,8 @@ const api = {
       productId,
       purchaseOptionId
     ),
+  exportGoogleProducts: (projectId: string, products: { productId: string }[]) =>
+    ipcRenderer.invoke('google:export-products', projectId, products),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {
