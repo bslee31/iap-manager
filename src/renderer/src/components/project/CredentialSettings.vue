@@ -73,6 +73,8 @@ onMounted(async () => {
     googleRegionsLoading.value = false
     if (regionsResult.success && regionsResult.data) {
       googleRegions.value = regionsResult.data
+    } else {
+      notify.error(regionsResult.error || '載入國家清單失敗')
     }
   }
 })
