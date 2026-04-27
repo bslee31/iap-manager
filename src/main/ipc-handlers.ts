@@ -38,6 +38,8 @@ import {
   getIapPricePoints,
   setIapPriceSchedule
 } from './services/apple/apple-iap'
+import { clearTokenCache as clearAppleTokenCache } from './services/apple/apple-auth'
+import { clearGoogleAuthCache } from './services/google/google-auth'
 import type { CreateIapPayload } from './services/apple/apple-types'
 import {
   exportAppleProducts,
@@ -124,7 +126,14 @@ export function registerIpcHandlers(): void {
   ipcMain.handle('project:delete', async (_event, id: string) => {
     try {
       const deleted = deleteProject(id)
-      if (deleted) deleteCredentials(id)
+      if (deleted) {
+        deleteCredentials(id)
+        // Drop any cached auth tied to the deleted project so the next time
+        // the same projectId is reused (or just to avoid stale state) we
+        // don't leak credentials forward.
+        clearAppleTokenCache(id)
+        clearGoogleAuthCache(id)
+      }
       if (!deleted) return { success: false, error: '專案不存在' }
       return { success: true }
     } catch (e: any) {
@@ -150,6 +159,11 @@ export function registerIpcHandlers(): void {
         saveAppleCredentials(projectId, creds)
         const db = getDatabase()
         db.prepare('UPDATE project_credentials SET has_apple = 1 WHERE project_id = ?').run(projectId)
+        // JWT cache is keyed by (projectId, issuerId, keyId); invalidate
+        // entries for this project so the next request re-signs with the
+        // new key instead of waiting up to 15 minutes for the old token
+        // to expire.
+        clearAppleTokenCache(projectId)
         return { success: true }
       } catch (e: any) {
         return { success: false, error: e.message }
@@ -164,6 +178,9 @@ export function registerIpcHandlers(): void {
         saveGoogleCredentials(projectId, creds)
         const db = getDatabase()
         db.prepare('UPDATE project_credentials SET has_google = 1 WHERE project_id = ?').run(projectId)
+        // GoogleAuth instance is cached per project — drop it so the next
+        // request rebuilds it with the new service-account JSON.
+        clearGoogleAuthCache(projectId)
         return { success: true }
       } catch (e: any) {
         return { success: false, error: e.message }

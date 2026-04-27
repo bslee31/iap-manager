@@ -1,9 +1,21 @@
 import { GoogleAuth } from 'google-auth-library'
 import { loadCredentials } from '../credential-store'
+import { fetchWithRetry } from '../http-retry'
 
 const API_BASE = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications'
+// Allowlist for absolute URLs — currently only the Android Publisher host.
+const ALLOWED_HOSTS = new Set(['androidpublisher.googleapis.com'])
 
 let cachedAuth: { projectId: string; auth: GoogleAuth } | null = null
+
+// Invalidate the cached GoogleAuth instance. Pass a projectId to clear only
+// when the cache is for that project (typical case: credentials just changed
+// for that project); omit it to flush unconditionally.
+export function clearGoogleAuthCache(projectId?: string): void {
+  if (!projectId || cachedAuth?.projectId === projectId) {
+    cachedAuth = null
+  }
+}
 
 function getAuth(projectId: string): { auth: GoogleAuth; packageName: string } {
   const creds = loadCredentials(projectId)
@@ -34,9 +46,25 @@ export async function googleRequest(
   const token = await client.getAccessToken()
 
   const base = baseUrl || API_BASE
-  const url = path.startsWith('http') ? path : `${base}/${packageName}${path}`
+  let url: string
+  if (path.startsWith('http')) {
+    // Absolute URL (e.g. follow-up pagination) — verify the host is one we
+    // expect before sending the bearer token to it.
+    let parsed: URL
+    try {
+      parsed = new URL(path)
+    } catch {
+      throw new Error(`無效的 URL：${path}`)
+    }
+    if (!ALLOWED_HOSTS.has(parsed.host)) {
+      throw new Error(`拒絕對非 Google Play API 的網址發送請求：${parsed.host}`)
+    }
+    url = path
+  } else {
+    url = `${base}/${packageName}${path}`
+  }
 
-  const response = await fetch(url, {
+  const response = await fetchWithRetry(url, {
     method: options.method || 'GET',
     headers: {
       Authorization: `Bearer ${token.token}`,

@@ -4,6 +4,7 @@ import {
   parseProblematicRegions,
   fetchSupportedRegions
 } from './google-product'
+import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
   type ExportedGoogleProduct,
@@ -26,7 +27,6 @@ const MAX_DESCRIPTION = 200
 const VALID_PO_STATES = new Set(['DRAFT', 'ACTIVE', 'INACTIVE', 'INACTIVE_PUBLISHED'])
 const VALID_PO_TYPES = new Set(['BUY']) // import flow only supports BUY today
 const VALID_AVAILABILITY = new Set(['AVAILABLE', 'NO_LONGER_AVAILABLE'])
-const IMPORT_CONCURRENCY = 3
 
 export type GoogleImportProgressCallback = (
   current: number,
@@ -34,21 +34,6 @@ export type GoogleImportProgressCallback = (
   phase: string
 ) => void
 
-async function runWithConcurrency<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> {
-  let cursor = 0
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (true) {
-      const idx = cursor++
-      if (idx >= items.length) return
-      await worker(items[idx], idx)
-    }
-  })
-  await Promise.all(runners)
-}
 
 function pushIssue(
   issues: GoogleImportValidationIssue[],
@@ -312,14 +297,18 @@ export async function validateImport(
     }
   }
 
-  // Fetch supported regions for validation. If the call fails, degrade
-  // gracefully by skipping region-code checks rather than blocking import.
-  let validRegionCodes = new Set<string>()
+  // Region-code validation requires the live region list — failing open
+  // would let unrecognized region codes slip past validation only to be
+  // rejected later by the create call (or worse, silently dropped). Surface
+  // the error to the caller instead.
+  let validRegionCodes: Set<string>
   try {
     const regions = await fetchSupportedRegions(projectId)
     validRegionCodes = new Set(regions.map((r) => r.regionCode))
-  } catch {
-    // Leave empty — validateProduct will skip regionCode membership check.
+  } catch (e: any) {
+    throw new Error(
+      `無法載入 Google 支援地區列表，無法驗證匯入內容：${e?.message || String(e)}`
+    )
   }
 
   const seenProductIds = new Set<string>()

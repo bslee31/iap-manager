@@ -1,5 +1,6 @@
 import { generateAppleJwt, clearTokenCache } from './apple-auth'
 import { loadCredentials } from '../credential-store'
+import { fetchWithRetry } from '../http-retry'
 import type {
   AppleInAppPurchase,
   AppleApiListResponse,
@@ -14,6 +15,8 @@ import type {
 } from './apple-types'
 
 const API_BASE = 'https://api.appstoreconnect.apple.com'
+// Allowlist for absolute URLs — currently only the App Store Connect host.
+const ALLOWED_HOSTS = new Set(['api.appstoreconnect.apple.com'])
 
 async function appleRequest(
   projectId: string,
@@ -26,11 +29,29 @@ async function appleRequest(
   const token = await generateAppleJwt(
     creds.apple.keyId,
     creds.apple.issuerId,
-    creds.apple.privateKey
+    creds.apple.privateKey,
+    projectId
   )
 
-  const url = path.startsWith('http') ? path : `${API_BASE}${path}`
-  const response = await fetch(url, {
+  // Restrict absolute URLs to the Apple API host. Anything else means the
+  // caller (or a malformed pagination link) is trying to hit a different
+  // origin with our bearer token — refuse rather than leak credentials.
+  let url: string
+  if (path.startsWith('http')) {
+    let parsed: URL
+    try {
+      parsed = new URL(path)
+    } catch {
+      throw new Error(`無效的 URL：${path}`)
+    }
+    if (!ALLOWED_HOSTS.has(parsed.host)) {
+      throw new Error(`拒絕對非 Apple API 的網址發送請求：${parsed.host}`)
+    }
+    url = path
+  } else {
+    url = `${API_BASE}${path}`
+  }
+  const response = await fetchWithRetry(url, {
     ...options,
     headers: {
       Authorization: `Bearer ${token}`,
