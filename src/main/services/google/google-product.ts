@@ -177,14 +177,10 @@ export async function batchUpdateStatus(
     const pid = requestProductIds[i]
     const req = requests[i]
     try {
-      const resp = await googleRequest(
-        projectId,
-        `/oneTimeProducts/${pid}/purchaseOptions:batchUpdateStates`,
-        {
-          method: 'POST',
-          body: { requests: [req] }
-        }
-      )
+      await googleRequest(projectId, `/oneTimeProducts/${pid}/purchaseOptions:batchUpdateStates`, {
+        method: 'POST',
+        body: { requests: [req] }
+      })
       success.push(pid)
     } catch (e: any) {
       failed.push({ id: pid, error: e.message })

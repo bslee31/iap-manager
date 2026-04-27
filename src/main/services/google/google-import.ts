@@ -4,10 +4,8 @@ import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
   type ExportedGoogleProduct,
-  type ExportedGooglePurchaseOption,
   type GoogleImportPreview,
   type GoogleImportProductResult,
-  type GoogleImportStepError,
   type GoogleImportValidationIssue
 } from './google-types'
 
