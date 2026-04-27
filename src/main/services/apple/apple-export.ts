@@ -4,6 +4,7 @@ import {
   getIapLocalizations,
   getIapAllTerritoryPrices
 } from './apple-iap'
+import { runWithConcurrency, EXPORT_CONCURRENCY } from '../concurrency'
 import {
   EXPORT_FORMAT_VERSION,
   type ExportData,
@@ -19,28 +20,6 @@ export interface ExportProductInput {
 }
 
 export type ExportProgressCallback = (current: number, total: number, phase: string) => void
-
-const CONCURRENCY_LIMIT = 5
-
-async function runWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = new Array(items.length)
-  let cursor = 0
-
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (true) {
-      const idx = cursor++
-      if (idx >= items.length) return
-      results[idx] = await worker(items[idx], idx)
-    }
-  })
-
-  await Promise.all(runners)
-  return results
-}
 
 async function fetchProductDetails(
   projectId: string,
@@ -103,7 +82,7 @@ export async function exportAppleProducts(
 
   onProgress?.(0, total, '開始匯出...')
 
-  await runWithConcurrency(products, CONCURRENCY_LIMIT, async (product) => {
+  await runWithConcurrency(products, EXPORT_CONCURRENCY, async (product) => {
     try {
       const result = await fetchProductDetails(projectId, product)
       exported.push(result)

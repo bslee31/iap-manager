@@ -275,6 +275,41 @@ export function parseProblematicRegions(message: string): string[] {
   return [...codes]
 }
 
+// Retry an operation that takes a list of region configs, dropping any
+// regions Google rejects in the error message and trying again. Used by
+// create / update / add purchase-option flows so a few mid-transition regions
+// don't block the whole call. The cap exists only to prevent infinite loops:
+// in practice we stop as soon as an error reveals no new region codes to
+// drop. `T` lets callers use any config shape with a `regionCode` field.
+const REGION_RETRY_LIMIT = 20
+
+async function withRegionRetry<T extends { regionCode: string }, R>(
+  initialConfigs: T[],
+  send: (configs: T[]) => Promise<R>
+): Promise<{ result: R; skippedRegions: string[] }> {
+  let configs = initialConfigs
+  const skipped: string[] = []
+  let lastError = ''
+
+  for (let attempt = 0; attempt < REGION_RETRY_LIMIT; attempt++) {
+    try {
+      const result = await send(configs)
+      return { result, skippedRegions: skipped }
+    } catch (e: any) {
+      lastError = e?.message || ''
+      const bad = parseProblematicRegions(lastError)
+      // Only react to region codes we actually still have. If the same
+      // region keeps appearing or no new codes are reported, the failure
+      // isn't region-specific and we should propagate it.
+      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
+      if (newBad.length === 0) throw e
+      skipped.push(...newBad)
+      configs = configs.filter((c) => !newBad.includes(c.regionCode))
+    }
+  }
+  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+}
+
 // Create a DRAFT one-time product with a Buy purchase option and regional
 // pricing converted from the user-supplied base price. Retries up to a few
 // times dropping regions whose currency the patch endpoint rejects, so a few
@@ -291,7 +326,7 @@ export async function createOneTimeProduct(
 
   // Google auto-rounds to "nice" market prices, which can shift the base
   // region's price. Force the base region to exactly what the user typed.
-  let configs = regionalPrices.map((p) => ({
+  const initialConfigs = regionalPrices.map((p) => ({
     regionCode: p.regionCode,
     availability: 'AVAILABLE' as const,
     price:
@@ -314,54 +349,32 @@ export async function createOneTimeProduct(
     'regionsVersion.version': REGIONS_VERSION
   })
 
-  const skipped: string[] = []
-  let lastError = ''
-  // Retry up to 20 times; each retry drops regions Google rejected. The limit
-  // exists only to prevent infinite loops — in practice we stop as soon as an
-  // error reveals no new region codes to drop.
-  for (let attempt = 0; attempt < 20; attempt++) {
-    try {
-      const result = await googleRequest(
-        projectId,
-        `/onetimeproducts/${data.productId}?${params}`,
-        {
-          method: 'PATCH',
-          body: {
-            productId: data.productId,
-            listings: [
-              {
-                languageCode: data.languageCode,
-                title: data.name,
-                description: data.description
-              }
-            ],
-            purchaseOptions: [
-              {
-                purchaseOptionId: data.purchaseOptionId,
-                state: 'DRAFT',
-                buyOption: {
-                  legacyCompatible: true,
-                  multiQuantityEnabled: false
-                },
-                regionalPricingAndAvailabilityConfigs: configs
-              }
-            ]
+  return withRegionRetry(initialConfigs, (configs) =>
+    googleRequest(projectId, `/onetimeproducts/${data.productId}?${params}`, {
+      method: 'PATCH',
+      body: {
+        productId: data.productId,
+        listings: [
+          {
+            languageCode: data.languageCode,
+            title: data.name,
+            description: data.description
           }
-        }
-      )
-      return { result, skippedRegions: skipped }
-    } catch (e: any) {
-      lastError = e?.message || ''
-      const bad = parseProblematicRegions(lastError)
-      // Only keep codes we actually still have — if the same region keeps
-      // appearing, something else is wrong and we should stop retrying.
-      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
-      if (newBad.length === 0) throw e
-      skipped.push(...newBad)
-      configs = configs.filter((c) => !newBad.includes(c.regionCode))
-    }
-  }
-  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+        ],
+        purchaseOptions: [
+          {
+            purchaseOptionId: data.purchaseOptionId,
+            state: 'DRAFT',
+            buyOption: {
+              legacyCompatible: true,
+              multiQuantityEnabled: false
+            },
+            regionalPricingAndAvailabilityConfigs: configs
+          }
+        ]
+      }
+    })
+  )
 }
 
 export interface OneTimeProductListing {
@@ -464,7 +477,7 @@ export async function updatePurchaseOptionPricing(
   // region's price (e.g. TWD 200 -> 210). Force the base region to exactly
   // what the user typed so the UX matches expectation; other regions keep
   // Google's market-optimized conversions.
-  let configs = regionalPrices.map((p) => ({
+  const initialConfigs = regionalPrices.map((p) => ({
     regionCode: p.regionCode,
     availability: 'AVAILABLE' as const,
     price:
@@ -486,34 +499,17 @@ export async function updatePurchaseOptionPricing(
     'regionsVersion.version': REGIONS_VERSION
   })
 
-  const skipped: string[] = []
-  let lastError = ''
-  for (let attempt = 0; attempt < 20; attempt++) {
+  return withRegionRetry(initialConfigs, (configs) => {
     const poArray = currentPOs.map((po) =>
       po.purchaseOptionId === purchaseOptionId
         ? { ...po, regionalPricingAndAvailabilityConfigs: configs }
         : po
     )
-    try {
-      const result = await googleRequest(
-        projectId,
-        `/onetimeproducts/${productId}?${params}`,
-        {
-          method: 'PATCH',
-          body: { productId, purchaseOptions: poArray }
-        }
-      )
-      return { result, skippedRegions: skipped }
-    } catch (e: any) {
-      lastError = e?.message || ''
-      const bad = parseProblematicRegions(lastError)
-      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
-      if (newBad.length === 0) throw e
-      skipped.push(...newBad)
-      configs = configs.filter((c) => !newBad.includes(c.regionCode))
-    }
-  }
-  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+    return googleRequest(projectId, `/onetimeproducts/${productId}?${params}`, {
+      method: 'PATCH',
+      body: { productId, purchaseOptions: poArray }
+    })
+  })
 }
 
 // Add a new purchase option (BUY, DRAFT) to an existing one-time product.
@@ -533,7 +529,7 @@ export async function addPurchaseOption(
   }
 
   const regionalPrices = await convertRegionPrices(projectId, basePrice)
-  let configs = regionalPrices.map((p) => ({
+  const initialConfigs = regionalPrices.map((p) => ({
     regionCode: p.regionCode,
     availability: 'AVAILABLE' as const,
     price:
@@ -555,9 +551,7 @@ export async function addPurchaseOption(
     'regionsVersion.version': REGIONS_VERSION
   })
 
-  const skipped: string[] = []
-  let lastError = ''
-  for (let attempt = 0; attempt < 20; attempt++) {
+  return withRegionRetry(initialConfigs, (configs) => {
     const newPO = {
       purchaseOptionId,
       state: 'DRAFT',
@@ -568,26 +562,11 @@ export async function addPurchaseOption(
       regionalPricingAndAvailabilityConfigs: configs
     }
     const poArray = [...currentPOs, newPO]
-    try {
-      const result = await googleRequest(
-        projectId,
-        `/onetimeproducts/${productId}?${params}`,
-        {
-          method: 'PATCH',
-          body: { productId, purchaseOptions: poArray }
-        }
-      )
-      return { result, skippedRegions: skipped }
-    } catch (e: any) {
-      lastError = e?.message || ''
-      const bad = parseProblematicRegions(lastError)
-      const newBad = bad.filter((code) => configs.some((c) => c.regionCode === code))
-      if (newBad.length === 0) throw e
-      skipped.push(...newBad)
-      configs = configs.filter((c) => !newBad.includes(c.regionCode))
-    }
-  }
-  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+    return googleRequest(projectId, `/onetimeproducts/${productId}?${params}`, {
+      method: 'PATCH',
+      body: { productId, purchaseOptions: poArray }
+    })
+  })
 }
 
 // Activate or deactivate a single purchase option.

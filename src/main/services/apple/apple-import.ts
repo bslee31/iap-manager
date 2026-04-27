@@ -7,6 +7,7 @@ import {
   createIapLocalization
 } from './apple-iap'
 import { loadCredentials } from '../credential-store'
+import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import {
   EXPORT_FORMAT_VERSION,
   type ExportedProduct,
@@ -23,25 +24,8 @@ const MAX_PRODUCT_ID = 100
 const MAX_REF_NAME = 64
 const MAX_LOC_NAME = 35
 const MAX_LOC_DESC = 55
-const IMPORT_CONCURRENCY = 3
 
 export type ImportProgressCallback = (current: number, total: number, phase: string) => void
-
-async function runWithConcurrency<T>(
-  items: T[],
-  limit: number,
-  worker: (item: T, index: number) => Promise<void>
-): Promise<void> {
-  let cursor = 0
-  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (true) {
-      const idx = cursor++
-      if (idx >= items.length) return
-      await worker(items[idx], idx)
-    }
-  })
-  await Promise.all(runners)
-}
 
 function pushIssue(
   issues: ImportValidationIssue[],
