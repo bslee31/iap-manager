@@ -1,0 +1,39 @@
+name: CI
+
+# Run the four scripts wired up locally (lint + format check + typecheck +
+# build) on every push to main and on every pull request targeting main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel any in-flight run for the same ref when a new commit is pushed —
+# avoids two CI runs racing on rapid pushes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the >=22 engine warning surfaced by node-abi when
+          # installing on older Node, and aligns with the local dev setup.
+          node-version: '22'
+          cache: 'npm'
+
+      # `npm ci` runs the postinstall hook, which is
+      # `electron-builder install-app-deps`. That rebuilds the native
+      # better-sqlite3 binary against Electron's Node version (1–2 min cold).
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run typecheck
+      - run: npm run build
