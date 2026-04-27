@@ -403,12 +403,14 @@ const editTerrPPOptions = computed(() => {
 async function loadPriceSchedule() {
   priceLoading.value = true
   const result = await window.api.getApplePriceSchedule(props.projectId, props.product.id)
-  if (result.success) {
-    if (result.data.baseTerritory) {
-      // Setting selectedTerritory will trigger the watcher that loads
-      // matching price points, so we don't need to call loadPricePoints
-      // explicitly here.
-      selectedTerritory.value = result.data.baseTerritory
+  if (result.success && result.data.baseTerritory) {
+    const next = result.data.baseTerritory
+    // When next === current value, the selectedTerritory watcher won't fire
+    // (Vue skips no-op assignments), so trigger the load explicitly.
+    if (next === selectedTerritory.value) {
+      await loadPricePoints()
+    } else {
+      selectedTerritory.value = next
     }
   }
   priceLoading.value = false
