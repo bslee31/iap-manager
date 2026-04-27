@@ -3,6 +3,9 @@ import { ref, computed, onMounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
+import * as credentialApi from '../../services/api/credential'
+import * as googleApi from '../../services/api/google'
+import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -47,7 +50,7 @@ const regionOptions = computed(() =>
 )
 
 onMounted(async () => {
-  const result = await window.api.getCredentials(props.projectId)
+  const result = await credentialApi.get(props.projectId)
   if (result.success && result.data) {
     if (result.data.apple) {
       appleKeyId.value = result.data.apple.keyId
@@ -61,7 +64,7 @@ onMounted(async () => {
       googleSavedAccount.value = result.data.google.hasServiceAccount
     }
   }
-  const settings = await window.api.getGoogleSettings(props.projectId)
+  const settings = await googleApi.getSettings(props.projectId)
   if (settings.success && settings.data) {
     googleDefaultLanguage.value = settings.data.defaultLanguage || ''
     googleBaseRegion.value = settings.data.baseRegion || ''
@@ -69,7 +72,7 @@ onMounted(async () => {
   // Load supported regions for the priority-region dropdown.
   if (googleSavedAccount.value) {
     googleRegionsLoading.value = true
-    const regionsResult = await window.api.getGoogleRegions(props.projectId)
+    const regionsResult = await googleApi.getRegions(props.projectId)
     googleRegionsLoading.value = false
     if (regionsResult.success && regionsResult.data) {
       googleRegions.value = regionsResult.data
@@ -81,7 +84,7 @@ onMounted(async () => {
 
 async function onGoogleBaseRegionChange(value: string) {
   googleBaseRegion.value = value
-  const result = await window.api.setGoogleBaseRegion(props.projectId, value || null)
+  const result = await googleApi.setBaseRegion(props.projectId, value || null)
   if (result.success) {
     notify.success('已更新優先顯示國家')
   } else {
@@ -91,7 +94,7 @@ async function onGoogleBaseRegionChange(value: string) {
 
 async function onGoogleLanguageChange(value: string) {
   googleDefaultLanguage.value = value
-  const result = await window.api.setGoogleDefaultLanguage(props.projectId, value || null)
+  const result = await googleApi.setDefaultLanguage(props.projectId, value || null)
   if (result.success) {
     notify.success('已更新預設語言')
   } else {
@@ -105,7 +108,7 @@ async function detectGoogleLanguage() {
     return
   }
   googleDetectingLanguage.value = true
-  const result = await window.api.detectGoogleDefaultLanguage(props.projectId)
+  const result = await googleApi.detectDefaultLanguage(props.projectId)
   googleDetectingLanguage.value = false
   if (result.success && result.data) {
     googleDefaultLanguage.value = result.data.defaultLanguage
@@ -116,7 +119,7 @@ async function detectGoogleLanguage() {
 }
 
 async function importP8() {
-  const result = await window.api.importFile([
+  const result = await dialogApi.importFile([
     { name: 'Apple Private Key', extensions: ['p8'] }
   ])
   if (result.success && result.data) {
@@ -145,7 +148,7 @@ async function saveApple() {
     creds.privateKey = appleP8Content.value
   }
 
-  const result = await window.api.saveAppleCredentials(props.projectId, creds)
+  const result = await credentialApi.saveApple(props.projectId, creds)
   if (result.success) {
     notify.success('Apple 憑證已儲存')
   } else {
@@ -155,7 +158,7 @@ async function saveApple() {
 
 async function testApple() {
   appleTesting.value = true
-  const result = await window.api.testAppleConnection(props.projectId)
+  const result = await credentialApi.testApple(props.projectId)
   appleTesting.value = false
   if (result.success) {
     notify.success(result.message || '連線成功')
@@ -165,7 +168,7 @@ async function testApple() {
 }
 
 async function importGoogleJson() {
-  const result = await window.api.importFile([
+  const result = await dialogApi.importFile([
     { name: 'Google Service Account', extensions: ['json'] }
   ])
   if (result.success && result.data) {
@@ -192,7 +195,7 @@ async function saveGoogle() {
     creds.serviceAccountJson = googleJsonContent.value
   }
 
-  const result = await window.api.saveGoogleCredentials(props.projectId, creds)
+  const result = await credentialApi.saveGoogle(props.projectId, creds)
   if (result.success) {
     googleSavedAccount.value = true
     notify.success('Google 憑證已儲存')
@@ -203,7 +206,7 @@ async function saveGoogle() {
 
 async function testGoogle() {
   googleTesting.value = true
-  const result = await window.api.testGoogleConnection(props.projectId)
+  const result = await credentialApi.testGoogle(props.projectId)
   googleTesting.value = false
   if (result.success) {
     notify.success(result.message || '連線成功')

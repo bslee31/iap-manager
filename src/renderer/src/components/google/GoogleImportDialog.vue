@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import * as googleApi from '../../services/api/google'
+import * as progressApi from '../../services/api/progress'
 
 interface ImportValidationIssue {
   index: number
@@ -81,19 +83,19 @@ const baseRegion = ref('')
 const defaultLanguage = ref('')
 
 onMounted(async () => {
-  cleanupProgress = window.api.onImportProgress((data) => {
+  cleanupProgress = progressApi.onImport((data) => {
     importProgress.value = data.phase
   })
   // Resolve the target project's base region (for primary PO price column)
   // and default language (for the Name column), so the preview reflects
   // this project's own reference points — not hardcoded zh-TW/en-US or
   // the alphabetically-first region.
-  const settingsRes = await window.api.getGoogleSettings(props.projectId)
+  const settingsRes = await googleApi.getSettings(props.projectId)
   if (settingsRes.success && settingsRes.data) {
     baseRegion.value = settingsRes.data.baseRegion || ''
     defaultLanguage.value = settingsRes.data.defaultLanguage || ''
   }
-  const res = await window.api.validateGoogleImport(
+  const res = await googleApi.validateImport(
     props.projectId,
     props.fileContent,
     props.existingProductIds
@@ -143,7 +145,7 @@ async function confirmImport(): Promise<void> {
     // Deep-clone to strip Vue reactive proxies — Electron IPC cannot
     // structured-clone a reactive wrapper.
     const rawProducts = JSON.parse(JSON.stringify(preview.value.products))
-    const res = await window.api.executeGoogleImport(props.projectId, rawProducts)
+    const res = await googleApi.executeImport(props.projectId, rawProducts)
     if (!res.success) {
       fatalError.value = res.error || '匯入失敗'
       state.value = 'done'

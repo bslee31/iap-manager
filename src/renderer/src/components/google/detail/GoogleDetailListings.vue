@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { GOOGLE_LANGUAGES, getLanguageLabel } from '../../../utils/google-languages'
 import SearchableSelect from '../../common/SearchableSelect.vue'
+import * as googleApi from '../../../services/api/google'
 
 interface Listing {
   languageCode: string
@@ -94,7 +95,7 @@ async function saveListing() {
     next[idx] = { languageCode: e.languageCode, title: e.title.trim(), description: e.description.trim() }
   }
   listingSaving.value = true
-  const result = await window.api.updateGoogleListings(props.projectId, props.productId, next)
+  const result = await googleApi.updateListings(props.projectId, props.productId, next)
   listingSaving.value = false
   if (result.success && result.data) {
     editingListing.value = null
@@ -118,7 +119,7 @@ async function deleteListing(languageCode: string) {
       title: l.title,
       description: l.description
     }))
-  const result = await window.api.updateGoogleListings(props.projectId, props.productId, next)
+  const result = await googleApi.updateListings(props.projectId, props.productId, next)
   if (result.success && result.data) {
     notify.success('已刪除')
     emit('updated')

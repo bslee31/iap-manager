@@ -3,6 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { territoryName } from '../../../utils/territory-names'
 import SearchableSelect from '../../common/SearchableSelect.vue'
+import * as appleApi from '../../../services/api/apple'
 
 const props = defineProps<{
   projectId: string
@@ -92,7 +93,7 @@ const filteredPrices = computed(() => {
 
 async function loadAllTerritoryPrices() {
   allPricesLoading.value = true
-  const result = await window.api.getAppleAllTerritoryPrices(props.projectId, props.iapId)
+  const result = await appleApi.getAllTerritoryPrices(props.projectId, props.iapId)
   if (result.success) {
     allPricesData.value = result.data
   }
@@ -111,7 +112,7 @@ async function openEditTerritoryPrice(tp: { territory: string; currency: string 
   editTerrPricePoints.value = []
   editTerrPriceLoading.value = true
 
-  const result = await window.api.getApplePricePoints(props.projectId, props.iapId, tp.territory)
+  const result = await appleApi.getPricePoints(props.projectId, props.iapId, tp.territory)
   if (result.success) {
     editTerrPricePoints.value = result.data
     const currentPrice = allPricesData.value?.territoryPrices.find((p) => p.territory === tp.territory)
@@ -126,7 +127,7 @@ async function openEditTerritoryPrice(tp: { territory: string; currency: string 
 async function saveEditTerritoryPrice() {
   if (!editingTerrPrice.value || !editTerrSelectedPP.value) return
   editTerrSaving.value = true
-  const result = await window.api.setAppleManualTerritoryPrice(
+  const result = await appleApi.setManualTerritoryPrice(
     props.projectId,
     props.iapId,
     editingTerrPrice.value.territory,
@@ -162,7 +163,7 @@ const editTerrPPOptions = computed(() => {
 
 async function loadPriceSchedule() {
   priceLoading.value = true
-  const result = await window.api.getApplePriceSchedule(props.projectId, props.iapId)
+  const result = await appleApi.getPriceSchedule(props.projectId, props.iapId)
   if (result.success && result.data.baseTerritory) {
     const next = result.data.baseTerritory
     // When next === current value, the selectedTerritory watcher won't fire
@@ -178,7 +179,7 @@ async function loadPriceSchedule() {
 
 async function loadPricePoints() {
   pricePointsLoading.value = true
-  const result = await window.api.getApplePricePoints(
+  const result = await appleApi.getPricePoints(
     props.projectId,
     props.iapId,
     selectedTerritory.value
@@ -199,7 +200,7 @@ async function savePriceSchedule() {
     return
   }
   priceSaving.value = true
-  const result = await window.api.setApplePriceSchedule(
+  const result = await appleApi.setPriceSchedule(
     props.projectId,
     props.iapId,
     selectedTerritory.value,

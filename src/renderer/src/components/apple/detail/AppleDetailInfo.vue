@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
+import * as appleApi from '../../../services/api/apple'
 
 const props = defineProps<{
   projectId: string
@@ -44,7 +45,7 @@ async function saveReferenceName(): Promise<void> {
   const newName = editingReferenceName.value.trim()
   if (!newName || newName.length > MAX_REF_NAME) return
   savingReferenceName.value = true
-  const result = await window.api.updateAppleProduct(props.projectId, props.iapId, {
+  const result = await appleApi.updateProduct(props.projectId, props.iapId, {
     referenceName: newName
   })
   savingReferenceName.value = false

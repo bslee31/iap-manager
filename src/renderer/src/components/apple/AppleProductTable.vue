@@ -3,6 +3,9 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
 import AppleProductDetail from './AppleProductDetail.vue'
 import AppleImportDialog from './AppleImportDialog.vue'
+import * as appleApi from '../../services/api/apple'
+import * as dialogApi from '../../services/api/dialog'
+import * as progressApi from '../../services/api/progress'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -37,10 +40,10 @@ const selectedProduct = ref<AppleProduct | null>(null)
 let cleanupProgress: (() => void) | null = null
 let cleanupExportProgress: (() => void) | null = null
 onMounted(() => {
-  cleanupProgress = window.api.onSyncProgress((data) => {
+  cleanupProgress = progressApi.onSync((data) => {
     syncProgress.value = data.phase
   })
-  cleanupExportProgress = window.api.onExportProgress((data) => {
+  cleanupExportProgress = progressApi.onExport((data) => {
     exportProgress.value = data.phase
   })
 })
@@ -111,7 +114,7 @@ onMounted(loadCached)
 
 async function loadCached() {
   loading.value = true
-  const result = await window.api.getCachedAppleProducts(props.projectId)
+  const result = await appleApi.getCachedProducts(props.projectId)
   if (result.success) {
     products.value = result.data
   }
@@ -121,7 +124,7 @@ async function loadCached() {
 async function syncProducts() {
   syncing.value = true
   syncProgress.value = '正在連線...'
-  const result = await window.api.fetchAppleProducts(props.projectId)
+  const result = await appleApi.fetchProducts(props.projectId)
   syncing.value = false
   syncProgress.value = ''
   if (result.success) {
@@ -188,7 +191,7 @@ async function handleBatchAction(key: string) {
       const product = products.value.find((p) => p.id === id)
       if (!product) continue
       syncProgress.value = `重整 Price... ${success + 1}/${total}`
-      const result = await window.api.syncAppleBasePrice(props.projectId, id)
+      const result = await appleApi.syncBasePrice(props.projectId, id)
       if (result.success) {
         product.basePrice = result.data.basePrice
         product.baseCurrency = result.data.baseCurrency
@@ -209,7 +212,7 @@ async function handleBatchAction(key: string) {
       const product = products.value.find((p) => p.id === id)
       if (!product) continue
       syncProgress.value = `重整 Availability... ${success + 1}/${total}`
-      const result = await window.api.syncAppleAvailability(props.projectId, id)
+      const result = await appleApi.syncAvailability(props.projectId, id)
       if (result.success) {
         product.territoryCount = result.data.territoryCount
         success++
@@ -228,7 +231,7 @@ async function handleBatchAction(key: string) {
     if (!confirm(`確定要${label}選取的 ${ids.length} 個商品嗎？`)) return
 
     notify.info(`正在批次${label}...`)
-    const result = await window.api.batchUpdateAppleAvailability(
+    const result = await appleApi.batchUpdateAvailability(
       props.projectId,
       ids,
       available
@@ -251,7 +254,7 @@ async function handleBatchAction(key: string) {
 }
 
 async function importProducts() {
-  const result = await window.api.importFile([{ name: 'JSON', extensions: ['json'] }])
+  const result = await dialogApi.importFile([{ name: 'JSON', extensions: ['json'] }])
   if (!result.success || !result.data) return
   importFileContent.value = result.data
 }
@@ -284,7 +287,7 @@ async function exportProducts() {
 
   exporting.value = true
   exportProgress.value = '準備匯出...'
-  const result = await window.api.exportAppleProducts(props.projectId, payload)
+  const result = await appleApi.exportProducts(props.projectId, payload)
   exporting.value = false
   exportProgress.value = ''
 
@@ -312,7 +315,7 @@ async function createProduct() {
     return
   }
 
-  const result = await window.api.createAppleProduct(props.projectId, {
+  const result = await appleApi.createProduct(props.projectId, {
     ...newProduct.value,
     appId: '' // Will be filled from credentials in main process
   })

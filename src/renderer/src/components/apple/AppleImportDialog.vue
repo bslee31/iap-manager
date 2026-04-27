@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import * as appleApi from '../../services/api/apple'
+import * as progressApi from '../../services/api/progress'
 
 interface ImportValidationIssue {
   index: number
@@ -65,10 +67,10 @@ const fatalError = ref('')
 let cleanupProgress: (() => void) | null = null
 
 onMounted(async () => {
-  cleanupProgress = window.api.onImportProgress((data) => {
+  cleanupProgress = progressApi.onImport((data) => {
     importProgress.value = data.phase
   })
-  const res = await window.api.validateAppleImport(
+  const res = await appleApi.validateImport(
     props.projectId,
     props.fileContent,
     props.existingProductIds
@@ -119,7 +121,7 @@ async function confirmImport(): Promise<void> {
     // structured-clone a reactive wrapper.
     const rawProducts = JSON.parse(JSON.stringify(preview.value.products))
     const rawCurrencyMap = JSON.parse(JSON.stringify(preview.value.territoryCurrencyMap || {}))
-    const res = await window.api.executeAppleImport(
+    const res = await appleApi.executeImport(
       props.projectId,
       rawProducts,
       rawCurrencyMap

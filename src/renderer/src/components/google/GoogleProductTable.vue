@@ -5,6 +5,9 @@ import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
 import GoogleProductDetail from './GoogleProductDetail.vue'
 import GoogleImportDialog from './GoogleImportDialog.vue'
+import * as googleApi from '../../services/api/google'
+import * as dialogApi from '../../services/api/dialog'
+import * as progressApi from '../../services/api/progress'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
@@ -71,10 +74,10 @@ const existingProductIds = computed(() => products.value.map((p) => p.productId)
 let cleanupProgress: (() => void) | null = null
 let cleanupExportProgress: (() => void) | null = null
 onMounted(() => {
-  cleanupProgress = window.api.onSyncProgress((data) => {
+  cleanupProgress = progressApi.onSync((data) => {
     syncProgress.value = data.phase
   })
-  cleanupExportProgress = window.api.onExportProgress((data) => {
+  cleanupExportProgress = progressApi.onExport((data) => {
     exportProgress.value = data.phase
   })
 })
@@ -145,7 +148,7 @@ onMounted(async () => {
 })
 
 async function loadProjectSettings() {
-  const result = await window.api.getGoogleSettings(props.projectId)
+  const result = await googleApi.getSettings(props.projectId)
   if (result.success && result.data) {
     projectDefaultLanguage.value = result.data.defaultLanguage || ''
   }
@@ -153,7 +156,7 @@ async function loadProjectSettings() {
 
 async function loadCached() {
   loading.value = true
-  const result = await window.api.getCachedGoogleProducts(props.projectId)
+  const result = await googleApi.getCachedProducts(props.projectId)
   if (result.success) {
     products.value = result.data
   }
@@ -173,7 +176,7 @@ async function openCreateForm() {
   showCreateForm.value = true
   if (supportedRegions.value.length === 0) {
     loadingRegions.value = true
-    const result = await window.api.getGoogleRegions(props.projectId)
+    const result = await googleApi.getRegions(props.projectId)
     loadingRegions.value = false
     if (result.success && result.data) {
       supportedRegions.value = result.data
@@ -185,7 +188,7 @@ async function openCreateForm() {
 
 async function detectLanguageInModal() {
   detectingLanguage.value = true
-  const result = await window.api.detectGoogleDefaultLanguage(props.projectId)
+  const result = await googleApi.detectDefaultLanguage(props.projectId)
   detectingLanguage.value = false
   if (result.success && result.data) {
     projectDefaultLanguage.value = result.data.defaultLanguage
@@ -199,7 +202,7 @@ async function detectLanguageInModal() {
 async function syncProducts() {
   syncing.value = true
   syncProgress.value = '正在連線...'
-  const result = await window.api.fetchGoogleProducts(props.projectId)
+  const result = await googleApi.fetchProducts(props.projectId)
   syncing.value = false
   syncProgress.value = ''
   if (result.success) {
@@ -212,7 +215,7 @@ async function syncProducts() {
 }
 
 async function importProducts() {
-  const result = await window.api.importFile([{ name: 'JSON', extensions: ['json'] }])
+  const result = await dialogApi.importFile([{ name: 'JSON', extensions: ['json'] }])
   if (!result.success || !result.data) return
   importFileContent.value = result.data
 }
@@ -240,7 +243,7 @@ async function exportProducts() {
 
   exporting.value = true
   exportProgress.value = '準備匯出...'
-  const result = await window.api.exportGoogleProducts(props.projectId, payload)
+  const result = await googleApi.exportProducts(props.projectId, payload)
   exporting.value = false
   exportProgress.value = ''
 
@@ -289,7 +292,7 @@ async function handleBatchAction(key: string) {
 
     notify.info(`正在批次${label}...`)
     const plainProducts = JSON.parse(JSON.stringify(products.value))
-    const result = await window.api.batchUpdateGoogleStatus(props.projectId, ids, active, plainProducts)
+    const result = await googleApi.batchUpdateStatus(props.projectId, ids, active, plainProducts)
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
@@ -354,7 +357,7 @@ async function createProduct() {
   }
 
   creating.value = true
-  const result = await window.api.createGoogleProduct(props.projectId, {
+  const result = await googleApi.createProduct(props.projectId, {
     productId: newProduct.value.productId,
     name: newProduct.value.name,
     description: newProduct.value.description,

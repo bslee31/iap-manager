@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
+import * as appleApi from '../../../services/api/apple'
 
 const props = defineProps<{
   projectId: string
@@ -25,8 +26,8 @@ const primaryLocale = ref('en-US')
 async function loadLocalizations() {
   locLoading.value = true
   const [locResult, localeResult] = await Promise.all([
-    window.api.getAppleLocalizations(props.projectId, props.iapId),
-    primaryLocale.value === 'en-US' ? window.api.getApplePrimaryLocale(props.projectId) : null
+    appleApi.getLocalizations(props.projectId, props.iapId),
+    primaryLocale.value === 'en-US' ? appleApi.getPrimaryLocale(props.projectId) : null
   ])
   if (locResult.success) {
     localizations.value = locResult.data
@@ -57,7 +58,7 @@ async function saveLoc() {
   locSaving.value = true
 
   if (editingLoc.value.id) {
-    const result = await window.api.updateAppleLocalization(
+    const result = await appleApi.updateLocalization(
       props.projectId,
       editingLoc.value.id,
       { name: editingLoc.value.name, description: editingLoc.value.description }
@@ -74,7 +75,7 @@ async function saveLoc() {
       locSaving.value = false
       return
     }
-    const result = await window.api.createAppleLocalization(
+    const result = await appleApi.createLocalization(
       props.projectId,
       props.iapId,
       { locale: editingLoc.value.locale, name: editingLoc.value.name, description: editingLoc.value.description }
@@ -93,7 +94,7 @@ async function saveLoc() {
 
 async function deleteLoc(loc: Localization) {
   if (!confirm(`確定要刪除 ${loc.locale} 的本地化資料嗎？`)) return
-  const result = await window.api.deleteAppleLocalization(props.projectId, loc.id)
+  const result = await appleApi.deleteLocalization(props.projectId, loc.id)
   if (result.success) {
     notify.success('已刪除')
     await loadLocalizations()

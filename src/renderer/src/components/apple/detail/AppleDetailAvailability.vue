@@ -6,6 +6,7 @@ import {
   groupTerritoriesByRegion,
   type GroupedTerritory
 } from '../../../utils/territory-names'
+import * as appleApi from '../../../services/api/apple'
 
 const props = defineProps<{
   projectId: string
@@ -80,7 +81,7 @@ function deselectAllTerritories() {
 
 async function saveAvailability() {
   availSaving.value = true
-  const result = await window.api.updateAppleAvailability(
+  const result = await appleApi.updateAvailability(
     props.projectId,
     props.iapId,
     Array.from(selectedTerritories.value),

@@ -5,6 +5,7 @@ import GoogleDetailInfo from './detail/GoogleDetailInfo.vue'
 import GoogleDetailPurchaseOptions from './detail/GoogleDetailPurchaseOptions.vue'
 import GoogleDetailPricing from './detail/GoogleDetailPricing.vue'
 import GoogleDetailListings from './detail/GoogleDetailListings.vue'
+import * as googleApi from '../../services/api/google'
 
 const props = defineProps<{
   projectId: string
@@ -98,9 +99,9 @@ function inferRegionFromLanguage(lang: string | null): string {
 async function loadDetail(): Promise<void> {
   loading.value = true
   const [detailResult, settingsResult, regionsResult] = await Promise.all([
-    window.api.getGoogleProductDetail(props.projectId, props.product.productId),
-    window.api.getGoogleSettings(props.projectId),
-    window.api.getGoogleRegions(props.projectId)
+    googleApi.getProductDetail(props.projectId, props.product.productId),
+    googleApi.getSettings(props.projectId),
+    googleApi.getRegions(props.projectId)
   ])
   loading.value = false
   if (detailResult.success && detailResult.data) {

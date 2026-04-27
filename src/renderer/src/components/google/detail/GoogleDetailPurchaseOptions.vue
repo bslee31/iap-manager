@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { statusLabel, statusColor } from '../../../utils/google-product-status'
 import SearchableSelect from '../../common/SearchableSelect.vue'
+import * as googleApi from '../../../services/api/google'
 
 interface PurchaseOption {
   purchaseOptionId: string
@@ -123,7 +124,7 @@ async function saveNewPurchaseOption() {
   }
 
   addPoSaving.value = true
-  const result = await window.api.addGooglePurchaseOption(
+  const result = await googleApi.addPurchaseOption(
     props.projectId,
     props.productId,
     id,
@@ -161,7 +162,7 @@ async function setAsBackwardsCompatible(po: PurchaseOption) {
   if (!confirm(confirmMsg)) return
 
   settingLegacyPoId.value = po.purchaseOptionId
-  const result = await window.api.setGoogleLegacyCompatible(
+  const result = await googleApi.setLegacyCompatible(
     props.projectId,
     props.productId,
     po.purchaseOptionId
@@ -184,7 +185,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
   if (!confirm(`確定要${label}方案「${po.purchaseOptionId}」嗎？`)) return
 
   togglingPoId.value = po.purchaseOptionId
-  const result = await window.api.setGooglePurchaseOptionState(
+  const result = await googleApi.setPurchaseOptionState(
     props.projectId,
     props.productId,
     po.purchaseOptionId,

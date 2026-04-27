@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import * as projectApi from '../services/api/project'
 
 export interface Project {
   id: string
@@ -19,14 +20,14 @@ export const useProjectStore = defineStore('project', () => {
   async function fetchProjects() {
     loading.value = true
     try {
-      projects.value = await window.api.listProjects()
+      projects.value = await projectApi.list()
     } finally {
       loading.value = false
     }
   }
 
   async function createProject(data: { name: string; description?: string }) {
-    const result = await window.api.createProject(data)
+    const result = await projectApi.create(data)
     if (result.success) {
       await fetchProjects()
     }
@@ -34,7 +35,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function updateProject(id: string, data: { name?: string; description?: string }) {
-    const result = await window.api.updateProject(id, data)
+    const result = await projectApi.update(id, data)
     if (result.success) {
       await fetchProjects()
       if (currentProject.value?.id === id) {
@@ -45,7 +46,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function deleteProject(id: string) {
-    const result = await window.api.deleteProject(id)
+    const result = await projectApi.remove(id)
     if (result.success) {
       await fetchProjects()
       if (currentProject.value?.id === id) {
@@ -56,7 +57,7 @@ export const useProjectStore = defineStore('project', () => {
   }
 
   async function reorderProjects(orderedIds: string[]) {
-    const result = await window.api.reorderProjects(orderedIds)
+    const result = await projectApi.reorder(orderedIds)
     if (result.success) {
       // Reorder local array to match
       const idToProject = new Map(projects.value.map((p) => [p.id, p]))

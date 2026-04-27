@@ -5,6 +5,7 @@ import AppleDetailInfo from './detail/AppleDetailInfo.vue'
 import AppleDetailAvailability from './detail/AppleDetailAvailability.vue'
 import AppleDetailPrice from './detail/AppleDetailPrice.vue'
 import AppleDetailLocalization from './detail/AppleDetailLocalization.vue'
+import * as appleApi from '../../services/api/apple'
 
 const props = defineProps<{
   projectId: string
@@ -44,8 +45,8 @@ async function loadAvailability(): Promise<void> {
   availLoading.value = true
   try {
     const [availResult, terrResult] = await Promise.all([
-      window.api.getAppleAvailabilityDetail(props.projectId, props.product.id),
-      window.api.getAllTerritories(props.projectId)
+      appleApi.getAvailabilityDetail(props.projectId, props.product.id),
+      appleApi.getAllTerritories(props.projectId)
     ])
     if (availResult.success) {
       availableInNewTerritories.value = availResult.data.availableInNewTerritories

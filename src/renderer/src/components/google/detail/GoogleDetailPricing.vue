@@ -3,6 +3,7 @@ import { ref, computed, watch, onActivated, onDeactivated } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { statusLabel } from '../../../utils/google-product-status'
 import SearchableSelect from '../../common/SearchableSelect.vue'
+import * as googleApi from '../../../services/api/google'
 
 interface RegionalConfig {
   regionCode: string
@@ -166,7 +167,7 @@ async function applyNewPricing() {
   if (!confirm(`確定要用 ${editRegion.value} ${currency} ${editPrice.value} 當基準，更新所有地區的價格嗎？`)) return
 
   pricingSaving.value = true
-  const result = await window.api.updateGooglePurchaseOptionPricing(
+  const result = await googleApi.updatePurchaseOptionPricing(
     props.projectId,
     props.productId,
     selectedPo.value.purchaseOptionId,
