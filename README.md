@@ -99,8 +99,10 @@ npm run dist:linux    # Linux
 
 1. 前往 [Google Cloud Console](https://console.cloud.google.com/) 建立 Service Account
 2. 下載 Service Account 的 JSON 金鑰檔案
-3. 在 [Google Play Console > Settings > API access](https://play.google.com/console/developers/api-access) 連結該 Service Account
-4. 授予 **Manage store presence** 權限
+3. 在 Google Play Console > **Users and permissions** 邀請該 Service Account
+4. 依 App 狀態授予對應權限：
+   - App status = **Draft**：授予 **Draft apps** 下的 **Edit and delete draft apps**
+   - App status = **Production**：授予 **Store presence** 下的 **Manage store presence**
 5. 在工具的「憑證設定」分頁匯入 JSON 檔案並輸入 **Package Name**
 
 ## 資料儲存
