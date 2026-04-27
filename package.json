@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "typecheck": "vue-tsc --build"
   },
   "build": {
     "appId": "com.iap-manager.app",
@@ -79,6 +80,7 @@
     "prettier-plugin-tailwindcss": "^0.7.3",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.59.0"
+    "typescript-eslint": "^8.59.0",
+    "vue-tsc": "^3.2.7"
   }
 }
