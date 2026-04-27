@@ -305,9 +305,10 @@ export async function validateImport(
   try {
     const regions = await fetchSupportedRegions(projectId)
     validRegionCodes = new Set(regions.map((r) => r.regionCode))
-  } catch (e: any) {
+  } catch (e) {
     throw new Error(
-      `無法載入 Google 支援地區列表，無法驗證匯入內容：${e?.message || String(e)}`
+      `無法載入 Google 支援地區列表，無法驗證匯入內容：${e instanceof Error ? e.message : String(e)}`,
+      { cause: e }
     )
   }
 

@@ -283,7 +283,7 @@ export async function validateImport(
 
   // Fetch Apple territories for validation
   let validTerritoryIds: Set<string>
-  let territoryCurrencyMap: Record<string, string> = {}
+  let territoryCurrencyMap: Record<string, string>
   try {
     const territories = await getAllTerritories(projectId)
     validTerritoryIds = new Set(territories.map((t) => t.id))
