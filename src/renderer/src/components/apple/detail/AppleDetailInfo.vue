@@ -63,54 +63,69 @@ async function saveReferenceName(): Promise<void> {
     <div class="space-y-5">
       <!-- Product ID (read-only) -->
       <div>
-        <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Product ID</label>
-        <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400 font-mono">
+        <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Product ID</label>
+        <div
+          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+        >
           {{ productId }}
         </div>
-        <p class="text-xs text-gray-500 mt-1">Product ID 建立後無法修改</p>
+        <p class="mt-1 text-xs text-gray-500">Product ID 建立後無法修改</p>
       </div>
 
       <!-- Type (read-only) -->
       <div>
-        <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Type</label>
-        <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+        <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Type</label>
+        <div
+          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400"
+        >
           {{ type }}
         </div>
       </div>
 
       <!-- State (read-only) -->
       <div>
-        <label class="block text-xs font-medium text-gray-500 uppercase mb-1">State</label>
-        <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400 font-mono">
+        <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">State</label>
+        <div
+          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+        >
           {{ state }}
         </div>
       </div>
 
       <!-- Reference Name (editable) -->
       <div>
-        <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Reference Name</label>
+        <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Reference Name</label>
         <input
           v-model="editingReferenceName"
           type="text"
           :disabled="!canEditReferenceName || savingReferenceName"
           :maxlength="MAX_REF_NAME"
-          class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Reference Name"
         />
-        <div class="flex items-center justify-between mt-1">
+        <div class="mt-1 flex items-center justify-between">
           <p v-if="!canEditReferenceName" class="text-xs text-yellow-500">
             此狀態（{{ state }}）下 Apple 不允許修改
           </p>
-          <p v-else class="text-xs text-gray-500">App Store Connect 內部顯示名稱，不影響使用者看到的內容</p>
-          <p class="text-xs text-gray-500 shrink-0 ml-2">{{ editingReferenceName.length }} / {{ MAX_REF_NAME }}</p>
+          <p v-else class="text-xs text-gray-500">
+            App Store Connect 內部顯示名稱，不影響使用者看到的內容
+          </p>
+          <p class="ml-2 shrink-0 text-xs text-gray-500">
+            {{ editingReferenceName.length }} / {{ MAX_REF_NAME }}
+          </p>
         </div>
       </div>
 
       <div class="flex justify-end pt-2">
         <button
           @click="saveReferenceName"
-          :disabled="!canEditReferenceName || savingReferenceName || !referenceNameChanged || !referenceNameValid"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="
+            !canEditReferenceName ||
+            savingReferenceName ||
+            !referenceNameChanged ||
+            !referenceNameValid
+          "
+          class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {{ savingReferenceName ? '儲存中...' : '儲存變更' }}
         </button>

@@ -119,9 +119,7 @@ async function detectGoogleLanguage() {
 }
 
 async function importP8() {
-  const result = await dialogApi.importFile([
-    { name: 'Apple Private Key', extensions: ['p8'] }
-  ])
+  const result = await dialogApi.importFile([{ name: 'Apple Private Key', extensions: ['p8'] }])
   if (result.success && result.data) {
     appleP8Content.value = result.data
     appleHasKey.value = true
@@ -219,42 +217,42 @@ async function testGoogle() {
 <template>
   <div class="space-y-8">
     <!-- Apple Section -->
-    <section class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-6">
-      <h3 class="text-lg font-semibold text-gray-100 mb-4">Apple App Store Connect</h3>
+    <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
+      <h3 class="mb-4 text-lg font-semibold text-gray-100">Apple App Store Connect</h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Key ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">Key ID</label>
           <input
             v-model="appleKeyId"
             type="text"
-            class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="例：ABC1234DEF"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Issuer ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">Issuer ID</label>
           <input
             v-model="appleIssuerId"
             type="text"
-            class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="例：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">App ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">App ID</label>
           <input
             v-model="appleAppId"
             type="text"
-            class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="例：1234567890"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">私鑰檔案 (.p8)</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">私鑰檔案 (.p8)</label>
           <div class="flex items-center gap-3">
             <button
               @click="importP8"
-              class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors"
+              class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
             >
               匯入 .p8 檔案
             </button>
@@ -265,14 +263,14 @@ async function testGoogle() {
         <div class="flex gap-2 pt-2">
           <button
             @click="saveApple"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
           >
             儲存 Apple 憑證
           </button>
           <button
             @click="testApple"
             :disabled="appleTesting"
-            class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50"
+            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           >
             {{ appleTesting ? '測試中...' : '測試連線' }}
           </button>
@@ -281,24 +279,24 @@ async function testGoogle() {
     </section>
 
     <!-- Google Section -->
-    <section class="bg-[#2b2d30] rounded-xl border border-[#393b40] p-6">
-      <h3 class="text-lg font-semibold text-gray-100 mb-4">Google Play Console</h3>
+    <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
+      <h3 class="mb-4 text-lg font-semibold text-gray-100">Google Play Console</h3>
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">Package Name</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">Package Name</label>
           <input
             v-model="googlePackageName"
             type="text"
-            class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             placeholder="例：com.example.myapp"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">服務帳戶金鑰 (JSON)</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">服務帳戶金鑰 (JSON)</label>
           <div class="flex items-center gap-3">
             <button
               @click="importGoogleJson"
-              class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors"
+              class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
             >
               匯入 JSON 檔案
             </button>
@@ -307,9 +305,11 @@ async function testGoogle() {
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">
+          <label class="mb-1 block text-sm font-medium text-gray-400">
             預設語言
-            <span class="text-xs text-gray-500 font-normal ml-1">（新增商品時使用的 listing 語言）</span>
+            <span class="ml-1 text-xs font-normal text-gray-500"
+              >（新增商品時使用的 listing 語言）</span
+            >
           </label>
           <div class="flex items-center gap-2">
             <div class="flex-1">
@@ -323,16 +323,18 @@ async function testGoogle() {
             <button
               @click="detectGoogleLanguage"
               :disabled="googleDetectingLanguage || !googleSavedAccount"
-              class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+              class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
             >
               {{ googleDetectingLanguage ? '偵測中...' : '從 Play Console 偵測' }}
             </button>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1">
+          <label class="mb-1 block text-sm font-medium text-gray-400">
             優先顯示國家
-            <span class="text-xs text-gray-500 font-normal ml-1">（商品詳情 Price / Availability 會把此國家排在第一）</span>
+            <span class="ml-1 text-xs font-normal text-gray-500"
+              >（商品詳情 Price / Availability 會把此國家排在第一）</span
+            >
           </label>
           <SearchableSelect
             :model-value="googleBaseRegion"
@@ -344,14 +346,14 @@ async function testGoogle() {
         <div class="flex gap-2 pt-2">
           <button
             @click="saveGoogle"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
           >
             儲存 Google 憑證
           </button>
           <button
             @click="testGoogle"
             :disabled="googleTesting"
-            class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50"
+            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           >
             {{ googleTesting ? '測試中...' : '測試連線' }}
           </button>

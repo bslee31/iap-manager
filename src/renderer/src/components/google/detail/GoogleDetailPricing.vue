@@ -56,7 +56,9 @@ function currencyForRegion(code: string): string {
 function formatPrice(p?: RegionalConfig['price']): string {
   if (!p) return '-'
   const whole = p.units
-  const frac = Math.round(p.nanos / 1e7).toString().padStart(2, '0')
+  const frac = Math.round(p.nanos / 1e7)
+    .toString()
+    .padStart(2, '0')
   return `${p.currencyCode} ${whole}.${frac}`
 }
 
@@ -83,8 +85,9 @@ const poOptions = computed(() =>
     right: `${po.type} · ${po.state}`
   }))
 )
-const selectedPo = computed(() =>
-  props.detail.purchaseOptions.find((po) => po.purchaseOptionId === selectedPoId.value) || null
+const selectedPo = computed(
+  () =>
+    props.detail.purchaseOptions.find((po) => po.purchaseOptionId === selectedPoId.value) || null
 )
 
 const regionSearch = ref('')
@@ -103,8 +106,7 @@ const filteredConfigs = computed(() => {
   if (!q) return list
   return list.filter(
     (c) =>
-      c.regionCode.toLowerCase().includes(q) ||
-      regionLabel(c.regionCode).toLowerCase().includes(q)
+      c.regionCode.toLowerCase().includes(q) || regionLabel(c.regionCode).toLowerCase().includes(q)
   )
 })
 
@@ -119,9 +121,7 @@ function syncPricingForm() {
     editPrice.value = ''
     return
   }
-  const defaultRegion = props.baseRegion
-    || selectedPo.value.regionalConfigs[0]?.regionCode
-    || ''
+  const defaultRegion = props.baseRegion || selectedPo.value.regionalConfigs[0]?.regionCode || ''
   editRegion.value = defaultRegion
   const cfg = selectedPo.value.regionalConfigs.find((c) => c.regionCode === defaultRegion)
   editPrice.value = formatPriceForInput(cfg?.price)
@@ -164,7 +164,12 @@ async function applyNewPricing() {
     notify.error('請輸入有效的價格')
     return
   }
-  if (!confirm(`確定要用 ${editRegion.value} ${currency} ${editPrice.value} 當基準，更新所有地區的價格嗎？`)) return
+  if (
+    !confirm(
+      `確定要用 ${editRegion.value} ${currency} ${editPrice.value} 當基準，更新所有地區的價格嗎？`
+    )
+  )
+    return
 
   pricingSaving.value = true
   const result = await googleApi.updatePurchaseOptionPricing(
@@ -190,12 +195,12 @@ async function applyNewPricing() {
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <!-- Shared controls (PO selector + region search) -->
     <div class="shrink-0 px-6 pt-4">
       <div class="flex items-center gap-3">
         <div class="flex-1">
-          <label class="block text-xs font-medium text-gray-500 uppercase mb-1">方案</label>
+          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">方案</label>
           <SearchableSelect
             v-if="poOptions.length > 1"
             v-model="selectedPoId"
@@ -204,34 +209,36 @@ async function applyNewPricing() {
           />
           <div
             v-else-if="selectedPo"
-            class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200"
+            class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200"
           >
             {{ selectedPo.purchaseOptionId }}
-            <span class="text-xs text-gray-500 ml-2">{{ selectedPo.type }} · {{ statusLabel(selectedPo.state) }}</span>
+            <span class="ml-2 text-xs text-gray-500"
+              >{{ selectedPo.type }} · {{ statusLabel(selectedPo.state) }}</span
+            >
           </div>
         </div>
         <div class="flex-1">
-          <label class="block text-xs font-medium text-gray-500 uppercase mb-1">搜尋地區</label>
+          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">搜尋地區</label>
           <input
             v-model="regionSearch"
             type="text"
             placeholder="代碼或名稱"
-            class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           />
         </div>
       </div>
     </div>
 
     <!-- Pricing body -->
-    <div class="flex-1 min-h-0 flex flex-col px-6 pb-6 pt-4">
-      <div v-if="!selectedPo" class="text-center py-10 text-gray-500">沒有方案</div>
+    <div class="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-6">
+      <div v-if="!selectedPo" class="py-10 text-center text-gray-500">沒有方案</div>
       <template v-else>
         <!-- Edit form -->
-        <div class="mb-3 p-3 bg-[#1e1f22] border border-[#43454a] rounded-lg">
-          <div class="text-xs font-medium text-gray-500 uppercase mb-2">調整基準定價</div>
+        <div class="mb-3 rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
+          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">調整基準定價</div>
           <div class="flex items-end gap-2">
-            <div class="flex-1 min-w-0">
-              <label class="block text-xs text-gray-500 mb-1">基準國家</label>
+            <div class="min-w-0 flex-1">
+              <label class="mb-1 block text-xs text-gray-500">基準國家</label>
               <SearchableSelect
                 v-model="editRegion"
                 :options="regionOptionsForEdit"
@@ -239,38 +246,44 @@ async function applyNewPricing() {
               />
             </div>
             <div class="w-28 shrink-0">
-              <label class="block text-xs text-gray-500 mb-1">價格</label>
+              <label class="mb-1 block text-xs text-gray-500">價格</label>
               <input
                 v-model="editPrice"
                 type="text"
                 inputmode="decimal"
-                class="w-full px-3 py-1.5 bg-[#2b2d30] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
+                class="w-full rounded-lg border border-[#43454a] bg-[#2b2d30] px-3 py-1.5 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 placeholder="0"
               />
             </div>
-            <span class="text-sm text-gray-400 py-1.5 px-2 min-w-[3.5rem] text-center">
+            <span class="min-w-[3.5rem] px-2 py-1.5 text-center text-sm text-gray-400">
               {{ currencyForRegion(editRegion) || '---' }}
             </span>
             <button
               @click="applyNewPricing"
               :disabled="pricingSaving"
-              class="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+              class="rounded-lg bg-green-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             >
               {{ pricingSaving ? '套用中...' : '套用新價格' }}
             </button>
           </div>
-          <p class="text-xs text-gray-500 mt-2">套用後其他國家的價格由 Google 自動換算，將覆蓋目前所有地區的定價。</p>
+          <p class="mt-2 text-xs text-gray-500">
+            套用後其他國家的價格由 Google 自動換算，將覆蓋目前所有地區的定價。
+          </p>
         </div>
-        <div class="flex-1 min-h-0 bg-[#1e1f22] border border-[#43454a] rounded-lg flex flex-col overflow-hidden">
+        <div
+          class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#43454a] bg-[#1e1f22]"
+        >
           <div class="shrink-0 pr-[6px]">
-            <table class="w-full text-sm table-fixed">
+            <table class="w-full table-fixed text-sm">
               <colgroup>
                 <col class="w-[50%]" />
                 <col class="w-[20%]" />
                 <col class="w-[30%]" />
               </colgroup>
               <thead>
-                <tr class="text-left text-xs text-gray-500 uppercase bg-[#22252a] border-b border-[#393b40]">
+                <tr
+                  class="border-b border-[#393b40] bg-[#22252a] text-left text-xs text-gray-500 uppercase"
+                >
                   <th class="px-3 py-2 font-medium">地區</th>
                   <th class="px-3 py-2 font-medium">代碼</th>
                   <th class="px-3 py-2 font-medium">價格</th>
@@ -278,8 +291,8 @@ async function applyNewPricing() {
               </thead>
             </table>
           </div>
-          <div class="flex-1 min-h-0 overflow-y-auto">
-            <table class="w-full text-sm table-fixed">
+          <div class="min-h-0 flex-1 overflow-y-auto">
+            <table class="w-full table-fixed text-sm">
               <colgroup>
                 <col class="w-[50%]" />
                 <col class="w-[20%]" />
@@ -289,14 +302,14 @@ async function applyNewPricing() {
                 <tr
                   v-for="c in filteredConfigs"
                   :key="c.regionCode"
-                  class="border-b border-[#393b40]/50 hover:bg-[#2e3038] transition-colors"
+                  class="border-b border-[#393b40]/50 transition-colors hover:bg-[#2e3038]"
                   :class="{ 'bg-green-600/10': c.regionCode === baseRegion }"
                 >
                   <td class="px-3 py-2 text-gray-200">
                     {{ regionLabel(c.regionCode) }}
                   </td>
-                  <td class="px-3 py-2 text-gray-500 font-mono">{{ c.regionCode }}</td>
-                  <td class="px-3 py-2 text-gray-300 font-mono">{{ formatPrice(c.price) }}</td>
+                  <td class="px-3 py-2 font-mono text-gray-500">{{ c.regionCode }}</td>
+                  <td class="px-3 py-2 font-mono text-gray-300">{{ formatPrice(c.price) }}</td>
                 </tr>
                 <tr v-if="filteredConfigs.length === 0">
                   <td colspan="3" class="px-3 py-6 text-center text-gray-500">找不到地區</td>

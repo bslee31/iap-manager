@@ -15,11 +15,7 @@ export default defineConfigWithVueTs(
   pluginVue.configs['flat/recommended'],
   vueTsConfigs.recommended,
   {
-    files: [
-      'src/main/**/*.ts',
-      'src/preload/**/*.ts',
-      'electron.vite.config.ts'
-    ],
+    files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'electron.vite.config.ts'],
     languageOptions: {
       globals: { ...globals.node }
     }

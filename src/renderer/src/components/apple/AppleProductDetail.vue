@@ -73,35 +73,55 @@ onMounted(loadAvailability)
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="emit('close')">
-    <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-3xl h-[85vh] border border-[#393b40] flex flex-col overflow-hidden titlebar-no-drag">
+  <div
+    class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+    @click.self="emit('close')"
+  >
+    <div
+      class="titlebar-no-drag flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+    >
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-[#393b40] shrink-0">
+      <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] px-6 py-4">
         <div>
           <h3 class="text-lg font-semibold text-gray-100">{{ product.referenceName }}</h3>
-          <p class="text-sm text-gray-400 font-mono">{{ product.productId }}</p>
+          <p class="font-mono text-sm text-gray-400">{{ product.productId }}</p>
         </div>
-        <button @click="emit('close')" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+        <button
+          @click="emit('close')"
+          class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+        >
+          &times;
+        </button>
       </div>
 
       <!-- Tabs -->
-      <div class="flex border-b border-[#393b40] px-6 shrink-0">
+      <div class="flex shrink-0 border-b border-[#393b40] px-6">
         <button
-          v-for="tab in (['info', 'availability', 'price', 'localization'] as Tab[])"
+          v-for="tab in ['info', 'availability', 'price', 'localization'] as Tab[]"
           :key="tab"
           @click="activeTab = tab"
-          class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
-          :class="activeTab === tab
-            ? 'border-blue-500 text-blue-400'
-            : 'border-transparent text-gray-400 hover:text-gray-200'"
+          class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+          :class="
+            activeTab === tab
+              ? 'border-blue-500 text-blue-400'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          "
         >
-          {{ tab === 'info' ? 'Info' : tab === 'availability' ? 'Availability' : tab === 'price' ? 'Price Schedule' : 'Localization' }}
+          {{
+            tab === 'info'
+              ? 'Info'
+              : tab === 'availability'
+                ? 'Availability'
+                : tab === 'price'
+                  ? 'Price Schedule'
+                  : 'Localization'
+          }}
         </button>
       </div>
 
       <!-- Tab content (KeepAlive preserves per-tab state across switches:
            e.g. price-tab search input, availability-tab collapsed regions) -->
-      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <KeepAlive>
           <AppleDetailInfo
             v-if="activeTab === 'info'"
@@ -131,11 +151,7 @@ onMounted(loadAvailability)
             :selected-territories="selectedTerritories"
             @update-price="(price, currency) => emit('update-price', price, currency)"
           />
-          <AppleDetailLocalization
-            v-else
-            :project-id="projectId"
-            :iap-id="product.id"
-          />
+          <AppleDetailLocalization v-else :project-id="projectId" :iap-id="product.id" />
         </KeepAlive>
       </div>
     </div>

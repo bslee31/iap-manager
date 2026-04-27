@@ -9,6 +9,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 ## 功能
 
 ### Apple In-App Purchases
+
 - 同步商品列表
 - 批次上架 / 下架
 - 批次重整 Price / Availability
@@ -26,6 +27,7 @@ Apple & Google 應用程式內購商品批次管理工具。
   - 匯入併發 3，單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果
 
 ### Google One-time Products
+
 - 同步商品列表（含 Purchase Option 匯總狀態與主 PO 在 Base Region 的價格）
 - 列表欄位：Product ID / Product name / Price / Status，佈局對齊 Apple
   - Price 取「主 PO」（`buyOption.legacyCompatible=true`，Play Console 的 Backwards compatible）在 Base Region 的價格
@@ -51,10 +53,12 @@ Apple & Google 應用程式內購商品批次管理工具。
   - 目前只支援匯入 BUY 型 PO（RENT 尚未實作）
 
 ### Google 專案設定
+
 - **Default Language** — 新增商品 / Listings 的預設語言，可從 Play Console 自動偵測或手動選擇
 - **Base Region** — 每專案持久化的基準地區（migration 009），首次建立商品時自動填入，可於專案設定頁手動覆寫；商品詳情的 Pricing 會將此地區置頂
 
 ### 多專案管理
+
 - 每個專案獨立的 Apple / Google 憑證
 - 專案列表和側欄支援拖曳排序
 - 切換專案時保留分頁狀態
@@ -109,16 +113,17 @@ npm run dist:linux    # Linux
 
 ## 資料儲存
 
-| 項目 | 位置 |
-|------|------|
-| 資料庫（專案、商品快取） | `~/.iap-manager/data.db` |
-| 加密憑證 | `~/.iap-manager/credentials/<project-id>.enc` |
+| 項目                     | 位置                                          |
+| ------------------------ | --------------------------------------------- |
+| 資料庫（專案、商品快取） | `~/.iap-manager/data.db`                      |
+| 加密憑證                 | `~/.iap-manager/credentials/<project-id>.enc` |
 
 憑證使用 Electron safeStorage 加密，底層透過 macOS Keychain / Windows DPAPI 保護。
 
 ## API 參考
 
 ### Apple
+
 - [App Store Connect API v1/v2](https://developer.apple.com/documentation/appstoreconnectapi)
 - 列表：`GET /v1/apps/{appId}/inAppPurchasesV2`
 - 建立：`POST /v2/inAppPurchases`
@@ -133,6 +138,7 @@ npm run dist:linux    # Linux
 - 地區列表：`GET /v1/territories`
 
 ### Google
+
 - [Google Play Developer API v3 - Monetization](https://developers.google.com/android-publisher/api-ref/rest/v3/monetization.onetimeproducts)
 - 列表：`GET /applications/{pkg}/oneTimeProducts`
 - 建立 / 更新：`PATCH /applications/{pkg}/onetimeproducts/{id}` (`updateMask` + `allowMissing=true` + `regionsVersion=2022/02`)

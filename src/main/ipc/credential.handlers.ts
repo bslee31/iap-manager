@@ -21,7 +21,9 @@ export function registerCredentialHandlers(): void {
       try {
         saveAppleCredentials(projectId, creds)
         const db = getDatabase()
-        db.prepare('UPDATE project_credentials SET has_apple = 1 WHERE project_id = ?').run(projectId)
+        db.prepare('UPDATE project_credentials SET has_apple = 1 WHERE project_id = ?').run(
+          projectId
+        )
         // JWT cache is keyed by (projectId, issuerId, keyId); invalidate
         // entries for this project so the next request re-signs with the
         // new key instead of waiting up to 15 minutes for the old token
@@ -40,7 +42,9 @@ export function registerCredentialHandlers(): void {
       try {
         saveGoogleCredentials(projectId, creds)
         const db = getDatabase()
-        db.prepare('UPDATE project_credentials SET has_google = 1 WHERE project_id = ?').run(projectId)
+        db.prepare('UPDATE project_credentials SET has_google = 1 WHERE project_id = ?').run(
+          projectId
+        )
         // GoogleAuth instance is cached per project — drop it so the next
         // request rebuilds it with the new service-account JSON.
         clearGoogleAuthCache(projectId)
@@ -58,7 +62,12 @@ export function registerCredentialHandlers(): void {
         success: true,
         data: {
           apple: creds.apple
-            ? { keyId: creds.apple.keyId, issuerId: creds.apple.issuerId, appId: creds.apple.appId, hasPrivateKey: true }
+            ? {
+                keyId: creds.apple.keyId,
+                issuerId: creds.apple.issuerId,
+                appId: creds.apple.appId,
+                hasPrivateKey: true
+              }
             : null,
           google: creds.google
             ? { packageName: creds.google.packageName, hasServiceAccount: true }

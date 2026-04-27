@@ -10,9 +10,10 @@ export function getGoogleDefaultLanguage(projectId: string): string | null {
 
 export function setGoogleDefaultLanguage(projectId: string, languageCode: string | null): void {
   const db = getDatabase()
-  db.prepare(
-    'UPDATE project_credentials SET google_default_language = ? WHERE project_id = ?'
-  ).run(languageCode, projectId)
+  db.prepare('UPDATE project_credentials SET google_default_language = ? WHERE project_id = ?').run(
+    languageCode,
+    projectId
+  )
 }
 
 export function getGoogleBaseRegion(projectId: string): string | null {
@@ -25,7 +26,8 @@ export function getGoogleBaseRegion(projectId: string): string | null {
 
 export function setGoogleBaseRegion(projectId: string, regionCode: string | null): void {
   const db = getDatabase()
-  db.prepare(
-    'UPDATE project_credentials SET google_base_region = ? WHERE project_id = ?'
-  ).run(regionCode, projectId)
+  db.prepare('UPDATE project_credentials SET google_base_region = ? WHERE project_id = ?').run(
+    regionCode,
+    projectId
+  )
 }

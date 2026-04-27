@@ -54,26 +54,26 @@ function onBlur() {
     <button
       type="button"
       @click="toggle"
-      class="w-full flex items-center justify-between px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-left focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+      class="flex w-full items-center justify-between rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-left text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
       :class="selectedLabel ? 'text-gray-200' : 'text-gray-500'"
     >
       <span class="truncate">{{ selectedLabel || placeholder || '請選擇...' }}</span>
-      <span class="text-[10px] text-gray-500 ml-2 shrink-0">&#9660;</span>
+      <span class="ml-2 shrink-0 text-[10px] text-gray-500">&#9660;</span>
     </button>
 
     <!-- Dropdown -->
     <div
       v-if="open"
       ref="listRef"
-      class="absolute z-50 mt-1 w-full bg-[#2b2d30] border border-[#43454a] rounded-lg shadow-xl overflow-hidden"
+      class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-[#43454a] bg-[#2b2d30] shadow-xl"
     >
       <!-- Search input -->
-      <div class="p-2 border-b border-[#393b40]">
+      <div class="border-b border-[#393b40] p-2">
         <input
           ref="inputRef"
           v-model="search"
           type="text"
-          class="w-full px-2 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded text-sm text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500"
+          class="w-full rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           placeholder="搜尋..."
           @blur="onBlur"
         />
@@ -85,15 +85,19 @@ function onBlur() {
           :key="opt.value"
           type="button"
           @mousedown.prevent="select(opt.value)"
-          class="w-full flex items-center justify-between px-3 py-1.5 text-sm transition-colors"
-          :class="opt.value === modelValue
-            ? 'bg-blue-600/20 text-blue-400'
-            : 'text-gray-300 hover:bg-[#393b40]'"
+          class="flex w-full items-center justify-between px-3 py-1.5 text-sm transition-colors"
+          :class="
+            opt.value === modelValue
+              ? 'bg-blue-600/20 text-blue-400'
+              : 'text-gray-300 hover:bg-[#393b40]'
+          "
         >
           <span>{{ opt.label }}</span>
-          <span v-if="opt.right" class="text-xs text-gray-500 ml-3 shrink-0">{{ opt.right }}</span>
+          <span v-if="opt.right" class="ml-3 shrink-0 text-xs text-gray-500">{{ opt.right }}</span>
         </button>
-        <p v-if="filtered.length === 0" class="px-3 py-2 text-xs text-gray-500 text-center">找不到結果</p>
+        <p v-if="filtered.length === 0" class="px-3 py-2 text-center text-xs text-gray-500">
+          找不到結果
+        </p>
       </div>
     </div>
   </div>

@@ -1,9 +1,5 @@
 import { googleRequest } from './google-auth'
-import {
-  REGIONS_VERSION,
-  parseProblematicRegions,
-  fetchSupportedRegions
-} from './google-product'
+import { REGIONS_VERSION, parseProblematicRegions, fetchSupportedRegions } from './google-product'
 import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
@@ -28,12 +24,7 @@ const VALID_PO_STATES = new Set(['DRAFT', 'ACTIVE', 'INACTIVE', 'INACTIVE_PUBLIS
 const VALID_PO_TYPES = new Set(['BUY']) // import flow only supports BUY today
 const VALID_AVAILABILITY = new Set(['AVAILABLE', 'NO_LONGER_AVAILABLE'])
 
-export type GoogleImportProgressCallback = (
-  current: number,
-  total: number,
-  phase: string
-) => void
-
+export type GoogleImportProgressCallback = (current: number, total: number, phase: string) => void
 
 function pushIssue(
   issues: GoogleImportValidationIssue[],
@@ -64,7 +55,13 @@ function validateProduct(
   if (!pid) {
     pushIssue(issues, index, undefined, 'productId', 'productId 不可為空')
   } else if (!PRODUCT_ID_RE.test(pid)) {
-    pushIssue(issues, index, pid, 'productId', 'productId 必須以小寫英數開頭，只能包含小寫英數、. _')
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'productId',
+      'productId 必須以小寫英數開頭，只能包含小寫英數、. _'
+    )
   } else if (pid.length > MAX_PRODUCT_ID) {
     pushIssue(issues, index, pid, 'productId', `productId 超過 ${MAX_PRODUCT_ID} 字元`)
   } else {
@@ -88,7 +85,13 @@ function validateProduct(
         pushIssue(issues, index, pid, `${prefix}.languageCode`, 'languageCode 不可為空')
       } else {
         if (seenLangs.has(l.languageCode)) {
-          pushIssue(issues, index, pid, `${prefix}.languageCode`, `重複的 languageCode: ${l.languageCode}`)
+          pushIssue(
+            issues,
+            index,
+            pid,
+            `${prefix}.languageCode`,
+            `重複的 languageCode: ${l.languageCode}`
+          )
         }
         seenLangs.add(l.languageCode)
       }
@@ -223,13 +226,7 @@ function validateProduct(
             pushIssue(issues, index, pid, `${rPrefix}.units`, 'units 必須是字串（整數部分）')
           }
           if (typeof r?.nanos !== 'number' || r.nanos < 0 || r.nanos >= 1_000_000_000) {
-            pushIssue(
-              issues,
-              index,
-              pid,
-              `${rPrefix}.nanos`,
-              'nanos 必須是 0–999,999,999 的整數'
-            )
+            pushIssue(issues, index, pid, `${rPrefix}.nanos`, 'nanos 必須是 0–999,999,999 的整數')
           }
         })
       }
@@ -403,18 +400,14 @@ async function importSingleProduct(
 
   for (let attempt = 0; attempt < 20; attempt++) {
     try {
-      await googleRequest(
-        projectId,
-        `/onetimeproducts/${product.productId}?${params}`,
-        {
-          method: 'PATCH',
-          body: {
-            productId: product.productId,
-            listings,
-            purchaseOptions: workingPOs
-          }
+      await googleRequest(projectId, `/onetimeproducts/${product.productId}?${params}`, {
+        method: 'PATCH',
+        body: {
+          productId: product.productId,
+          listings,
+          purchaseOptions: workingPOs
         }
-      )
+      })
       created = true
       break
     } catch (e: any) {

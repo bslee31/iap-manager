@@ -15,9 +15,7 @@ export async function generateAppleJwt(
   projectId?: string
 ): Promise<string> {
   const now = Math.floor(Date.now() / 1000)
-  const cacheKey = projectId
-    ? `${projectId}:${issuerId}:${keyId}`
-    : `${issuerId}:${keyId}`
+  const cacheKey = projectId ? `${projectId}:${issuerId}:${keyId}` : `${issuerId}:${keyId}`
 
   const cached = tokenCache.get(cacheKey)
   if (cached && cached.expiresAt > now + 60) {

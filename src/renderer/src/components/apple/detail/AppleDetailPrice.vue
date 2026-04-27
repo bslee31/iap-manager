@@ -82,10 +82,11 @@ const filteredPrices = computed(() => {
   }
   if (priceSearch.value.trim()) {
     const q = priceSearch.value.trim().toLowerCase()
-    result = result.filter((tp) =>
-      territoryName(tp.territory).toLowerCase().includes(q) ||
-      tp.territory.toLowerCase().includes(q) ||
-      tp.currency.toLowerCase().includes(q)
+    result = result.filter(
+      (tp) =>
+        territoryName(tp.territory).toLowerCase().includes(q) ||
+        tp.territory.toLowerCase().includes(q) ||
+        tp.currency.toLowerCase().includes(q)
     )
   }
   return result
@@ -115,9 +116,13 @@ async function openEditTerritoryPrice(tp: { territory: string; currency: string 
   const result = await appleApi.getPricePoints(props.projectId, props.iapId, tp.territory)
   if (result.success) {
     editTerrPricePoints.value = result.data
-    const currentPrice = allPricesData.value?.territoryPrices.find((p) => p.territory === tp.territory)
+    const currentPrice = allPricesData.value?.territoryPrices.find(
+      (p) => p.territory === tp.territory
+    )
     if (currentPrice) {
-      const match = result.data.find((pp: PricePoint) => pp.customerPrice === currentPrice.customerPrice)
+      const match = result.data.find(
+        (pp: PricePoint) => pp.customerPrice === currentPrice.customerPrice
+      )
       if (match) editTerrSelectedPP.value = match.id
     }
   }
@@ -146,7 +151,9 @@ async function saveEditTerritoryPrice() {
 const editTerrPPOptions = computed(() => {
   const baseCurrency = allPricesData.value?.baseCurrency || ''
   const currentPrice = editingTerrPrice.value
-    ? allPricesData.value?.territoryPrices.find((p) => p.territory === editingTerrPrice.value!.territory)?.customerPrice
+    ? allPricesData.value?.territoryPrices.find(
+        (p) => p.territory === editingTerrPrice.value!.territory
+      )?.customerPrice
     : ''
 
   const basePrice = allPricesData.value?.basePrice || ''
@@ -187,7 +194,9 @@ async function loadPricePoints() {
   if (result.success) {
     pricePoints.value = result.data
     if (allPricesData.value?.basePrice) {
-      const match = result.data.find((pp: PricePoint) => pp.customerPrice === allPricesData.value!.basePrice)
+      const match = result.data.find(
+        (pp: PricePoint) => pp.customerPrice === allPricesData.value!.basePrice
+      )
       if (match) selectedPricePoint.value = match.id
     }
   }
@@ -230,24 +239,24 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 min-h-0">
-    <div v-if="priceLoading" class="text-center py-10 text-gray-500">載入中...</div>
+  <div class="flex min-h-0 flex-1 flex-col">
+    <div v-if="priceLoading" class="py-10 text-center text-gray-500">載入中...</div>
     <template v-else>
       <!-- Set base price -->
-      <div class="px-6 pt-4 pb-3 shrink-0">
-        <div class="p-3 bg-[#1e1f22] border border-[#43454a] rounded-lg">
-          <div class="text-xs font-medium text-gray-500 uppercase mb-2">調整基準定價</div>
+      <div class="shrink-0 px-6 pt-4 pb-3">
+        <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
+          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">調整基準定價</div>
           <div class="flex items-end gap-2">
-            <div class="flex-1 min-w-0">
-              <label class="block text-xs text-gray-500 mb-1">基準地區</label>
+            <div class="min-w-0 flex-1">
+              <label class="mb-1 block text-xs text-gray-500">基準地區</label>
               <SearchableSelect
                 v-model="selectedTerritory"
-                :options="territoryOptions.map(t => ({ value: t.code, label: t.label }))"
+                :options="territoryOptions.map((t) => ({ value: t.code, label: t.label }))"
                 placeholder="選擇基準地區..."
               />
             </div>
-            <div class="flex-1 min-w-0">
-              <label class="block text-xs text-gray-500 mb-1">價格</label>
+            <div class="min-w-0 flex-1">
+              <label class="mb-1 block text-xs text-gray-500">價格</label>
               <SearchableSelect
                 v-model="selectedPricePoint"
                 :options="pricePointOptions"
@@ -257,100 +266,144 @@ onMounted(() => {
             <button
               @click="savePriceSchedule"
               :disabled="priceSaving || pricePointsLoading || !selectedPricePoint"
-              class="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50 whitespace-nowrap"
+              class="rounded-lg bg-blue-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
               {{ priceSaving ? '儲存中...' : '儲存價格' }}
             </button>
           </div>
-          <p class="text-xs text-gray-500 mt-2">Apple 會依所選價格點自動換算其他地區。</p>
+          <p class="mt-2 text-xs text-gray-500">Apple 會依所選價格點自動換算其他地區。</p>
         </div>
       </div>
 
       <!-- All territory prices -->
-      <div class="px-6 pb-2 shrink-0 border-t border-[#393b40] pt-4">
+      <div class="shrink-0 border-t border-[#393b40] px-6 pt-4 pb-2">
         <div class="flex items-center justify-between">
           <h4 class="text-sm font-medium text-gray-300">Country or Region Prices</h4>
           <div class="flex items-center gap-3">
             <input
               v-model="priceSearch"
               type="text"
-              class="px-2 py-1 bg-[#1e1f22] border border-[#43454a] rounded text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500 w-40"
+              class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               placeholder="搜尋地區..."
             />
             <button
               v-if="!allPricesLoading"
               @click="loadAllTerritoryPrices"
-              class="px-2 py-1 border border-[#43454a] rounded text-xs text-gray-300 hover:bg-[#393b40] transition-colors"
+              class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40]"
             >
               重新載入
             </button>
           </div>
         </div>
-        <div class="flex items-center justify-between mt-1">
+        <div class="mt-1 flex items-center justify-between">
           <p v-if="allPricesData" class="text-xs text-gray-500">
-            Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{ allPricesData.baseCurrency }}) - {{ allPricesData.basePrice }}
+            Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{
+              allPricesData.baseCurrency
+            }}) - {{ allPricesData.basePrice }}
           </p>
-          <label class="flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" v-model="priceOnlyAvailable" class="rounded w-3 h-3" />
+          <label class="flex cursor-pointer items-center gap-1.5">
+            <input type="checkbox" v-model="priceOnlyAvailable" class="h-3 w-3 rounded" />
             <span class="text-xs text-gray-400">只顯示已上架地區</span>
           </label>
         </div>
       </div>
 
-      <div class="flex-1 min-h-0 px-6 pb-4">
-        <div v-if="allPricesLoading" class="text-center py-6 text-gray-500">載入地區價格中...</div>
-        <div v-else-if="filteredPrices.length > 0" class="bg-[#1e1f22] rounded-lg border border-[#393b40] overflow-hidden h-full flex flex-col">
+      <div class="min-h-0 flex-1 px-6 pb-4">
+        <div v-if="allPricesLoading" class="py-6 text-center text-gray-500">載入地區價格中...</div>
+        <div
+          v-else-if="filteredPrices.length > 0"
+          class="flex h-full flex-col overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]"
+        >
           <div class="shrink-0 pr-[6px]">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-[#393b40]">
-                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500">Country or Region</th>
-                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-[20%]">Price</th>
-                <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 w-[20%]">Proceeds</th>
-                <th class="w-5"></th>
-              </tr>
-            </thead>
-          </table>
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-[#393b40]">
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">
+                    Country or Region
+                  </th>
+                  <th class="w-[20%] px-3 py-2 text-left text-xs font-medium text-gray-500">
+                    Price
+                  </th>
+                  <th class="w-[20%] px-3 py-2 text-left text-xs font-medium text-gray-500">
+                    Proceeds
+                  </th>
+                  <th class="w-5"></th>
+                </tr>
+              </thead>
+            </table>
           </div>
-          <div class="flex-1 min-h-0 overflow-y-auto">
+          <div class="min-h-0 flex-1 overflow-y-auto">
             <table class="w-full">
               <tbody>
                 <tr
                   v-for="tp in filteredPrices"
                   :key="tp.territory"
                   class="border-b border-[#393b40] last:border-0"
-                  :class="tp.territory === allPricesData?.baseTerritory ? 'bg-blue-600/10' : tp.isManual ? 'bg-yellow-600/10' : ''"
+                  :class="
+                    tp.territory === allPricesData?.baseTerritory
+                      ? 'bg-blue-600/10'
+                      : tp.isManual
+                        ? 'bg-yellow-600/10'
+                        : ''
+                  "
                 >
-                  <td class="px-3 py-1.5 text-sm text-gray-300">{{ territoryName(tp.territory) }} ({{ tp.currency }})</td>
-                  <td class="px-3 py-1.5 text-sm text-gray-200 font-mono w-[20%]">{{ tp.customerPrice }}</td>
-                  <td class="px-3 py-1.5 text-sm text-gray-400 font-mono w-[20%]">{{ tp.proceeds }}</td>
-                  <td class="py-1.5 w-5 text-center">
+                  <td class="px-3 py-1.5 text-sm text-gray-300">
+                    {{ territoryName(tp.territory) }} ({{ tp.currency }})
+                  </td>
+                  <td class="w-[20%] px-3 py-1.5 font-mono text-sm text-gray-200">
+                    {{ tp.customerPrice }}
+                  </td>
+                  <td class="w-[20%] px-3 py-1.5 font-mono text-sm text-gray-400">
+                    {{ tp.proceeds }}
+                  </td>
+                  <td class="w-5 py-1.5 text-center">
                     <button
                       v-if="tp.territory !== allPricesData?.baseTerritory"
                       @click="openEditTerritoryPrice(tp)"
-                      class="text-gray-500 hover:text-blue-400 transition-colors"
+                      class="text-gray-500 transition-colors hover:text-blue-400"
                       title="修改價格"
-                    >&#9998;</button>
+                    >
+                      &#9998;
+                    </button>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-        <p v-else-if="allPricesData && priceSearch" class="text-sm text-gray-500 text-center py-4">找不到符合的地區</p>
-        <p v-else-if="!allPricesLoading" class="text-sm text-gray-500 text-center py-6">尚未設定價格</p>
+        <p v-else-if="allPricesData && priceSearch" class="py-4 text-center text-sm text-gray-500">
+          找不到符合的地區
+        </p>
+        <p v-else-if="!allPricesLoading" class="py-6 text-center text-sm text-gray-500">
+          尚未設定價格
+        </p>
       </div>
 
       <!-- Edit territory price modal -->
-      <div v-if="editingTerrPrice" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="editingTerrPrice = null">
-        <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-          <div class="flex items-center justify-between mb-4">
+      <div
+        v-if="editingTerrPrice"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="editingTerrPrice = null"
+      >
+        <div
+          class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+        >
+          <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
-              修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{ editingTerrPrice.currency }})
+              修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{
+                editingTerrPrice.currency
+              }})
             </h4>
-            <button @click="editingTerrPrice = null" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+            <button
+              @click="editingTerrPrice = null"
+              class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            >
+              &times;
+            </button>
           </div>
-          <div v-if="editTerrPriceLoading" class="text-center py-6 text-gray-500">載入價格選項中...</div>
+          <div v-if="editTerrPriceLoading" class="py-6 text-center text-gray-500">
+            載入價格選項中...
+          </div>
           <template v-else>
             <div class="mb-4">
               <SearchableSelect
@@ -360,11 +413,16 @@ onMounted(() => {
               />
             </div>
             <div class="flex justify-end gap-2">
-              <button @click="editingTerrPrice = null" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">取消</button>
+              <button
+                @click="editingTerrPrice = null"
+                class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+              >
+                取消
+              </button>
               <button
                 @click="saveEditTerritoryPrice"
                 :disabled="editTerrSaving || !editTerrSelectedPP"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+                class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               >
                 {{ editTerrSaving ? '儲存中...' : '儲存' }}
               </button>

@@ -19,7 +19,9 @@ interface Localization {
 
 const locLoading = ref(false)
 const localizations = ref<Localization[]>([])
-const editingLoc = ref<{ id?: string; locale: string; name: string; description: string } | null>(null)
+const editingLoc = ref<{ id?: string; locale: string; name: string; description: string } | null>(
+  null
+)
 const locSaving = ref(false)
 const primaryLocale = ref('en-US')
 
@@ -45,7 +47,12 @@ const availableLocales = computed(() => {
 
 function openLocForm(loc?: Localization) {
   if (loc) {
-    editingLoc.value = { id: loc.id, locale: loc.locale, name: loc.name, description: loc.description }
+    editingLoc.value = {
+      id: loc.id,
+      locale: loc.locale,
+      name: loc.name,
+      description: loc.description
+    }
   } else {
     const existing = new Set(localizations.value.map((l) => l.locale))
     const defaultLocale = existing.has(primaryLocale.value) ? '' : primaryLocale.value
@@ -58,11 +65,10 @@ async function saveLoc() {
   locSaving.value = true
 
   if (editingLoc.value.id) {
-    const result = await appleApi.updateLocalization(
-      props.projectId,
-      editingLoc.value.id,
-      { name: editingLoc.value.name, description: editingLoc.value.description }
-    )
+    const result = await appleApi.updateLocalization(props.projectId, editingLoc.value.id, {
+      name: editingLoc.value.name,
+      description: editingLoc.value.description
+    })
     if (result.success) {
       notify.success('已更新')
       await loadLocalizations()
@@ -75,11 +81,11 @@ async function saveLoc() {
       locSaving.value = false
       return
     }
-    const result = await appleApi.createLocalization(
-      props.projectId,
-      props.iapId,
-      { locale: editingLoc.value.locale, name: editingLoc.value.name, description: editingLoc.value.description }
-    )
+    const result = await appleApi.createLocalization(props.projectId, props.iapId, {
+      locale: editingLoc.value.locale,
+      name: editingLoc.value.name,
+      description: editingLoc.value.description
+    })
     if (result.success) {
       notify.success('已新增')
       await loadLocalizations()
@@ -167,14 +173,14 @@ onMounted(() => {
 
 <template>
   <div class="flex-1 overflow-y-auto p-6">
-    <div v-if="locLoading" class="text-center py-10 text-gray-500">載入中...</div>
+    <div v-if="locLoading" class="py-10 text-center text-gray-500">載入中...</div>
     <template v-else>
       <!-- Add button -->
-      <div class="flex justify-between items-center mb-4">
+      <div class="mb-4 flex items-center justify-between">
         <span class="text-sm text-gray-400">{{ localizations.length }} 個語言</span>
         <button
           @click="openLocForm()"
-          class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors"
+          class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
         >
           + 新增語言
         </button>
@@ -185,76 +191,120 @@ onMounted(() => {
         <div
           v-for="loc in localizations"
           :key="loc.id"
-          class="bg-[#1e1f22] rounded-lg border border-[#393b40] px-4 py-3 flex items-start justify-between gap-3"
+          class="flex items-start justify-between gap-3 rounded-lg border border-[#393b40] bg-[#1e1f22] px-4 py-3"
         >
-          <div class="flex-1 min-w-0">
-            <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ localeLabel(loc.locale) }}</span>
-            <div class="text-sm text-gray-200 font-medium mt-1 truncate">{{ loc.name }}</div>
-            <p v-if="loc.description" class="text-xs text-gray-400 mt-1 line-clamp-2">{{ loc.description }}</p>
+          <div class="min-w-0 flex-1">
+            <span class="rounded bg-[#393b40] px-1.5 py-0.5 text-xs text-gray-300">{{
+              localeLabel(loc.locale)
+            }}</span>
+            <div class="mt-1 truncate text-sm font-medium text-gray-200">{{ loc.name }}</div>
+            <p v-if="loc.description" class="mt-1 line-clamp-2 text-xs text-gray-400">
+              {{ loc.description }}
+            </p>
           </div>
-          <div class="flex gap-1 shrink-0">
-            <button @click="openLocForm(loc)" class="p-1 text-gray-500 hover:text-blue-400 transition-colors" title="編輯">&#9998;</button>
-            <button @click="deleteLoc(loc)" class="p-1 text-gray-500 hover:text-red-400 transition-colors" title="刪除">&#10005;</button>
+          <div class="flex shrink-0 gap-1">
+            <button
+              @click="openLocForm(loc)"
+              class="p-1 text-gray-500 transition-colors hover:text-blue-400"
+              title="編輯"
+            >
+              &#9998;
+            </button>
+            <button
+              @click="deleteLoc(loc)"
+              class="p-1 text-gray-500 transition-colors hover:text-red-400"
+              title="刪除"
+            >
+              &#10005;
+            </button>
           </div>
         </div>
       </div>
-      <p v-else class="text-sm text-gray-500 text-center py-6">尚未新增任何本地化資料</p>
+      <p v-else class="py-6 text-center text-sm text-gray-500">尚未新增任何本地化資料</p>
 
       <!-- Edit/Create form modal -->
-      <div v-if="editingLoc" class="fixed inset-0 bg-black/40 flex items-center justify-center z-50" @click.self="editingLoc = null">
-        <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-          <div class="flex items-center justify-between mb-4">
+      <div
+        v-if="editingLoc"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="editingLoc = null"
+      >
+        <div
+          class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+        >
+          <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
               {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
             </h4>
-            <button @click="editingLoc = null" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+            <button
+              @click="editingLoc = null"
+              class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            >
+              &times;
+            </button>
           </div>
           <div class="space-y-3">
             <div>
-              <label class="block text-sm text-gray-400 mb-1">Locale</label>
+              <label class="mb-1 block text-sm text-gray-400">Locale</label>
               <select
                 v-if="!editingLoc.id"
                 v-model="editingLoc.locale"
-                class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="" disabled>請選擇語言...</option>
-                <option v-for="l in availableLocales" :key="l.value" :value="l.value">{{ l.label }}</option>
+                <option v-for="l in availableLocales" :key="l.value" :value="l.value">
+                  {{ l.label }}
+                </option>
               </select>
-              <span v-else class="text-sm text-gray-300 font-mono">{{ editingLoc.locale }}</span>
+              <span v-else class="font-mono text-sm text-gray-300">{{ editingLoc.locale }}</span>
             </div>
             <div>
-              <div class="flex justify-between mb-1">
+              <div class="mb-1 flex justify-between">
                 <label class="text-sm text-gray-400">Name</label>
-                <span class="text-xs" :class="(editingLoc?.name.length ?? 0) > 35 ? 'text-red-400' : 'text-gray-500'">{{ editingLoc?.name.length ?? 0 }} / 35</span>
+                <span
+                  class="text-xs"
+                  :class="(editingLoc?.name.length ?? 0) > 35 ? 'text-red-400' : 'text-gray-500'"
+                  >{{ editingLoc?.name.length ?? 0 }} / 35</span
+                >
               </div>
               <input
                 v-model="editingLoc.name"
                 type="text"
                 maxlength="35"
-                class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="商品名稱"
               />
             </div>
             <div>
-              <div class="flex justify-between mb-1">
+              <div class="mb-1 flex justify-between">
                 <label class="text-sm text-gray-400">Description</label>
-                <span class="text-xs" :class="(editingLoc?.description.length ?? 0) > 55 ? 'text-red-400' : 'text-gray-500'">{{ editingLoc?.description.length ?? 0 }} / 55</span>
+                <span
+                  class="text-xs"
+                  :class="
+                    (editingLoc?.description.length ?? 0) > 55 ? 'text-red-400' : 'text-gray-500'
+                  "
+                  >{{ editingLoc?.description.length ?? 0 }} / 55</span
+                >
               </div>
               <textarea
                 v-model="editingLoc.description"
                 rows="3"
                 maxlength="55"
-                class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 placeholder="商品描述（選填）"
               />
             </div>
           </div>
-          <div class="flex justify-end gap-2 mt-5">
-            <button @click="editingLoc = null" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">取消</button>
+          <div class="mt-5 flex justify-end gap-2">
+            <button
+              @click="editingLoc = null"
+              class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            >
+              取消
+            </button>
             <button
               @click="saveLoc"
               :disabled="locSaving"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             >
               {{ locSaving ? '儲存中...' : '儲存' }}
             </button>

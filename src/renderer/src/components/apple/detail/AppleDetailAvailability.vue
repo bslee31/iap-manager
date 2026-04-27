@@ -98,77 +98,96 @@ async function saveAvailability() {
 </script>
 
 <template>
-  <div class="flex flex-col flex-1 min-h-0">
-    <div v-if="loading" class="text-center py-10 text-gray-500">載入中...</div>
+  <div class="flex min-h-0 flex-1 flex-col">
+    <div v-if="loading" class="py-10 text-center text-gray-500">載入中...</div>
     <template v-else>
       <!-- Top controls (fixed) -->
-      <div class="px-6 pt-6 pb-2 shrink-0">
-        <div class="flex items-center justify-between mb-3">
+      <div class="shrink-0 px-6 pt-6 pb-2">
+        <div class="mb-3 flex items-center justify-between">
           <h4 class="text-sm font-medium text-gray-200">
             Country or Region Availability ({{ selectedTerritories.size }})
           </h4>
           <input
             v-model="territorySearch"
             type="text"
-            class="px-2 py-1 bg-[#1e1f22] border border-[#43454a] rounded text-xs text-gray-200 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder-gray-500 w-40"
+            class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             placeholder="搜尋地區..."
           />
         </div>
 
         <!-- Selected territories summary -->
-        <div v-if="selectedTerritories.size > 0 && selectedTerritories.size <= 20" class="flex flex-wrap gap-1 mb-3">
+        <div
+          v-if="selectedTerritories.size > 0 && selectedTerritories.size <= 20"
+          class="mb-3 flex flex-wrap gap-1"
+        >
           <span
-            v-for="code in [...selectedTerritories].sort((a, b) => territoryName(a).localeCompare(territoryName(b)))"
+            v-for="code in [...selectedTerritories].sort((a, b) =>
+              territoryName(a).localeCompare(territoryName(b))
+            )"
             :key="code"
-            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-600/15 text-blue-400"
+            class="inline-flex items-center gap-1 rounded-full bg-blue-600/15 px-2 py-0.5 text-xs text-blue-400"
           >
             {{ territoryName(code) }}
             <button @click="toggleTerritory(code)" class="hover:text-blue-200">&times;</button>
           </span>
         </div>
-        <p v-else-if="selectedTerritories.size > 20" class="text-xs text-gray-500 mb-3">
+        <p v-else-if="selectedTerritories.size > 20" class="mb-3 text-xs text-gray-500">
           已選擇 {{ selectedTerritories.size }} 個地區
         </p>
 
         <div class="flex items-center gap-1 text-xs">
           <span class="text-gray-500">Select</span>
-          <button @click="selectAllTerritories" class="text-blue-400 hover:text-blue-300 underline">All</button>
+          <button @click="selectAllTerritories" class="text-blue-400 underline hover:text-blue-300">
+            All
+          </button>
           <span class="text-gray-600">|</span>
-          <button @click="deselectAllTerritories" class="text-blue-400 hover:text-blue-300 underline">None</button>
+          <button
+            @click="deselectAllTerritories"
+            class="text-blue-400 underline hover:text-blue-300"
+          >
+            None
+          </button>
         </div>
       </div>
 
       <!-- Scrollable region list -->
-      <div class="flex-1 min-h-0 overflow-y-auto px-6 py-2 space-y-1">
+      <div class="min-h-0 flex-1 space-y-1 overflow-y-auto px-6 py-2">
         <div v-for="group in groupedTerritories" :key="group.regionName">
           <button
             @click="toggleRegion(group.regionName)"
-            class="w-full flex items-center gap-2 px-3 py-2 bg-[#1e1f22] rounded-lg text-sm font-medium text-gray-200 hover:bg-[#333538] transition-colors"
+            class="flex w-full items-center gap-2 rounded-lg bg-[#1e1f22] px-3 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-[#333538]"
           >
             <span
               class="text-[10px] text-gray-500 transition-transform"
               :class="{ '-rotate-90': collapsedRegions.has(group.regionName) }"
-            >&#9660;</span>
-            <span class="flex-1 text-left">{{ group.regionName }} ({{ regionSelectedCount(group) }})</span>
+              >&#9660;</span
+            >
+            <span class="flex-1 text-left"
+              >{{ group.regionName }} ({{ regionSelectedCount(group) }})</span
+            >
             <span
               @click.stop="toggleRegionAll(group)"
-              class="text-xs text-blue-400 hover:text-blue-300 px-1"
+              class="px-1 text-xs text-blue-400 hover:text-blue-300"
             >
-              {{ group.territories.every(t => selectedTerritories.has(t.code)) ? 'Deselect All' : 'Select All' }}
+              {{
+                group.territories.every((t) => selectedTerritories.has(t.code))
+                  ? 'Deselect All'
+                  : 'Select All'
+              }}
             </span>
           </button>
           <div v-if="!collapsedRegions.has(group.regionName)" class="ml-3">
             <label
               v-for="t in group.territories"
               :key="t.code"
-              class="flex items-center gap-2 px-3 py-1.5 rounded text-sm cursor-pointer transition-colors hover:bg-[#2e3038]"
+              class="flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors hover:bg-[#2e3038]"
               :class="selectedTerritories.has(t.code) ? 'text-gray-200' : 'text-gray-400'"
             >
               <input
                 type="checkbox"
                 :checked="selectedTerritories.has(t.code)"
                 @change="toggleTerritory(t.code)"
-                class="rounded w-3.5 h-3.5"
+                class="h-3.5 w-3.5 rounded"
               />
               {{ t.name }}
             </label>
@@ -177,16 +196,19 @@ async function saveAvailability() {
       </div>
 
       <!-- Footer (pinned at bottom) -->
-      <div class="px-6 py-4 border-t border-[#393b40] shrink-0">
-        <label class="flex items-center gap-2 cursor-pointer mb-3">
+      <div class="shrink-0 border-t border-[#393b40] px-6 py-4">
+        <label class="mb-3 flex cursor-pointer items-center gap-2">
           <input type="checkbox" v-model="availableInNewTerritories" class="rounded" />
-          <span class="text-sm text-gray-300">Make your in-app purchase automatically available in all future App Store countries or regions.</span>
+          <span class="text-sm text-gray-300"
+            >Make your in-app purchase automatically available in all future App Store countries or
+            regions.</span
+          >
         </label>
         <div class="flex justify-end">
           <button
             @click="saveAvailability"
             :disabled="availSaving"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
             {{ availSaving ? '儲存中...' : '儲存 Availability' }}
           </button>

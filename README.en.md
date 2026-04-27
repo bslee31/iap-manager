@@ -9,6 +9,7 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
 ## Features
 
 ### Apple In-App Purchases
+
 - Sync product list
 - Batch activate / deactivate
 - Batch refresh of Price / Availability
@@ -26,6 +27,7 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
   - Import concurrency 3, per-product failures don't abort the rest; results are grouped into full success / partial / failed after completion
 
 ### Google One-time Products
+
 - Sync product list (with aggregated Purchase Option status and the primary PO's Base-Region price)
 - List columns: Product ID / Product name / Price / Status, laid out to match Apple
   - Price uses the "primary PO" (`buyOption.legacyCompatible=true`, the Play Console "Backwards compatible" one) at the Base Region
@@ -51,10 +53,12 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
   - Currently only BUY POs are supported for import (RENT not yet implemented)
 
 ### Google project settings
+
 - **Default Language** — default language used by new products / Listings; can be auto-detected from Play Console or set manually
 - **Base Region** — per-project persistent base region (migration 009), auto-filled on first product creation, can be manually overridden in the project settings page; the Detail page's Pricing tab puts this region first
 
 ### Multi-project management
+
 - Independent Apple / Google credentials per project
 - Project list and sidebar support drag-and-drop reordering
 - Tab state preserved when switching projects
@@ -109,16 +113,17 @@ npm run dist:linux    # Linux
 
 ## Data storage
 
-| Item | Location |
-|------|----------|
-| Database (projects, product cache) | `~/.iap-manager/data.db` |
-| Encrypted credentials | `~/.iap-manager/credentials/<project-id>.enc` |
+| Item                               | Location                                      |
+| ---------------------------------- | --------------------------------------------- |
+| Database (projects, product cache) | `~/.iap-manager/data.db`                      |
+| Encrypted credentials              | `~/.iap-manager/credentials/<project-id>.enc` |
 
 Credentials are encrypted with Electron safeStorage, which is backed by macOS Keychain / Windows DPAPI under the hood.
 
 ## API references
 
 ### Apple
+
 - [App Store Connect API v1/v2](https://developer.apple.com/documentation/appstoreconnectapi)
 - List: `GET /v1/apps/{appId}/inAppPurchasesV2`
 - Create: `POST /v2/inAppPurchases`
@@ -133,6 +138,7 @@ Credentials are encrypted with Electron safeStorage, which is backed by macOS Ke
 - Territories: `GET /v1/territories`
 
 ### Google
+
 - [Google Play Developer API v3 - Monetization](https://developers.google.com/android-publisher/api-ref/rest/v3/monetization.onetimeproducts)
 - List: `GET /applications/{pkg}/oneTimeProducts`
 - Create / update: `PATCH /applications/{pkg}/onetimeproducts/{id}` (`updateMask` + `allowMissing=true` + `regionsVersion=2022/02`)

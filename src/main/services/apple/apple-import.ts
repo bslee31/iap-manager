@@ -79,13 +79,7 @@ function validateProduct(
 
   // type
   if (!VALID_TYPES.has(p.type)) {
-    pushIssue(
-      issues,
-      index,
-      pid,
-      'type',
-      `type 必須為 ${Array.from(VALID_TYPES).join(' / ')}`
-    )
+    pushIssue(issues, index, pid, 'type', `type 必須為 ${Array.from(VALID_TYPES).join(' / ')}`)
   }
 
   // availability
@@ -346,7 +340,10 @@ async function importSingleProduct(
     const created = await createInAppPurchase(projectId, {
       productId: product.productId,
       referenceName: product.referenceName,
-      inAppPurchaseType: product.type as 'CONSUMABLE' | 'NON_CONSUMABLE' | 'NON_RENEWING_SUBSCRIPTION',
+      inAppPurchaseType: product.type as
+        | 'CONSUMABLE'
+        | 'NON_CONSUMABLE'
+        | 'NON_RENEWING_SUBSCRIPTION',
       appId
     })
     iapId = created.id

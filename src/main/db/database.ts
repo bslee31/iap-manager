@@ -37,7 +37,10 @@ function runMigrations(db: Database.Database): void {
   `)
 
   const applied = new Set(
-    db.prepare('SELECT name FROM migrations').all().map((r: any) => r.name)
+    db
+      .prepare('SELECT name FROM migrations')
+      .all()
+      .map((r: any) => r.name)
   )
 
   const migrations: { name: string; sql: string }[] = [

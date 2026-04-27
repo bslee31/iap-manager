@@ -44,31 +44,36 @@ const derivedStatusLabel = computed(() => {
 </script>
 
 <template>
-  <div class="flex-1 overflow-y-auto p-6 space-y-5">
+  <div class="flex-1 space-y-5 overflow-y-auto p-6">
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Product ID</label>
-      <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400 font-mono">
+      <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Product ID</label>
+      <div
+        class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+      >
         {{ detail.productId }}
       </div>
-      <p class="text-xs text-gray-500 mt-1">Product ID 建立後無法修改</p>
+      <p class="mt-1 text-xs text-gray-500">Product ID 建立後無法修改</p>
     </div>
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Status</label>
+      <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Status</label>
       <div>
-        <span class="inline-block text-xs px-2 py-0.5 rounded-full" :class="statusColor(derivedStatus)">
+        <span
+          class="inline-block rounded-full px-2 py-0.5 text-xs"
+          :class="statusColor(derivedStatus)"
+        >
           {{ derivedStatusLabel }}
         </span>
       </div>
     </div>
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Purchase Options</label>
-      <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+      <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Purchase Options</label>
+      <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
         共 {{ detail.purchaseOptions.length }} 個方案
       </div>
     </div>
     <div>
-      <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Listings</label>
-      <div class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+      <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Listings</label>
+      <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
         共 {{ detail.listings.length }} 個語言
       </div>
     </div>

@@ -271,6 +271,13 @@ function toggleAll() {
   }
 }
 
+// Clear the selected Set and reassign to a new instance so reactivity fires
+// (Set mutation alone wouldn't trigger reactive updates of dependants).
+function clearSelection() {
+  selected.value.clear()
+  selected.value = new Set()
+}
+
 function toggleItem(id: string) {
   if (selected.value.has(id)) {
     selected.value.delete(id)
@@ -372,7 +379,9 @@ async function createProduct() {
   if (result.success) {
     const skipped = (result as any).skippedRegions as string[] | undefined
     if (skipped && skipped.length > 0) {
-      notify.success(`商品已建立（草稿）。略過 ${skipped.length} 個地區：${skipped.join(', ')}（可到 Play Console 手動設定）`)
+      notify.success(
+        `商品已建立（草稿）。略過 ${skipped.length} 個地區：${skipped.join(', ')}（可到 Play Console 手動設定）`
+      )
     } else {
       notify.success('商品已建立（草稿）')
     }
@@ -422,63 +431,72 @@ function productPriceLabel(product: GoogleProduct): string {
 
 function statusColor(status: string): string {
   switch (status) {
-    case 'ACTIVE': return 'bg-green-600/20 text-green-400'
+    case 'ACTIVE':
+      return 'bg-green-600/20 text-green-400'
     case 'INACTIVE':
-    case 'INACTIVE_PUBLISHED': return 'bg-red-600/20 text-red-400'
-    case 'DRAFT': return 'bg-yellow-600/20 text-yellow-400'
-    default: return 'bg-[#393b40] text-gray-400'
+    case 'INACTIVE_PUBLISHED':
+      return 'bg-red-600/20 text-red-400'
+    case 'DRAFT':
+      return 'bg-yellow-600/20 text-yellow-400'
+    default:
+      return 'bg-[#393b40] text-gray-400'
   }
 }
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex h-full flex-col">
     <!-- Toolbar -->
-    <div class="flex items-center justify-between mb-4 px-6 pt-6 shrink-0">
-      <div class="flex gap-2 items-center">
+    <div class="mb-4 flex shrink-0 items-center justify-between px-6 pt-6">
+      <div class="flex items-center gap-2">
         <button
           @click="syncProducts"
           :disabled="syncing"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+          class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
         >
           同步商品
         </button>
         <button
           @click="exportProducts"
           :disabled="exporting || syncing || products.length === 0"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
         >
           匯出
         </button>
         <button
           @click="importProducts"
           :disabled="exporting || syncing"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
         >
           匯入
         </button>
-        <span v-if="syncing" class="text-sm text-gray-400 flex items-center gap-2">
-          <span class="inline-block w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+        <span v-if="syncing" class="flex items-center gap-2 text-sm text-gray-400">
+          <span
+            class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
+          />
           {{ syncProgress }}
         </span>
-        <span v-if="exporting" class="text-sm text-gray-400 flex items-center gap-2">
-          <span class="inline-block w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+        <span v-if="exporting" class="flex items-center gap-2 text-sm text-gray-400">
+          <span
+            class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
+          />
           {{ exportProgress }}
         </span>
-        <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
-          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
+        <span v-if="products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
+          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : ''
+          }}{{ products.length }} 個商品
         </span>
       </div>
       <div class="flex items-center gap-3">
         <input
           v-model="searchQuery"
           type="text"
-          class="px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 w-52"
+          class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           placeholder="搜尋 Product ID / Name..."
         />
         <button
           @click="openCreateForm"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
         >
           + 新增商品
         </button>
@@ -486,36 +504,40 @@ function statusColor(status: string): string {
     </div>
 
     <!-- Batch Action Bar (inline) -->
-    <div v-if="selected.size > 0" class="flex items-center gap-3 px-6 mb-3 shrink-0">
-      <span class="text-sm text-gray-300 whitespace-nowrap">已選 {{ selected.size }} 項</span>
-      <div class="w-px h-5 bg-[#43454a]" />
+    <div v-if="selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
+      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ selected.size }} 項</span>
+      <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
         :key="action.key"
         @click="handleBatchAction(action.key)"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-        :class="action.variant === 'danger'
-          ? 'bg-red-600 hover:bg-red-700 text-white'
-          : 'bg-green-600 hover:bg-green-700 text-white'"
+        class="rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors"
+        :class="
+          action.variant === 'danger'
+            ? 'bg-red-600 text-white hover:bg-red-700'
+            : 'bg-green-600 text-white hover:bg-green-700'
+        "
       >
         {{ action.label }}
       </button>
       <button
-        @click="selected.clear(); selected = new Set()"
-        class="text-gray-400 hover:text-white text-sm transition-colors whitespace-nowrap"
+        @click="clearSelection"
+        class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
       >
         取消選取
       </button>
     </div>
 
     <!-- Status filter chips -->
-    <div v-if="statusGroups.length > 0" class="flex flex-wrap gap-2 mb-4 px-6 shrink-0">
+    <div v-if="statusGroups.length > 0" class="mb-4 flex shrink-0 flex-wrap gap-2 px-6">
       <button
         @click="setFilter(null)"
-        class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-        :class="activeFilter === null
-          ? 'bg-green-600 text-white'
-          : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          activeFilter === null
+            ? 'bg-green-600 text-white'
+            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+        "
       >
         全部 {{ products.length }}
       </button>
@@ -523,38 +545,51 @@ function statusColor(status: string): string {
         v-for="group in statusGroups"
         :key="group.status"
         @click="setFilter(group.status)"
-        class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-        :class="activeFilter === group.status
-          ? 'bg-green-600 text-white'
-          : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          activeFilter === group.status
+            ? 'bg-green-600 text-white'
+            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+        "
       >
         {{ group.label }} {{ group.count }}
       </button>
     </div>
 
     <!-- Create Form Modal -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="showCreateForm = false">
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-md border border-[#393b40] titlebar-no-drag flex flex-col max-h-[85vh]">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+    <div
+      v-if="showCreateForm"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+      @click.self="showCreateForm = false"
+    >
+      <div
+        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+      >
+        <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">新增 Google 商品</h3>
-          <button @click="showCreateForm = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+          <button
+            @click="showCreateForm = false"
+            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          >
+            &times;
+          </button>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-2 space-y-4">
+        <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Product ID</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">Product ID</label>
             <input
               v-model="newProduct.productId"
               type="text"
               maxlength="139"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="例：coins_100"
             />
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="mt-1 text-xs text-gray-500">
               以小寫英數開頭，只能含小寫英數、_、.；建立後無法修改
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">語言</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">語言</label>
             <div class="flex items-center gap-2">
               <div class="flex-1">
                 <SearchableSelect
@@ -566,67 +601,75 @@ function statusColor(status: string): string {
               <button
                 @click="detectLanguageInModal"
                 :disabled="detectingLanguage"
-                class="px-3 py-1.5 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+                class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
               >
                 {{ detectingLanguage ? '偵測中...' : '偵測' }}
               </button>
             </div>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="mt-1 text-xs text-gray-500">
               按「偵測」會從 Play Console 讀取並設為專案預設；手動選擇則只影響此次建立。
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">名稱</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">名稱</label>
             <input
               v-model="newProduct.name"
               type="text"
               maxlength="55"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="例：100 金幣"
             />
-            <p class="text-xs text-gray-500 mt-1 text-right">{{ newProduct.name.length }} / 55</p>
+            <p class="mt-1 text-right text-xs text-gray-500">{{ newProduct.name.length }} / 55</p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">描述</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">描述</label>
             <textarea
               v-model="newProduct.description"
               maxlength="200"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               rows="3"
               placeholder="商品描述"
             />
-            <p class="text-xs text-gray-500 mt-1 text-right">{{ newProduct.description.length }} / 200</p>
+            <p class="mt-1 text-right text-xs text-gray-500">
+              {{ newProduct.description.length }} / 200
+            </p>
           </div>
 
           <div class="border-t border-[#393b40] pt-4">
-            <div class="text-xs text-gray-500 mb-3">方案設定（建立為草稿狀態，需到 Play Console 再上架）</div>
+            <div class="mb-3 text-xs text-gray-500">
+              方案設定（建立為草稿狀態，需到 Play Console 再上架）
+            </div>
             <div class="space-y-4">
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Purchase Option ID</label>
+                <label class="mb-1 block text-sm font-medium text-gray-400"
+                  >Purchase Option ID</label
+                >
                 <input
                   v-model="newProduct.purchaseOptionId"
                   type="text"
                   maxlength="63"
-                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 font-mono"
+                  class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
                   placeholder="例：base"
                 />
-                <p class="text-xs text-gray-500 mt-1">
+                <p class="mt-1 text-xs text-gray-500">
                   以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）
                 </p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">Purchase type</label>
+                <label class="mb-1 block text-sm font-medium text-gray-400">Purchase type</label>
                 <select
-                  class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 >
                   <option value="BUY" selected>Buy</option>
                   <option value="RENT" disabled>Rent（尚未支援）</option>
                 </select>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">
+                <label class="mb-1 block text-sm font-medium text-gray-400">
                   基準國家
-                  <span v-if="loadingRegions" class="text-xs text-gray-500 font-normal ml-1">載入中...</span>
+                  <span v-if="loadingRegions" class="ml-1 text-xs font-normal text-gray-500"
+                    >載入中...</span
+                  >
                 </label>
                 <SearchableSelect
                   v-model="newProduct.baseRegionCode"
@@ -635,36 +678,40 @@ function statusColor(status: string): string {
                 />
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1">基準價格</label>
+                <label class="mb-1 block text-sm font-medium text-gray-400">基準價格</label>
                 <div class="flex items-center gap-2">
                   <input
                     v-model="newProduct.basePrice"
                     type="text"
                     inputmode="decimal"
-                    class="flex-1 px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+                    class="flex-1 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
                     placeholder="例：30"
                   />
-                  <span class="px-3 py-2 text-sm text-gray-300 bg-[#22252a] border border-[#43454a] rounded-lg min-w-[4rem] text-center">
+                  <span
+                    class="min-w-[4rem] rounded-lg border border-[#43454a] bg-[#22252a] px-3 py-2 text-center text-sm text-gray-300"
+                  >
                     {{ currencyForRegion(newProduct.baseRegionCode) || '---' }}
                   </span>
                 </div>
-                <p class="text-xs text-gray-500 mt-1">其他國家的價格會由 Google 依基準價自動換算。</p>
+                <p class="mt-1 text-xs text-gray-500">
+                  其他國家的價格會由 Google 依基準價自動換算。
+                </p>
               </div>
             </div>
           </div>
         </div>
-        <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
+        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
           <button
             @click="showCreateForm = false"
             :disabled="creating"
-            class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors disabled:opacity-50"
+            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           >
             取消
           </button>
           <button
             @click="createProduct"
             :disabled="creating"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+            class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
           >
             {{ creating ? '建立中...' : '建立' }}
           </button>
@@ -673,84 +720,105 @@ function statusColor(status: string): string {
     </div>
 
     <!-- Product Table -->
-    <div class="flex-1 min-h-0 px-6 pb-6">
-    <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
-      <!-- Fixed header -->
-      <div class="shrink-0" style="scrollbar-gutter: stable">
-      <table class="w-full table-fixed">
-        <colgroup>
-          <col class="w-10" />
-          <col class="w-[30%]" />
-          <col class="w-[35%]" />
-          <col class="w-[17%]" />
-          <col class="w-[18%]" />
-        </colgroup>
-        <thead>
-          <tr class="bg-[#22252a] border-b border-[#393b40]">
-            <th class="px-3 py-3">
-              <input type="checkbox" :checked="allSelected" @change="toggleAll" class="rounded" />
-            </th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product ID</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product name</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-          </tr>
-        </thead>
-      </table>
-      </div>
-      <!-- Scrollable body -->
-      <div class="flex-1 min-h-0 overflow-y-auto" style="scrollbar-gutter: stable">
-      <table class="w-full table-fixed">
-        <colgroup>
-          <col class="w-10" />
-          <col class="w-[30%]" />
-          <col class="w-[35%]" />
-          <col class="w-[17%]" />
-          <col class="w-[18%]" />
-        </colgroup>
-        <tbody>
-          <tr
-            v-for="product in filteredProducts"
-            :key="product.productId"
-            @click="selectedProduct = product"
-            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors cursor-pointer"
-            :class="{ 'bg-green-600/10': selected.has(product.productId) }"
-          >
-            <td class="w-10 px-3 py-3" @click.stop>
-              <input
-                type="checkbox"
-                :checked="selected.has(product.productId)"
-                @change="toggleItem(product.productId)"
-                class="rounded"
-              />
-            </td>
-            <td class="px-3 py-3 text-sm font-mono text-gray-200">{{ product.productId }}</td>
-            <td class="px-3 py-3 text-sm text-gray-300">{{ product.name }}</td>
-            <td class="px-3 py-3 text-sm text-gray-300 font-mono">{{ productPriceLabel(product) }}</td>
-            <td class="px-3 py-3">
-              <span
-                class="text-xs px-2 py-0.5 rounded-full"
-                :class="statusColor(product.status)"
+    <div class="min-h-0 flex-1 px-6 pb-6">
+      <div
+        v-if="filteredProducts.length > 0"
+        class="flex h-full flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30]"
+      >
+        <!-- Fixed header -->
+        <div class="shrink-0" style="scrollbar-gutter: stable">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[30%]" />
+              <col class="w-[35%]" />
+              <col class="w-[17%]" />
+              <col class="w-[18%]" />
+            </colgroup>
+            <thead>
+              <tr class="border-b border-[#393b40] bg-[#22252a]">
+                <th class="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    :checked="allSelected"
+                    @change="toggleAll"
+                    class="rounded"
+                  />
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product ID
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product name
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Price
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <!-- Scrollable body -->
+        <div class="min-h-0 flex-1 overflow-y-auto" style="scrollbar-gutter: stable">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[30%]" />
+              <col class="w-[35%]" />
+              <col class="w-[17%]" />
+              <col class="w-[18%]" />
+            </colgroup>
+            <tbody>
+              <tr
+                v-for="product in filteredProducts"
+                :key="product.productId"
+                @click="selectedProduct = product"
+                class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
+                :class="{ 'bg-green-600/10': selected.has(product.productId) }"
               >
-                {{ productStatusLabel(product) }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                <td class="w-10 px-3 py-3" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="selected.has(product.productId)"
+                    @change="toggleItem(product.productId)"
+                    class="rounded"
+                  />
+                </td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
+                <td class="px-3 py-3 text-sm text-gray-300">{{ product.name }}</td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-300">
+                  {{ productPriceLabel(product) }}
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs"
+                    :class="statusColor(product.status)"
+                  >
+                    {{ productStatusLabel(product) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
-    <!-- Empty state -->
-    <div v-else-if="!loading && !syncing && products.length === 0" class="text-center py-20">
-      <p class="text-gray-500 text-lg mb-2">尚無商品資料</p>
-      <p class="text-gray-500 text-sm">請先設定 Google 憑證，然後點擊「同步商品」</p>
-    </div>
-    <div v-else-if="!loading && !syncing && filteredProducts.length === 0" class="text-center py-10">
-      <p class="text-gray-500 text-sm">此狀態下沒有商品</p>
-    </div>
+      <!-- Empty state -->
+      <div v-else-if="!loading && !syncing && products.length === 0" class="py-20 text-center">
+        <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
+        <p class="text-sm text-gray-500">請先設定 Google 憑證，然後點擊「同步商品」</p>
+      </div>
+      <div
+        v-else-if="!loading && !syncing && filteredProducts.length === 0"
+        class="py-10 text-center"
+      >
+        <p class="text-sm text-gray-500">此狀態下沒有商品</p>
+      </div>
 
-    <div v-if="loading" class="text-center py-20 text-gray-500">載入中...</div>
+      <div v-if="loading" class="py-20 text-center text-gray-500">載入中...</div>
     </div>
 
     <!-- Product Detail Modal -->

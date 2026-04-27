@@ -184,10 +184,11 @@ function formatPrice(po: ImportedPurchaseOption): string {
   // region in the exported array if the base region isn't set or isn't
   // present in this PO's regions.
   const pick =
-    (baseRegion.value && po.regions.find((r) => r.regionCode === baseRegion.value)) ||
-    po.regions[0]
+    (baseRegion.value && po.regions.find((r) => r.regionCode === baseRegion.value)) || po.regions[0]
   if (!pick) return '-'
-  const frac = Math.round(pick.nanos / 1e7).toString().padStart(2, '0')
+  const frac = Math.round(pick.nanos / 1e7)
+    .toString()
+    .padStart(2, '0')
   return `${pick.units}.${frac} ${pick.currencyCode}`
 }
 
@@ -201,8 +202,7 @@ function primaryPo(p: ImportedProduct): ImportedPurchaseOption | undefined {
 function displayName(p: ImportedProduct): string {
   if (p.listings.length === 0) return ''
   const pick =
-    (defaultLanguage.value &&
-      p.listings.find((l) => l.languageCode === defaultLanguage.value)) ||
+    (defaultLanguage.value && p.listings.find((l) => l.languageCode === defaultLanguage.value)) ||
     p.listings[0]
   return pick?.title || ''
 }
@@ -218,10 +218,15 @@ function formatDate(iso?: string): string {
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-50" @click.self="onBackdropClick">
-    <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-[#393b40] titlebar-no-drag">
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+    @click.self="onBackdropClick"
+  >
+    <div
+      class="titlebar-no-drag flex max-h-[85vh] w-full max-w-3xl flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+    >
       <!-- Header -->
-      <div class="flex items-center justify-between p-6 border-b border-[#393b40] shrink-0">
+      <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] p-6">
         <h3 class="text-lg font-semibold text-gray-100">
           <template v-if="state === 'validating'">驗證檔案中...</template>
           <template v-else-if="state === 'validationError'">匯入檔案有問題</template>
@@ -232,7 +237,7 @@ function formatDate(iso?: string): string {
         <button
           v-if="state !== 'importing'"
           @click="close"
-          class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors"
+          class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
         >
           &times;
         </button>
@@ -242,41 +247,44 @@ function formatDate(iso?: string): string {
       <div class="flex-1 overflow-y-auto p-6">
         <!-- Validating -->
         <div v-if="state === 'validating'" class="flex items-center gap-3 text-gray-400">
-          <span class="inline-block w-4 h-4 border-2 border-green-400 border-t-transparent rounded-full animate-spin" />
+          <span
+            class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
+          />
           讀取並驗證檔案中...
         </div>
 
         <!-- Validation errors -->
         <div v-else-if="state === 'validationError'">
-          <p v-if="fatalError" class="text-red-400 text-sm mb-4">{{ fatalError }}</p>
+          <p v-if="fatalError" class="mb-4 text-sm text-red-400">{{ fatalError }}</p>
 
-          <div v-if="preview && (preview.formatVersion || preview.exportedAt || preview.packageName)" class="mb-4 text-xs text-gray-500 space-y-1">
+          <div
+            v-if="preview && (preview.formatVersion || preview.exportedAt || preview.packageName)"
+            class="mb-4 space-y-1 text-xs text-gray-500"
+          >
             <div v-if="preview.formatVersion">Format Version：{{ preview.formatVersion }}</div>
             <div v-if="preview.exportedAt">Exported At：{{ formatDate(preview.exportedAt) }}</div>
             <div v-if="preview.packageName">Package Name：{{ preview.packageName }}</div>
           </div>
 
-          <p v-if="preview && preview.issues.length > 0" class="text-sm text-gray-300 mb-3">
-            發現 {{ preview.issues.length }} 個問題（{{ issuesByProduct.length }} 筆商品），請修正後重新匯入：
+          <p v-if="preview && preview.issues.length > 0" class="mb-3 text-sm text-gray-300">
+            發現 {{ preview.issues.length }} 個問題（{{ issuesByProduct.length }}
+            筆商品），請修正後重新匯入：
           </p>
 
           <div v-if="preview" class="space-y-3">
             <div
               v-for="group in issuesByProduct"
               :key="group.key"
-              class="bg-[#1e1f22] border border-red-900/40 rounded-lg p-3"
+              class="rounded-lg border border-red-900/40 bg-[#1e1f22] p-3"
             >
-              <div class="text-sm font-mono text-gray-300 mb-2">
+              <div class="mb-2 font-mono text-sm text-gray-300">
                 <span class="text-gray-500">#{{ group.index + 1 }}</span>
                 {{ group.productId || '(unknown productId)' }}
               </div>
               <ul class="space-y-1">
-                <li
-                  v-for="(iss, idx) in group.items"
-                  :key="idx"
-                  class="text-xs text-red-400"
-                >
-                  <span class="font-mono text-gray-500">{{ iss.field }}</span>：{{ iss.message }}
+                <li v-for="(iss, idx) in group.items" :key="idx" class="text-xs text-red-400">
+                  <span class="font-mono text-gray-500">{{ iss.field }}</span
+                  >：{{ iss.message }}
                 </li>
               </ul>
             </div>
@@ -285,28 +293,39 @@ function formatDate(iso?: string): string {
 
         <!-- Preview -->
         <div v-else-if="state === 'preview' && preview">
-          <div class="mb-4 text-xs text-gray-500 space-y-1">
+          <div class="mb-4 space-y-1 text-xs text-gray-500">
             <div>Format Version：{{ preview.formatVersion }}</div>
             <div>Exported At：{{ formatDate(preview.exportedAt) }}</div>
             <div>Package Name：{{ preview.packageName }}</div>
           </div>
 
-          <p class="text-sm text-gray-300 mb-3">
-            將匯入 <span class="text-green-400 font-semibold">{{ preview.products.length }}</span> 個商品：
+          <p class="mb-3 text-sm text-gray-300">
+            將匯入
+            <span class="font-semibold text-green-400">{{ preview.products.length }}</span> 個商品：
           </p>
 
-          <div class="bg-[#1e1f22] border border-[#393b40] rounded-lg overflow-hidden">
+          <div class="overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]">
             <table class="w-full text-sm">
               <thead>
-                <tr class="bg-[#22252a] border-b border-[#393b40]">
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Product ID</th>
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">Name</th>
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">POs</th>
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">
+                <tr class="border-b border-[#393b40] bg-[#22252a]">
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Product ID
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    Name
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    POs
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     主 PO 基準價<span v-if="baseRegion"> ({{ baseRegion }})</span>
                   </th>
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">地區</th>
-                  <th class="text-left px-3 py-2 text-xs font-medium text-gray-500 uppercase">語言</th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    地區
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
+                    語言
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -316,9 +335,11 @@ function formatDate(iso?: string): string {
                   class="border-b border-[#393b40] last:border-0"
                 >
                   <td class="px-3 py-2 font-mono text-gray-200">{{ p.productId }}</td>
-                  <td class="px-3 py-2 text-gray-300 truncate max-w-[180px]">{{ displayName(p) }}</td>
+                  <td class="max-w-[180px] truncate px-3 py-2 text-gray-300">
+                    {{ displayName(p) }}
+                  </td>
                   <td class="px-3 py-2 text-gray-400">{{ p.purchaseOptions.length }}</td>
-                  <td class="px-3 py-2 text-gray-400 font-mono">
+                  <td class="px-3 py-2 font-mono text-gray-400">
                     {{ primaryPo(p) ? formatPrice(primaryPo(p)!) : '-' }}
                   </td>
                   <td class="px-3 py-2 text-gray-400">{{ primaryPo(p)?.regions.length ?? 0 }}</td>
@@ -328,50 +349,54 @@ function formatDate(iso?: string): string {
             </table>
           </div>
 
-          <p class="text-xs text-gray-500 mt-3">
+          <p class="mt-3 text-xs text-gray-500">
             匯入的商品一律以 DRAFT 狀態建立。請自行在 Detail 頁確認後再手動上架。
           </p>
         </div>
 
         <!-- Importing -->
-        <div v-else-if="state === 'importing'" class="flex flex-col items-center py-10 gap-4">
-          <span class="inline-block w-8 h-8 border-4 border-green-400 border-t-transparent rounded-full animate-spin" />
+        <div v-else-if="state === 'importing'" class="flex flex-col items-center gap-4 py-10">
+          <span
+            class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-green-400 border-t-transparent"
+          />
           <div class="text-sm text-gray-300">{{ importProgress }}</div>
           <div class="text-xs text-gray-500">匯入過程請勿關閉視窗</div>
         </div>
 
         <!-- Done -->
         <div v-else-if="state === 'done'">
-          <p v-if="fatalError" class="text-red-400 text-sm mb-4">{{ fatalError }}</p>
+          <p v-if="fatalError" class="mb-4 text-sm text-red-400">{{ fatalError }}</p>
 
-          <div class="grid grid-cols-3 gap-3 mb-4">
-            <div class="bg-green-600/10 border border-green-600/30 rounded-lg p-3">
-              <div class="text-xs text-green-400 uppercase mb-1">完全成功</div>
+          <div class="mb-4 grid grid-cols-3 gap-3">
+            <div class="rounded-lg border border-green-600/30 bg-green-600/10 p-3">
+              <div class="mb-1 text-xs text-green-400 uppercase">完全成功</div>
               <div class="text-2xl font-semibold text-green-300">{{ stats.fullSuccess }}</div>
             </div>
-            <div class="bg-yellow-600/10 border border-yellow-600/30 rounded-lg p-3">
-              <div class="text-xs text-yellow-400 uppercase mb-1">部分成功</div>
+            <div class="rounded-lg border border-yellow-600/30 bg-yellow-600/10 p-3">
+              <div class="mb-1 text-xs text-yellow-400 uppercase">部分成功</div>
               <div class="text-2xl font-semibold text-yellow-300">{{ stats.partial }}</div>
             </div>
-            <div class="bg-red-600/10 border border-red-600/30 rounded-lg p-3">
-              <div class="text-xs text-red-400 uppercase mb-1">建立失敗</div>
+            <div class="rounded-lg border border-red-600/30 bg-red-600/10 p-3">
+              <div class="mb-1 text-xs text-red-400 uppercase">建立失敗</div>
               <div class="text-2xl font-semibold text-red-300">{{ stats.failed }}</div>
             </div>
           </div>
 
           <!-- Failed products -->
           <div v-if="stats.failed > 0" class="mb-4">
-            <h4 class="text-sm font-medium text-red-400 mb-2">建立失敗（{{ stats.failed }}）</h4>
+            <h4 class="mb-2 text-sm font-medium text-red-400">建立失敗（{{ stats.failed }}）</h4>
             <div class="space-y-2">
               <div
                 v-for="r in results.filter((x) => !x.created)"
                 :key="r.productId"
-                class="bg-[#1e1f22] border border-red-900/40 rounded-lg p-3"
+                class="rounded-lg border border-red-900/40 bg-[#1e1f22] p-3"
               >
-                <div class="text-sm font-mono text-gray-300">{{ r.productId }}</div>
-                <ul class="space-y-1 mt-1">
+                <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
+                <ul class="mt-1 space-y-1">
                   <li v-for="(se, idx) in r.stepErrors" :key="idx" class="text-xs text-red-400">
-                    <span class="text-gray-500">[{{ stepLabel(se.step) }}{{ se.target ? ` - ${se.target}` : '' }}]</span>
+                    <span class="text-gray-500"
+                      >[{{ stepLabel(se.step) }}{{ se.target ? ` - ${se.target}` : '' }}]</span
+                    >
                     {{ se.error }}
                   </li>
                 </ul>
@@ -381,22 +406,28 @@ function formatDate(iso?: string): string {
 
           <!-- Partial-success products -->
           <div v-if="stats.partial > 0">
-            <h4 class="text-sm font-medium text-yellow-400 mb-2">商品已建立，但部分步驟失敗（{{ stats.partial }}）</h4>
+            <h4 class="mb-2 text-sm font-medium text-yellow-400">
+              商品已建立，但部分步驟失敗（{{ stats.partial }}）
+            </h4>
             <div class="space-y-2">
               <div
                 v-for="r in results.filter((x) => x.created && x.stepErrors.length > 0)"
                 :key="r.productId"
-                class="bg-[#1e1f22] border border-yellow-900/40 rounded-lg p-3"
+                class="rounded-lg border border-yellow-900/40 bg-[#1e1f22] p-3"
               >
-                <div class="text-sm font-mono text-gray-300">{{ r.productId }}</div>
-                <ul class="space-y-1 mt-1">
+                <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
+                <ul class="mt-1 space-y-1">
                   <li v-for="(se, idx) in r.stepErrors" :key="idx" class="text-xs text-yellow-400">
-                    <span class="text-gray-500">[{{ stepLabel(se.step) }}{{ se.target ? ` - ${se.target}` : '' }}]</span>
+                    <span class="text-gray-500"
+                      >[{{ stepLabel(se.step) }}{{ se.target ? ` - ${se.target}` : '' }}]</span
+                    >
                     {{ se.error }}
                   </li>
                 </ul>
-                <p v-if="r.skippedRegions.length > 0" class="text-xs text-gray-500 mt-2">
-                  Google 略過的地區（{{ r.skippedRegions.length }}）：{{ r.skippedRegions.join(', ') }}
+                <p v-if="r.skippedRegions.length > 0" class="mt-2 text-xs text-gray-500">
+                  Google 略過的地區（{{ r.skippedRegions.length }}）：{{
+                    r.skippedRegions.join(', ')
+                  }}
                 </p>
               </div>
             </div>
@@ -404,42 +435,52 @@ function formatDate(iso?: string): string {
 
           <!-- Fully successful with skipped regions still worth noting -->
           <div
-            v-if="stats.fullSuccess > 0 && results.some((r) => r.created && r.stepErrors.length === 0 && r.skippedRegions.length > 0)"
+            v-if="
+              stats.fullSuccess > 0 &&
+              results.some(
+                (r) => r.created && r.stepErrors.length === 0 && r.skippedRegions.length > 0
+              )
+            "
             class="mt-4"
           >
-            <h4 class="text-sm font-medium text-gray-400 mb-2">完成匯入但有略過地區</h4>
+            <h4 class="mb-2 text-sm font-medium text-gray-400">完成匯入但有略過地區</h4>
             <div class="space-y-2">
               <div
-                v-for="r in results.filter((x) => x.created && x.stepErrors.length === 0 && x.skippedRegions.length > 0)"
+                v-for="r in results.filter(
+                  (x) => x.created && x.stepErrors.length === 0 && x.skippedRegions.length > 0
+                )"
                 :key="r.productId"
-                class="bg-[#1e1f22] border border-[#393b40] rounded-lg p-3"
+                class="rounded-lg border border-[#393b40] bg-[#1e1f22] p-3"
               >
-                <div class="text-sm font-mono text-gray-300">{{ r.productId }}</div>
-                <p class="text-xs text-gray-500 mt-1">
+                <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
+                <p class="mt-1 text-xs text-gray-500">
                   略過地區（{{ r.skippedRegions.length }}）：{{ r.skippedRegions.join(', ') }}
                 </p>
               </div>
             </div>
           </div>
 
-          <div v-if="stats.total === 0 && !fatalError" class="text-gray-400 text-sm">
+          <div v-if="stats.total === 0 && !fatalError" class="text-sm text-gray-400">
             沒有匯入結果
           </div>
         </div>
       </div>
 
       <!-- Footer -->
-      <div v-if="state !== 'validating' && state !== 'importing'" class="flex justify-end gap-2 p-4 border-t border-[#393b40] shrink-0">
+      <div
+        v-if="state !== 'validating' && state !== 'importing'"
+        class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] p-4"
+      >
         <template v-if="state === 'preview'">
           <button
             @click="close"
-            class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors"
+            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
           >
             取消
           </button>
           <button
             @click="confirmImport"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+            class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700"
           >
             確認匯入
           </button>
@@ -447,7 +488,7 @@ function formatDate(iso?: string): string {
         <template v-else>
           <button
             @click="close"
-            class="px-4 py-2 text-sm text-gray-300 border border-[#43454a] hover:bg-[#393b40] rounded-lg transition-colors"
+            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
           >
             關閉
           </button>

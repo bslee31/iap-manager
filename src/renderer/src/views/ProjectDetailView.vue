@@ -32,12 +32,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col">
+  <div class="flex h-full flex-col">
     <!-- Header with drag region -->
-    <div class="titlebar-drag bg-[#26272b] border-b border-[#393b40]">
+    <div class="titlebar-drag border-b border-[#393b40] bg-[#26272b]">
       <div class="h-8" />
       <div class="px-6 pb-0">
-        <h2 class="text-xl font-bold text-gray-100 mb-4 titlebar-no-drag">
+        <h2 class="titlebar-no-drag mb-4 text-xl font-bold text-gray-100">
           {{ store.currentProject?.name || '載入中...' }}
         </h2>
         <!-- Tabs -->
@@ -46,10 +46,12 @@ onMounted(async () => {
             v-for="tab in tabs"
             :key="tab.key"
             @click="activeTab = tab.key"
-            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors titlebar-no-drag"
-            :class="activeTab === tab.key
-              ? 'border-blue-500 text-blue-400'
-              : 'border-transparent text-gray-500 hover:text-gray-300'"
+            class="titlebar-no-drag border-b-2 px-4 py-2 text-sm font-medium transition-colors"
+            :class="
+              activeTab === tab.key
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-gray-500 hover:text-gray-300'
+            "
           >
             {{ tab.label }}
           </button>
@@ -58,13 +60,13 @@ onMounted(async () => {
     </div>
 
     <!-- Tab content -->
-    <div class="flex-1 min-h-0 overflow-y-auto p-6" v-if="activeTab === 'credentials'">
+    <div class="min-h-0 flex-1 overflow-y-auto p-6" v-if="activeTab === 'credentials'">
       <CredentialSettings :project-id="id" :key="'cred-' + id" />
     </div>
-    <div class="flex-1 min-h-0 flex flex-col" v-else-if="activeTab === 'apple'">
+    <div class="flex min-h-0 flex-1 flex-col" v-else-if="activeTab === 'apple'">
       <AppleProductTable :project-id="id" :key="'apple-' + id" />
     </div>
-    <div class="flex-1 min-h-0 flex flex-col" v-else-if="activeTab === 'google'">
+    <div class="flex min-h-0 flex-1 flex-col" v-else-if="activeTab === 'google'">
       <GoogleProductTable :project-id="id" :key="'google-' + id" />
     </div>
   </div>

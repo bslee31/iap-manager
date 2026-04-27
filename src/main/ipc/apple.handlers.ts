@@ -73,7 +73,11 @@ export function registerAppleHandlers(): void {
       tx()
 
       // Read back cached data (territory_count, base_price, base_currency)
-      const cachedRows = db.prepare('SELECT id, territory_count, base_price, base_currency FROM apple_products WHERE project_id = ?').all(projectId) as any[]
+      const cachedRows = db
+        .prepare(
+          'SELECT id, territory_count, base_price, base_currency FROM apple_products WHERE project_id = ?'
+        )
+        .all(projectId) as any[]
       const cacheMap = new Map<string, any>()
       for (const r of cachedRows) {
         cacheMap.set(r.id, r)
@@ -126,25 +130,24 @@ export function registerAppleHandlers(): void {
     }
   })
 
-  ipcMain.handle(
-    'apple:sync-availability',
-    async (_event, projectId: string, iapId: string) => {
-      try {
-        const avail = await getExistingAvailability(projectId, iapId)
-        const territoryCount = avail ? avail.territoryIds.length : 0
+  ipcMain.handle('apple:sync-availability', async (_event, projectId: string, iapId: string) => {
+    try {
+      const avail = await getExistingAvailability(projectId, iapId)
+      const territoryCount = avail ? avail.territoryIds.length : 0
 
-        // Update DB
-        const db = getDatabase()
-        db.prepare(
-          'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
-        ).run(territoryCount, territoryCount > 0 ? 1 : 0, iapId)
+      // Update DB
+      const db = getDatabase()
+      db.prepare('UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?').run(
+        territoryCount,
+        territoryCount > 0 ? 1 : 0,
+        iapId
+      )
 
-        return { success: true, data: { territoryCount } }
-      } catch (e) {
-        return { success: false, error: sanitizeError(e) }
-      }
+      return { success: true, data: { territoryCount } }
+    } catch (e) {
+      return { success: false, error: sanitizeError(e) }
     }
-  )
+  })
 
   ipcMain.handle(
     'apple:create-product',
@@ -160,12 +163,7 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:update-product',
-    async (
-      _event,
-      projectId: string,
-      iapId: string,
-      updates: { referenceName?: string }
-    ) => {
+    async (_event, projectId: string, iapId: string, updates: { referenceName?: string }) => {
       try {
         const attributes: { name?: string } = {}
         if (updates.referenceName !== undefined) attributes.name = updates.referenceName
@@ -187,12 +185,7 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:batch-availability',
-    async (
-      _event,
-      projectId: string,
-      iapIds: string[],
-      activate: boolean
-    ) => {
+    async (_event, projectId: string, iapIds: string[], activate: boolean) => {
       try {
         const result = await batchUpdateAvailability(projectId, iapIds, activate)
         return { success: true, data: result }
@@ -204,25 +197,36 @@ export function registerAppleHandlers(): void {
 
   // ── Apple IAP Detail (Availability, Localization, Price Schedule) ──
 
-  ipcMain.handle('apple:get-availability-detail', async (_event, projectId: string, iapId: string) => {
-    try {
-      const data = await getIapAvailabilityDetail(projectId, iapId)
-      return { success: true, data }
-    } catch (e) {
-      return { success: false, error: sanitizeError(e) }
+  ipcMain.handle(
+    'apple:get-availability-detail',
+    async (_event, projectId: string, iapId: string) => {
+      try {
+        const data = await getIapAvailabilityDetail(projectId, iapId)
+        return { success: true, data }
+      } catch (e) {
+        return { success: false, error: sanitizeError(e) }
+      }
     }
-  })
+  )
 
   ipcMain.handle(
     'apple:update-availability',
-    async (_event, projectId: string, iapId: string, territoryIds: string[], availableInNewTerritories: boolean) => {
+    async (
+      _event,
+      projectId: string,
+      iapId: string,
+      territoryIds: string[],
+      availableInNewTerritories: boolean
+    ) => {
       try {
         await updateIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
         // Update DB
         const db = getDatabase()
-        db.prepare(
-          'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
-        ).run(territoryIds.length, territoryIds.length > 0 ? 1 : 0, iapId)
+        db.prepare('UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?').run(
+          territoryIds.length,
+          territoryIds.length > 0 ? 1 : 0,
+          iapId
+        )
         return { success: true }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
@@ -250,7 +254,12 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:create-localization',
-    async (_event, projectId: string, iapId: string, data: { locale: string; name: string; description?: string }) => {
+    async (
+      _event,
+      projectId: string,
+      iapId: string,
+      data: { locale: string; name: string; description?: string }
+    ) => {
       try {
         const loc = await createIapLocalization(projectId, iapId, data)
         return { success: true, data: loc }
@@ -262,7 +271,12 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:update-localization',
-    async (_event, projectId: string, localizationId: string, data: { name?: string; description?: string }) => {
+    async (
+      _event,
+      projectId: string,
+      localizationId: string,
+      data: { name?: string; description?: string }
+    ) => {
       try {
         const loc = await updateIapLocalization(projectId, localizationId, data)
         return { success: true, data: loc }
@@ -272,14 +286,17 @@ export function registerAppleHandlers(): void {
     }
   )
 
-  ipcMain.handle('apple:delete-localization', async (_event, projectId: string, localizationId: string) => {
-    try {
-      await deleteIapLocalization(projectId, localizationId)
-      return { success: true }
-    } catch (e) {
-      return { success: false, error: sanitizeError(e) }
+  ipcMain.handle(
+    'apple:delete-localization',
+    async (_event, projectId: string, localizationId: string) => {
+      try {
+        await deleteIapLocalization(projectId, localizationId)
+        return { success: true }
+      } catch (e) {
+        return { success: false, error: sanitizeError(e) }
+      }
     }
-  })
+  )
 
   ipcMain.handle('apple:get-price-schedule', async (_event, projectId: string, iapId: string) => {
     try {
@@ -290,18 +307,27 @@ export function registerAppleHandlers(): void {
     }
   })
 
-  ipcMain.handle('apple:get-price-points', async (_event, projectId: string, iapId: string, territory: string) => {
-    try {
-      const data = await getIapPricePoints(projectId, iapId, territory)
-      return { success: true, data }
-    } catch (e) {
-      return { success: false, error: sanitizeError(e) }
+  ipcMain.handle(
+    'apple:get-price-points',
+    async (_event, projectId: string, iapId: string, territory: string) => {
+      try {
+        const data = await getIapPricePoints(projectId, iapId, territory)
+        return { success: true, data }
+      } catch (e) {
+        return { success: false, error: sanitizeError(e) }
+      }
     }
-  })
+  )
 
   ipcMain.handle(
     'apple:set-price-schedule',
-    async (_event, projectId: string, iapId: string, baseTerritory: string, pricePointId: string) => {
+    async (
+      _event,
+      projectId: string,
+      iapId: string,
+      baseTerritory: string,
+      pricePointId: string
+    ) => {
       try {
         await setIapPriceSchedule(projectId, iapId, baseTerritory, pricePointId)
         return { success: true }
@@ -337,8 +363,11 @@ export function registerAppleHandlers(): void {
       const data = await getIapAllTerritoryPrices(projectId, iapId)
       if (data.basePrice) {
         const db = getDatabase()
-        db.prepare('UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?')
-          .run(data.basePrice, data.baseCurrency, iapId)
+        db.prepare('UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?').run(
+          data.basePrice,
+          data.baseCurrency,
+          iapId
+        )
       }
       return { success: true, data: { basePrice: data.basePrice, baseCurrency: data.baseCurrency } }
     } catch (e) {
@@ -346,20 +375,24 @@ export function registerAppleHandlers(): void {
     }
   })
 
-  ipcMain.handle('apple:get-all-territory-prices', async (_event, projectId: string, iapId: string) => {
-    try {
-      const data = await getIapAllTerritoryPrices(projectId, iapId)
-      // Cache base price to local DB
-      if (data.basePrice) {
-        const db = getDatabase()
-        db.prepare('UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?')
-          .run(data.basePrice, data.baseCurrency, iapId)
+  ipcMain.handle(
+    'apple:get-all-territory-prices',
+    async (_event, projectId: string, iapId: string) => {
+      try {
+        const data = await getIapAllTerritoryPrices(projectId, iapId)
+        // Cache base price to local DB
+        if (data.basePrice) {
+          const db = getDatabase()
+          db.prepare(
+            'UPDATE apple_products SET base_price = ?, base_currency = ? WHERE id = ?'
+          ).run(data.basePrice, data.baseCurrency, iapId)
+        }
+        return { success: true, data }
+      } catch (e) {
+        return { success: false, error: sanitizeError(e) }
       }
-      return { success: true, data }
-    } catch (e) {
-      return { success: false, error: sanitizeError(e) }
     }
-  })
+  )
 
   ipcMain.handle(
     'apple:export-products',
@@ -409,12 +442,7 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:import-validate',
-    async (
-      _event,
-      projectId: string,
-      fileContent: string,
-      existingProductIds: string[]
-    ) => {
+    async (_event, projectId: string, fileContent: string, existingProductIds: string[]) => {
       try {
         const preview = await validateImport(projectId, fileContent, existingProductIds)
         return { success: true, data: preview }

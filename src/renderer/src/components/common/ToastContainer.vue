@@ -5,9 +5,12 @@ const store = useNotificationStore()
 
 function bgColor(type: string) {
   switch (type) {
-    case 'success': return 'bg-green-500'
-    case 'error': return 'bg-red-500'
-    default: return 'bg-blue-500'
+    case 'success':
+      return 'bg-green-500'
+    case 'error':
+      return 'bg-red-500'
+    default:
+      return 'bg-blue-500'
   }
 }
 </script>
@@ -19,7 +22,7 @@ function bgColor(type: string) {
         v-for="n in store.notifications"
         :key="n.id"
         :class="bgColor(n.type)"
-        class="text-white px-4 py-2 rounded-lg shadow-lg text-sm max-w-xs"
+        class="max-w-xs rounded-lg px-4 py-2 text-sm text-white shadow-lg"
       >
         {{ n.message }}
       </div>

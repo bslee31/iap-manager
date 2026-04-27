@@ -155,13 +155,19 @@ function onReferenceNameUpdated(referenceName: string) {
   }
 }
 
-
 function toggleAll() {
   if (allSelected.value) {
     selected.value.clear()
   } else {
     selected.value = new Set(filteredProducts.value.map((p) => p.id))
   }
+}
+
+// Clear the selected Set and reassign to a new instance so reactivity fires
+// (Set mutation alone wouldn't trigger reactive updates of dependants).
+function clearSelection() {
+  selected.value.clear()
+  selected.value = new Set()
 }
 
 function setFilter(state: string | null) {
@@ -231,11 +237,7 @@ async function handleBatchAction(key: string) {
     if (!confirm(`確定要${label}選取的 ${ids.length} 個商品嗎？`)) return
 
     notify.info(`正在批次${label}...`)
-    const result = await appleApi.batchUpdateAvailability(
-      props.projectId,
-      ids,
-      available
-    )
+    const result = await appleApi.batchUpdateAvailability(props.projectId, ids, available)
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
@@ -300,9 +302,7 @@ async function exportProducts() {
   if (data.cancelled) return
 
   if (data.errors.length > 0) {
-    const lines = data.errors
-      .map((e: any) => `${e.productId}: ${e.error}`)
-      .join('\n')
+    const lines = data.errors.map((e: any) => `${e.productId}: ${e.error}`).join('\n')
     notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
   } else {
     notify.success(`匯出完成：${data.exported} 個商品`)
@@ -359,53 +359,58 @@ function typeLabel(type: string): string {
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
+  <div class="flex h-full flex-col">
     <!-- Toolbar -->
-    <div class="flex items-center justify-between mb-4 px-6 pt-6 shrink-0">
-      <div class="flex gap-2 items-center">
+    <div class="mb-4 flex shrink-0 items-center justify-between px-6 pt-6">
+      <div class="flex items-center gap-2">
         <button
           @click="syncProducts"
           :disabled="syncing"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors disabled:opacity-50"
+          class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
         >
           同步商品
         </button>
         <button
           @click="exportProducts"
           :disabled="exporting || syncing || products.length === 0"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
         >
           匯出
         </button>
         <button
           @click="importProducts"
           :disabled="exporting || syncing"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors disabled:opacity-50 whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
         >
           匯入
         </button>
-        <span v-if="syncing" class="text-sm text-gray-400 flex items-center gap-2">
-          <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        <span v-if="syncing" class="flex items-center gap-2 text-sm text-gray-400">
+          <span
+            class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"
+          />
           {{ syncProgress }}
         </span>
-        <span v-if="exporting" class="text-sm text-gray-400 flex items-center gap-2">
-          <span class="inline-block w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+        <span v-if="exporting" class="flex items-center gap-2 text-sm text-gray-400">
+          <span
+            class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"
+          />
           {{ exportProgress }}
         </span>
-        <span v-if="products.length > 0" class="text-sm text-gray-500 whitespace-nowrap">
-          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : '' }}{{ products.length }} 個商品
+        <span v-if="products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
+          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : ''
+          }}{{ products.length }} 個商品
         </span>
       </div>
       <div class="flex items-center gap-3">
         <input
           v-model="searchQuery"
           type="text"
-          class="px-3 py-1.5 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500 w-52"
+          class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           placeholder="搜尋 Product ID / Name..."
         />
         <button
           @click="showCreateForm = true"
-          class="px-4 py-2 border border-[#43454a] rounded-lg text-sm text-gray-300 hover:bg-[#393b40] transition-colors whitespace-nowrap"
+          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
         >
           + 新增商品
         </button>
@@ -413,36 +418,40 @@ function typeLabel(type: string): string {
     </div>
 
     <!-- Batch Action Bar (inline) -->
-    <div v-if="selected.size > 0" class="flex items-center gap-3 px-6 mb-3 shrink-0">
-      <span class="text-sm text-gray-300 whitespace-nowrap">已選 {{ selected.size }} 項</span>
-      <div class="w-px h-5 bg-[#43454a]" />
+    <div v-if="selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
+      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ selected.size }} 項</span>
+      <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
         :key="action.key"
         @click="handleBatchAction(action.key)"
-        class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap"
-        :class="action.variant === 'danger'
-          ? 'bg-red-600 hover:bg-red-700 text-white'
-          : 'bg-blue-600 hover:bg-blue-700 text-white'"
+        class="rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors"
+        :class="
+          action.variant === 'danger'
+            ? 'bg-red-600 text-white hover:bg-red-700'
+            : 'bg-blue-600 text-white hover:bg-blue-700'
+        "
       >
         {{ action.label }}
       </button>
       <button
-        @click="selected.clear(); selected = new Set()"
-        class="text-gray-400 hover:text-white text-sm transition-colors whitespace-nowrap"
+        @click="clearSelection"
+        class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
       >
         取消選取
       </button>
     </div>
 
     <!-- Status filter chips -->
-    <div v-if="statusGroups.length > 0" class="flex flex-wrap gap-2 mb-4 px-6 shrink-0">
+    <div v-if="statusGroups.length > 0" class="mb-4 flex shrink-0 flex-wrap gap-2 px-6">
       <button
         @click="setFilter(null)"
-        class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-        :class="activeFilter === null
-          ? 'bg-blue-600 text-white'
-          : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          activeFilter === null
+            ? 'bg-blue-600 text-white'
+            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+        "
       >
         全部 {{ products.length }}
       </button>
@@ -450,57 +459,76 @@ function typeLabel(type: string): string {
         v-for="group in statusGroups"
         :key="group.state"
         @click="setFilter(group.state)"
-        class="px-3 py-1 rounded-full text-xs font-medium transition-colors"
-        :class="activeFilter === group.state
-          ? 'bg-blue-600 text-white'
-          : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'"
+        class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+        :class="
+          activeFilter === group.state
+            ? 'bg-blue-600 text-white'
+            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+        "
       >
         {{ group.label }} {{ group.count }}
       </button>
     </div>
 
     <!-- Create Form Modal -->
-    <div v-if="showCreateForm" class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="showCreateForm = false">
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl p-6 w-full max-w-md border border-[#393b40] titlebar-no-drag">
-        <div class="flex items-center justify-between mb-4">
+    <div
+      v-if="showCreateForm"
+      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+      @click.self="showCreateForm = false"
+    >
+      <div
+        class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+      >
+        <div class="mb-4 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-100">新增 Apple IAP</h3>
-          <button @click="showCreateForm = false" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+          <button
+            @click="showCreateForm = false"
+            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          >
+            &times;
+          </button>
         </div>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Product ID</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">Product ID</label>
             <input
               v-model="newProduct.productId"
               type="text"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="例：com.example.coins100"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Reference Name</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">Reference Name</label>
             <input
               v-model="newProduct.referenceName"
               type="text"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="例：100 金幣"
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">類型</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">類型</label>
             <select
               v-model="newProduct.inAppPurchaseType"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="CONSUMABLE">消耗型</option>
               <option value="NON_CONSUMABLE">非消耗型</option>
             </select>
           </div>
         </div>
-        <div class="flex justify-end gap-2 mt-6">
-          <button @click="showCreateForm = false" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
+        <div class="mt-6 flex justify-end gap-2">
+          <button
+            @click="showCreateForm = false"
+            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+          >
             取消
           </button>
-          <button @click="createProduct" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors">
+          <button
+            @click="createProduct"
+            class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+          >
             建立
           </button>
         </div>
@@ -508,114 +536,140 @@ function typeLabel(type: string): string {
     </div>
 
     <!-- Product Table -->
-    <div class="flex-1 min-h-0 px-6 pb-6">
-    <div v-if="filteredProducts.length > 0" class="bg-[#2b2d30] rounded-xl border border-[#393b40] overflow-hidden h-full flex flex-col">
-      <!-- Fixed header -->
-      <div class="shrink-0 pr-[6px]">
-      <table class="w-full table-fixed">
-        <colgroup>
-          <col class="w-10" />
-          <col class="w-[19%]" />
-          <col class="w-[20%]" />
-          <col class="w-[15%]" />
-          <col class="w-[15%]" />
-          <col class="w-[16%]" />
-          <col class="w-[12%]" />
-        </colgroup>
-        <thead>
-          <tr class="bg-[#22252a] border-b border-[#393b40]">
-            <th class="px-3 py-3">
-              <input type="checkbox" :checked="allSelected" @change="toggleAll" class="rounded" />
-            </th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Product ID</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Reference Name</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Type</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Price</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Availability</th>
-            <th class="text-left px-3 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
-          </tr>
-        </thead>
-      </table>
-      </div>
-      <!-- Scrollable body -->
-      <div class="flex-1 min-h-0 overflow-y-auto">
-      <table class="w-full table-fixed">
-        <colgroup>
-          <col class="w-10" />
-          <col class="w-[19%]" />
-          <col class="w-[20%]" />
-          <col class="w-[15%]" />
-          <col class="w-[15%]" />
-          <col class="w-[16%]" />
-          <col class="w-[12%]" />
-        </colgroup>
-        <tbody>
-          <tr
-            v-for="product in filteredProducts"
-            :key="product.id"
-            class="border-b border-[#393b40] hover:bg-[#2e3038] transition-colors cursor-pointer"
-            :class="{ 'bg-blue-600/10': selected.has(product.id) }"
-            @click="selectedProduct = product"
-          >
-            <td class="px-3 py-3" @click.stop>
-              <input
-                type="checkbox"
-                :checked="selected.has(product.id)"
-                @change="toggleItem(product.id)"
-                class="rounded"
-              />
-            </td>
-            <td class="px-3 py-3 text-sm font-mono text-gray-200">{{ product.productId }}</td>
-            <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
-            <td class="px-3 py-3">
-              <span class="text-xs px-2 py-0.5 rounded-full bg-[#393b40] text-gray-400">
-                {{ typeLabel(product.type) }}
-              </span>
-            </td>
-            <td class="px-3 py-3 text-sm font-mono text-gray-300">
-              {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
-            </td>
-            <td class="px-3 py-3">
-              <span
-                class="text-xs px-2 py-0.5 rounded-full"
-                :class="product.territoryCount > 0
-                  ? 'bg-blue-600/20 text-blue-400'
-                  : 'bg-red-600/20 text-red-400'"
+    <div class="min-h-0 flex-1 px-6 pb-6">
+      <div
+        v-if="filteredProducts.length > 0"
+        class="flex h-full flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30]"
+      >
+        <!-- Fixed header -->
+        <div class="shrink-0 pr-[6px]">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[19%]" />
+              <col class="w-[20%]" />
+              <col class="w-[15%]" />
+              <col class="w-[15%]" />
+              <col class="w-[16%]" />
+              <col class="w-[12%]" />
+            </colgroup>
+            <thead>
+              <tr class="border-b border-[#393b40] bg-[#22252a]">
+                <th class="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    :checked="allSelected"
+                    @change="toggleAll"
+                    class="rounded"
+                  />
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product ID
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Reference Name
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Type
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Price
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Availability
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <!-- Scrollable body -->
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[19%]" />
+              <col class="w-[20%]" />
+              <col class="w-[15%]" />
+              <col class="w-[15%]" />
+              <col class="w-[16%]" />
+              <col class="w-[12%]" />
+            </colgroup>
+            <tbody>
+              <tr
+                v-for="product in filteredProducts"
+                :key="product.id"
+                class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
+                :class="{ 'bg-blue-600/10': selected.has(product.id) }"
+                @click="selectedProduct = product"
               >
-                {{ product.territoryCount > 0 ? product.territoryCount + ' 個地區' : '無' }}
-              </span>
-            </td>
-            <td class="px-3 py-3">
-              <span
-                class="text-xs px-2 py-0.5 rounded-full"
-                :class="product.state === 'APPROVED'
-                  ? 'bg-green-600/20 text-green-400'
-                  : product.state === 'DEVELOPER_REMOVED_FROM_SALE' || product.state === 'REMOVED_FROM_SALE'
-                    ? 'bg-red-600/20 text-red-400'
-                    : 'bg-yellow-600/20 text-yellow-400'"
-              >
-                {{ stateLabel(product.state) }}
-              </span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                <td class="px-3 py-3" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="selected.has(product.id)"
+                    @change="toggleItem(product.id)"
+                    class="rounded"
+                  />
+                </td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
+                <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
+                <td class="px-3 py-3">
+                  <span class="rounded-full bg-[#393b40] px-2 py-0.5 text-xs text-gray-400">
+                    {{ typeLabel(product.type) }}
+                  </span>
+                </td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-300">
+                  {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      product.territoryCount > 0
+                        ? 'bg-blue-600/20 text-blue-400'
+                        : 'bg-red-600/20 text-red-400'
+                    "
+                  >
+                    {{ product.territoryCount > 0 ? product.territoryCount + ' 個地區' : '無' }}
+                  </span>
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      product.state === 'APPROVED'
+                        ? 'bg-green-600/20 text-green-400'
+                        : product.state === 'DEVELOPER_REMOVED_FROM_SALE' ||
+                            product.state === 'REMOVED_FROM_SALE'
+                          ? 'bg-red-600/20 text-red-400'
+                          : 'bg-yellow-600/20 text-yellow-400'
+                    "
+                  >
+                    {{ stateLabel(product.state) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
 
-    <!-- Empty state -->
-    <div v-else-if="!loading && !syncing && products.length === 0" class="text-center py-20">
-      <p class="text-gray-500 text-lg mb-2">尚無商品資料</p>
-      <p class="text-gray-500 text-sm">請先設定 Apple 憑證，然後點擊「同步商品」</p>
-    </div>
-    <div v-else-if="!loading && !syncing && filteredProducts.length === 0" class="text-center py-10">
-      <p class="text-gray-500 text-sm">此狀態下沒有商品</p>
-    </div>
+      <!-- Empty state -->
+      <div v-else-if="!loading && !syncing && products.length === 0" class="py-20 text-center">
+        <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
+        <p class="text-sm text-gray-500">請先設定 Apple 憑證，然後點擊「同步商品」</p>
+      </div>
+      <div
+        v-else-if="!loading && !syncing && filteredProducts.length === 0"
+        class="py-10 text-center"
+      >
+        <p class="text-sm text-gray-500">此狀態下沒有商品</p>
+      </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-20 text-gray-500">
-      載入中...
-    </div>
+      <!-- Loading -->
+      <div v-if="loading" class="py-20 text-center text-gray-500">載入中...</div>
     </div>
 
     <!-- Product Detail Modal -->

@@ -98,10 +98,7 @@ export async function listInAppPurchases(
   let url: string | null = `/v1/apps/${creds.apple.appId}/inAppPurchasesV2?limit=200`
 
   while (url) {
-    const resp: AppleApiListResponse<AppleInAppPurchase> = await appleRequest(
-      projectId,
-      url
-    )
+    const resp: AppleApiListResponse<AppleInAppPurchase> = await appleRequest(projectId, url)
     allIaps.push(...resp.data)
     onProgress?.(allIaps.length, 0, `已取得 ${allIaps.length} 個商品...`)
     url = resp.links?.next || null
@@ -155,10 +152,7 @@ export async function createInAppPurchase(
   return resp.data
 }
 
-export async function deleteInAppPurchase(
-  projectId: string,
-  iapId: string
-): Promise<void> {
+export async function deleteInAppPurchase(projectId: string, iapId: string): Promise<void> {
   await appleRequest(projectId, `/v2/inAppPurchases/${iapId}`, {
     method: 'DELETE'
   })
@@ -348,9 +342,7 @@ export async function updateIapAvailability(
   await setIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
 }
 
-export async function getAllTerritories(
-  projectId: string
-): Promise<TerritoryInfo[]> {
+export async function getAllTerritories(projectId: string): Promise<TerritoryInfo[]> {
   const territories: TerritoryInfo[] = []
   let url: string | null = '/v1/territories?limit=200'
   while (url) {
@@ -370,8 +362,7 @@ export async function getIapLocalizations(
   iapId: string
 ): Promise<IapLocalization[]> {
   const localizations: IapLocalization[] = []
-  let url: string | null =
-    `/v2/inAppPurchases/${iapId}/inAppPurchaseLocalizations?limit=200`
+  let url: string | null = `/v2/inAppPurchases/${iapId}/inAppPurchaseLocalizations?limit=200`
   while (url) {
     const resp = await appleRequest(projectId, url)
     for (const loc of resp.data || []) {
@@ -423,20 +414,16 @@ export async function updateIapLocalization(
   localizationId: string,
   data: { name?: string; description?: string }
 ): Promise<IapLocalization> {
-  const resp = await appleRequest(
-    projectId,
-    `/v1/inAppPurchaseLocalizations/${localizationId}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify({
-        data: {
-          type: 'inAppPurchaseLocalizations',
-          id: localizationId,
-          attributes: data
-        }
-      })
-    }
-  )
+  const resp = await appleRequest(projectId, `/v1/inAppPurchaseLocalizations/${localizationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      data: {
+        type: 'inAppPurchaseLocalizations',
+        id: localizationId,
+        attributes: data
+      }
+    })
+  })
   return {
     id: resp.data.id,
     locale: resp.data.attributes.locale,
@@ -449,11 +436,9 @@ export async function deleteIapLocalization(
   projectId: string,
   localizationId: string
 ): Promise<void> {
-  await appleRequest(
-    projectId,
-    `/v1/inAppPurchaseLocalizations/${localizationId}`,
-    { method: 'DELETE' }
-  )
+  await appleRequest(projectId, `/v1/inAppPurchaseLocalizations/${localizationId}`, {
+    method: 'DELETE'
+  })
 }
 
 // ── Price Schedule ──
@@ -729,7 +714,12 @@ export async function setManualTerritoryPrice(
 export async function getIapAllTerritoryPrices(
   projectId: string,
   iapId: string
-): Promise<{ baseTerritory: string; basePrice: string; baseCurrency: string; territoryPrices: TerritoryPrice[] }> {
+): Promise<{
+  baseTerritory: string
+  basePrice: string
+  baseCurrency: string
+  territoryPrices: TerritoryPrice[]
+}> {
   const resp = await appleRequest(
     projectId,
     `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=baseTerritory`

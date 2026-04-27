@@ -65,9 +65,7 @@ export async function listOneTimeProducts(
           {}
       } else if (p.listings && typeof p.listings === 'object') {
         listing =
-          (defaultLanguage && p.listings[defaultLanguage]) ||
-          Object.values(p.listings)[0] ||
-          {}
+          (defaultLanguage && p.listings[defaultLanguage]) || Object.values(p.listings)[0] || {}
       }
 
       // Get purchase options info
@@ -625,14 +623,10 @@ export async function setLegacyCompatiblePurchaseOption(
     'regionsVersion.version': REGIONS_VERSION
   })
 
-  await googleRequest(
-    projectId,
-    `/onetimeproducts/${productId}?${params}`,
-    {
-      method: 'PATCH',
-      body: { productId, purchaseOptions: updatedPOs }
-    }
-  )
+  await googleRequest(projectId, `/onetimeproducts/${productId}?${params}`, {
+    method: 'PATCH',
+    body: { productId, purchaseOptions: updatedPOs }
+  })
 }
 
 // Replace all listings of a one-time product (create/update/delete via full

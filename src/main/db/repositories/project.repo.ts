@@ -36,22 +36,19 @@ export function findProjectById(id: string): ProjectRow | undefined {
     .get(id) as ProjectRow | undefined
 }
 
-export function createProject(data: {
-  name: string
-  description?: string
-}): ProjectRow {
+export function createProject(data: { name: string; description?: string }): ProjectRow {
   const db = getDatabase()
   const id = uuidv4()
   const now = new Date().toISOString()
 
-  const maxOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM projects').get() as any
+  const maxOrder = db
+    .prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 AS next FROM projects')
+    .get() as any
   db.prepare(
     'INSERT INTO projects (id, name, description, sort_order, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(id, data.name, data.description || null, maxOrder.next, now, now)
 
-  db.prepare(
-    'INSERT INTO project_credentials (project_id) VALUES (?)'
-  ).run(id)
+  db.prepare('INSERT INTO project_credentials (project_id) VALUES (?)').run(id)
 
   return findProjectById(id)!
 }
@@ -68,9 +65,12 @@ export function updateProject(
   const description = data.description ?? project.description
   const now = new Date().toISOString()
 
-  db.prepare(
-    'UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?'
-  ).run(name, description, now, id)
+  db.prepare('UPDATE projects SET name = ?, description = ?, updated_at = ? WHERE id = ?').run(
+    name,
+    description,
+    now,
+    id
+  )
 
   return findProjectById(id)
 }

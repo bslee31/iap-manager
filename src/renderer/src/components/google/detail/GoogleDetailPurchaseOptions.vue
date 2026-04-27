@@ -202,47 +202,51 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-    <div class="shrink-0 px-6 pt-4 pb-3 flex items-center justify-between">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
       <span class="text-sm text-gray-400">共 {{ detail.purchaseOptions.length }} 個方案</span>
       <button
         @click="openAddPoForm"
-        class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+        class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
       >
         + 新增方案
       </button>
     </div>
-    <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
-      <div v-if="detail.purchaseOptions.length === 0" class="text-center py-10 text-gray-500">尚無方案</div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+      <div v-if="detail.purchaseOptions.length === 0" class="py-10 text-center text-gray-500">
+        尚無方案
+      </div>
       <div v-else class="space-y-2">
         <div
           v-for="po in detail.purchaseOptions"
           :key="po.purchaseOptionId"
-          class="flex items-center justify-between gap-3 px-3 py-3 bg-[#1e1f22] border border-[#43454a] rounded-lg"
+          class="flex items-center justify-between gap-3 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-3"
         >
-          <div class="min-w-0 flex items-center gap-2 flex-wrap">
-            <span class="text-sm font-mono text-gray-200">{{ po.purchaseOptionId }}</span>
+          <div class="flex min-w-0 flex-wrap items-center gap-2">
+            <span class="font-mono text-sm text-gray-200">{{ po.purchaseOptionId }}</span>
             <span class="text-xs text-gray-500">{{ po.type }}</span>
-            <span v-if="basePriceLabel(po)" class="text-xs text-gray-300 font-mono">
+            <span v-if="basePriceLabel(po)" class="font-mono text-xs text-gray-300">
               · {{ basePriceLabel(po) }}
             </span>
-            <span class="text-xs text-gray-500">· {{ availableRegionCount(po) }} countries / regions</span>
+            <span class="text-xs text-gray-500"
+              >· {{ availableRegionCount(po) }} countries / regions</span
+            >
             <span
               v-if="po.legacyCompatible"
-              class="text-xs px-2 py-0.5 rounded-full bg-blue-600/20 text-blue-400"
+              class="rounded-full bg-blue-600/20 px-2 py-0.5 text-xs text-blue-400"
             >
               Backwards compatible
             </span>
           </div>
-          <div class="flex items-center gap-2 shrink-0">
-            <span class="text-xs px-2 py-0.5 rounded-full" :class="statusColor(po.state)">
+          <div class="flex shrink-0 items-center gap-2">
+            <span class="rounded-full px-2 py-0.5 text-xs" :class="statusColor(po.state)">
               {{ statusLabel(po.state) }}
             </span>
             <button
               v-if="!po.legacyCompatible && po.type === 'BUY'"
               @click="setAsBackwardsCompatible(po)"
               :disabled="settingLegacyPoId === po.purchaseOptionId"
-              class="text-xs px-2 py-1 border border-[#43454a] text-gray-300 hover:bg-[#393b40] rounded transition-colors disabled:opacity-50"
+              class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
             >
               {{ settingLegacyPoId === po.purchaseOptionId ? '...' : '設為主方案' }}
             </button>
@@ -250,7 +254,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               v-if="po.state === 'ACTIVE'"
               @click="togglePurchaseOptionState(po)"
               :disabled="togglingPoId === po.purchaseOptionId"
-              class="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors disabled:opacity-50"
+              class="rounded bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700 disabled:opacity-50"
             >
               {{ togglingPoId === po.purchaseOptionId ? '...' : '下架' }}
             </button>
@@ -258,7 +262,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               v-else
               @click="togglePurchaseOptionState(po)"
               :disabled="togglingPoId === po.purchaseOptionId"
-              class="text-xs px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors disabled:opacity-50"
+              class="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             >
               {{ togglingPoId === po.purchaseOptionId ? '...' : '上架' }}
             </button>
@@ -270,30 +274,37 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
     <!-- Add Purchase Option Dialog -->
     <div
       v-if="showAddPoForm"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       @click.self="cancelAddPoForm"
     >
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-md border border-[#393b40] titlebar-no-drag flex flex-col max-h-[85vh]">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
+      <div
+        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+      >
+        <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">新增 Purchase Option</h3>
-          <button @click="cancelAddPoForm" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+          <button
+            @click="cancelAddPoForm"
+            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          >
+            &times;
+          </button>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-2 space-y-4">
+        <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Purchase Option ID</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">Purchase Option ID</label>
             <input
               v-model="newPo.purchaseOptionId"
               type="text"
               maxlength="63"
               placeholder="例如：premium"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500 font-mono"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="mt-1 text-xs text-gray-500">
               以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）；建立後無法修改
             </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">基準國家</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">基準國家</label>
             <SearchableSelect
               v-model="newPo.baseRegionCode"
               :options="regionOptionsForEdit"
@@ -301,30 +312,35 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">基準價格</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">基準價格</label>
             <div class="flex items-center gap-2">
               <input
                 v-model="newPo.basePrice"
                 type="text"
                 inputmode="decimal"
                 placeholder="0"
-                class="flex-1 px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+                class="flex-1 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               />
-              <span class="text-sm text-gray-400 min-w-[3.5rem] text-center">
+              <span class="min-w-[3.5rem] text-center text-sm text-gray-400">
                 {{ currencyForRegion(newPo.baseRegionCode) || '---' }}
               </span>
             </div>
-            <p class="text-xs text-gray-500 mt-1">其他國家的價格由 Google 自動換算。新方案建立後為 DRAFT 狀態，需要手動上架。</p>
+            <p class="mt-1 text-xs text-gray-500">
+              其他國家的價格由 Google 自動換算。新方案建立後為 DRAFT 狀態，需要手動上架。
+            </p>
           </div>
         </div>
-        <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
-          <button @click="cancelAddPoForm" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
+        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
+          <button
+            @click="cancelAddPoForm"
+            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+          >
             取消
           </button>
           <button
             @click="saveNewPurchaseOption"
             :disabled="addPoSaving"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+            class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
           >
             {{ addPoSaving ? '新增中...' : '新增' }}
           </button>

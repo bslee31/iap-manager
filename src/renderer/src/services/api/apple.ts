@@ -28,11 +28,7 @@ export function updateProduct(
   return window.api.updateAppleProduct(projectId, iapId, updates)
 }
 
-export function batchUpdateAvailability(
-  projectId: string,
-  ids: string[],
-  available: boolean
-) {
+export function batchUpdateAvailability(projectId: string, ids: string[], available: boolean) {
   return window.api.batchUpdateAppleAvailability(projectId, ids, available)
 }
 

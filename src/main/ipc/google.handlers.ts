@@ -39,11 +39,19 @@ export function registerGoogleHandlers(): void {
   ipcMain.handle('google:fetch-products', async (event, projectId: string) => {
     try {
       const win = BrowserWindow.fromWebContents(event.sender)
-      win?.webContents.send('sync:progress', { current: 0, total: 0, phase: '正在從 Google Play 同步...' })
+      win?.webContents.send('sync:progress', {
+        current: 0,
+        total: 0,
+        phase: '正在從 Google Play 同步...'
+      })
       const baseRegion = getGoogleBaseRegion(projectId) || undefined
       const defaultLanguage = getGoogleDefaultLanguage(projectId) || undefined
       const products = await listOneTimeProducts(projectId, baseRegion, defaultLanguage)
-      win?.webContents.send('sync:progress', { current: products.length, total: products.length, phase: `已取得 ${products.length} 個商品` })
+      win?.webContents.send('sync:progress', {
+        current: products.length,
+        total: products.length,
+        phase: `已取得 ${products.length} 個商品`
+      })
       // Cache to local DB
       const db = getDatabase()
       const now = new Date().toISOString()
@@ -223,12 +231,7 @@ export function registerGoogleHandlers(): void {
 
   ipcMain.handle(
     'google:set-legacy-compatible',
-    async (
-      _event,
-      projectId: string,
-      productId: string,
-      purchaseOptionId: string
-    ) => {
+    async (_event, projectId: string, productId: string, purchaseOptionId: string) => {
       try {
         await setLegacyCompatiblePurchaseOption(projectId, productId, purchaseOptionId)
         return { success: true }
@@ -286,12 +289,7 @@ export function registerGoogleHandlers(): void {
 
   ipcMain.handle(
     'google:import-validate',
-    async (
-      _event,
-      projectId: string,
-      fileContent: string,
-      existingProductIds: string[]
-    ) => {
+    async (_event, projectId: string, fileContent: string, existingProductIds: string[]) => {
       try {
         const preview = await validateGoogleImport(projectId, fileContent, existingProductIds)
         return { success: true, data: preview }

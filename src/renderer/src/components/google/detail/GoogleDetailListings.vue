@@ -85,14 +85,22 @@ async function saveListing() {
       notify.error('此語言已存在')
       return
     }
-    next.push({ languageCode: e.languageCode, title: e.title.trim(), description: e.description.trim() })
+    next.push({
+      languageCode: e.languageCode,
+      title: e.title.trim(),
+      description: e.description.trim()
+    })
   } else {
     const idx = next.findIndex((l) => l.languageCode === e.languageCode)
     if (idx < 0) {
       notify.error('找不到要更新的 listing')
       return
     }
-    next[idx] = { languageCode: e.languageCode, title: e.title.trim(), description: e.description.trim() }
+    next[idx] = {
+      languageCode: e.languageCode,
+      title: e.title.trim(),
+      description: e.description.trim()
+    }
   }
   listingSaving.value = true
   const result = await googleApi.updateListings(props.projectId, props.productId, next)
@@ -130,35 +138,53 @@ async function deleteListing(languageCode: string) {
 </script>
 
 <template>
-  <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-    <div class="shrink-0 px-6 pt-4 pb-3 flex items-center justify-between">
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
       <span class="text-sm text-gray-400">共 {{ detail.listings.length }} 個語言</span>
       <button
         @click="openNewListing"
-        class="px-3 py-1.5 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
+        class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
       >
         + 新增語言
       </button>
     </div>
-    <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-6">
-      <div v-if="detail.listings.length === 0" class="text-center py-10 text-gray-500">尚無 listings</div>
+    <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
+      <div v-if="detail.listings.length === 0" class="py-10 text-center text-gray-500">
+        尚無 listings
+      </div>
       <div v-else class="space-y-2">
         <div
           v-for="l in detail.listings"
           :key="l.languageCode"
-          class="bg-[#1e1f22] rounded-lg border border-[#43454a] px-4 py-3 flex items-start justify-between gap-3"
+          class="flex items-start justify-between gap-3 rounded-lg border border-[#43454a] bg-[#1e1f22] px-4 py-3"
         >
-          <div class="flex-1 min-w-0">
+          <div class="min-w-0 flex-1">
             <div>
-              <span class="text-xs px-1.5 py-0.5 rounded bg-[#393b40] text-gray-300">{{ getLanguageLabel(l.languageCode) }}</span>
-              <span class="text-xs text-gray-500 ml-2 font-mono">{{ l.languageCode }}</span>
+              <span class="rounded bg-[#393b40] px-1.5 py-0.5 text-xs text-gray-300">{{
+                getLanguageLabel(l.languageCode)
+              }}</span>
+              <span class="ml-2 font-mono text-xs text-gray-500">{{ l.languageCode }}</span>
             </div>
-            <div class="text-sm text-gray-200 font-medium mt-1 truncate">{{ l.title }}</div>
-            <p v-if="l.description" class="text-xs text-gray-400 mt-1 line-clamp-2">{{ l.description }}</p>
+            <div class="mt-1 truncate text-sm font-medium text-gray-200">{{ l.title }}</div>
+            <p v-if="l.description" class="mt-1 line-clamp-2 text-xs text-gray-400">
+              {{ l.description }}
+            </p>
           </div>
-          <div class="flex gap-1 shrink-0">
-            <button @click="openEditListing(l)" class="p-1 text-gray-500 hover:text-blue-400 transition-colors" title="編輯">&#9998;</button>
-            <button @click="deleteListing(l.languageCode)" class="p-1 text-gray-500 hover:text-red-400 transition-colors" title="刪除">&#10005;</button>
+          <div class="flex shrink-0 gap-1">
+            <button
+              @click="openEditListing(l)"
+              class="p-1 text-gray-500 transition-colors hover:text-blue-400"
+              title="編輯"
+            >
+              &#9998;
+            </button>
+            <button
+              @click="deleteListing(l.languageCode)"
+              class="p-1 text-gray-500 transition-colors hover:text-red-400"
+              title="刪除"
+            >
+              &#10005;
+            </button>
           </div>
         </div>
       </div>
@@ -167,57 +193,78 @@ async function deleteListing(languageCode: string) {
     <!-- Listing Edit Dialog -->
     <div
       v-if="editingListing"
-      class="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       @click.self="cancelEditListing"
     >
-      <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-md border border-[#393b40] titlebar-no-drag flex flex-col max-h-[85vh]">
-        <div class="flex items-center justify-between px-6 pt-6 pb-4 shrink-0">
-          <h3 class="text-lg font-semibold text-gray-100">{{ editingIsNew ? '新增 Listing' : '編輯 Listing' }}</h3>
-          <button @click="cancelEditListing" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+      <div
+        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+      >
+        <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
+          <h3 class="text-lg font-semibold text-gray-100">
+            {{ editingIsNew ? '新增 Listing' : '編輯 Listing' }}
+          </h3>
+          <button
+            @click="cancelEditListing"
+            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          >
+            &times;
+          </button>
         </div>
-        <div class="flex-1 min-h-0 overflow-y-auto px-6 pb-2 space-y-4">
+        <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">語言</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">語言</label>
             <SearchableSelect
               v-if="editingIsNew"
               v-model="editingListing.languageCode"
               :options="addableLanguageOptions"
               placeholder="選擇語言"
             />
-            <div v-else class="px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-400">
+            <div
+              v-else
+              class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400"
+            >
               {{ getLanguageLabel(editingListing.languageCode) }}
-              <span class="text-xs text-gray-500 ml-2 font-mono">{{ editingListing.languageCode }}</span>
+              <span class="ml-2 font-mono text-xs text-gray-500">{{
+                editingListing.languageCode
+              }}</span>
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">名稱 (title)</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">名稱 (title)</label>
             <input
               v-model="editingListing.title"
               type="text"
               maxlength="55"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
-            <p class="text-xs text-gray-500 mt-1 text-right">{{ editingListing.title.length }} / 55</p>
+            <p class="mt-1 text-right text-xs text-gray-500">
+              {{ editingListing.title.length }} / 55
+            </p>
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">描述 (description)</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">描述 (description)</label>
             <textarea
               v-model="editingListing.description"
               rows="4"
               maxlength="200"
-              class="w-full px-3 py-2 bg-[#1e1f22] border border-[#43454a] rounded-lg text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 placeholder-gray-500"
+              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
-            <p class="text-xs text-gray-500 mt-1 text-right">{{ editingListing.description.length }} / 200</p>
+            <p class="mt-1 text-right text-xs text-gray-500">
+              {{ editingListing.description.length }} / 200
+            </p>
           </div>
         </div>
-        <div class="flex justify-end gap-2 px-6 py-4 shrink-0 border-t border-[#393b40]">
-          <button @click="cancelEditListing" class="px-4 py-2 text-sm text-gray-400 hover:bg-[#393b40] rounded-lg transition-colors">
+        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
+          <button
+            @click="cancelEditListing"
+            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+          >
             取消
           </button>
           <button
             @click="saveListing"
             :disabled="listingSaving"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+            class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
           >
             {{ listingSaving ? '儲存中...' : '儲存' }}
           </button>

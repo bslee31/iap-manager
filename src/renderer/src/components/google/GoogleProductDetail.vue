@@ -68,8 +68,7 @@ const displayName = computed(() => {
   const listings = detail.value?.listings || []
   if (listings.length > 0) {
     const pick =
-      (defaultLanguage.value &&
-        listings.find((l) => l.languageCode === defaultLanguage.value)) ||
+      (defaultLanguage.value && listings.find((l) => l.languageCode === defaultLanguage.value)) ||
       listings[0]
     if (pick?.title) return pick.title
   }
@@ -116,8 +115,7 @@ async function loadDetail(): Promise<void> {
   }
   if (settingsResult.success && settingsResult.data) {
     baseRegion.value =
-      settingsResult.data.baseRegion ||
-      inferRegionFromLanguage(settingsResult.data.defaultLanguage)
+      settingsResult.data.baseRegion || inferRegionFromLanguage(settingsResult.data.defaultLanguage)
     defaultLanguage.value = settingsResult.data.defaultLanguage || ''
   }
   if (regionsResult.success && regionsResult.data) {
@@ -134,40 +132,61 @@ onMounted(loadDetail)
 </script>
 
 <template>
-  <div class="fixed inset-0 bg-black/60 flex items-center justify-center z-40" @click.self="emit('close')">
-    <div class="bg-[#2b2d30] rounded-xl shadow-xl w-full max-w-3xl h-[85vh] border border-[#393b40] flex flex-col overflow-hidden titlebar-no-drag">
+  <div
+    class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
+    @click.self="emit('close')"
+  >
+    <div
+      class="titlebar-no-drag flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+    >
       <!-- Header -->
-      <div class="flex items-center justify-between px-6 py-4 border-b border-[#393b40] shrink-0">
+      <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] px-6 py-4">
         <div>
-          <h3 class="text-lg font-semibold text-gray-100">{{ displayName || product.productId }}</h3>
-          <p class="text-sm text-gray-400 font-mono">{{ product.productId }}</p>
+          <h3 class="text-lg font-semibold text-gray-100">
+            {{ displayName || product.productId }}
+          </h3>
+          <p class="font-mono text-sm text-gray-400">{{ product.productId }}</p>
         </div>
-        <button @click="emit('close')" class="text-gray-500 hover:text-gray-300 text-xl leading-none p-2 rounded hover:bg-[#393b40] transition-colors">&times;</button>
+        <button
+          @click="emit('close')"
+          class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+        >
+          &times;
+        </button>
       </div>
 
       <!-- Tabs -->
-      <div class="flex border-b border-[#393b40] px-6 shrink-0">
+      <div class="flex shrink-0 border-b border-[#393b40] px-6">
         <button
-          v-for="tab in (['info', 'purchaseOptions', 'pricing', 'listings'] as Tab[])"
+          v-for="tab in ['info', 'purchaseOptions', 'pricing', 'listings'] as Tab[]"
           :key="tab"
           @click="activeTab = tab"
-          class="px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px"
-          :class="activeTab === tab
-            ? 'border-green-500 text-green-400'
-            : 'border-transparent text-gray-400 hover:text-gray-200'"
+          class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
+          :class="
+            activeTab === tab
+              ? 'border-green-500 text-green-400'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
+          "
         >
-          {{ tab === 'info' ? 'Info' : tab === 'purchaseOptions' ? 'Purchase Options' : tab === 'pricing' ? 'Pricing' : 'Listings' }}
+          {{
+            tab === 'info'
+              ? 'Info'
+              : tab === 'purchaseOptions'
+                ? 'Purchase Options'
+                : tab === 'pricing'
+                  ? 'Pricing'
+                  : 'Listings'
+          }}
         </button>
       </div>
 
       <!-- Tab content (KeepAlive preserves per-tab UI state across switches) -->
-      <div class="flex-1 min-h-0 flex flex-col overflow-hidden">
-        <div v-if="loading" class="flex-1 flex items-center justify-center text-gray-500">載入中...</div>
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <div v-if="loading" class="flex flex-1 items-center justify-center text-gray-500">
+          載入中...
+        </div>
         <KeepAlive v-else-if="detail">
-          <GoogleDetailInfo
-            v-if="activeTab === 'info'"
-            :detail="detail"
-          />
+          <GoogleDetailInfo v-if="activeTab === 'info'" :detail="detail" />
           <GoogleDetailPurchaseOptions
             v-else-if="activeTab === 'purchaseOptions'"
             :project-id="projectId"

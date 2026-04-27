@@ -14,11 +14,7 @@ export interface ExportGoogleProductInput {
   productId: string
 }
 
-export type GoogleExportProgressCallback = (
-  current: number,
-  total: number,
-  phase: string
-) => void
+export type GoogleExportProgressCallback = (current: number, total: number, phase: string) => void
 
 async function fetchProductForExport(
   projectId: string,

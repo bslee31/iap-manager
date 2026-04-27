@@ -23,6 +23,11 @@ function isActive(projectId: string) {
   return route.params.id === projectId
 }
 
+function startCreateProject() {
+  router.push('/')
+  emit('create-project')
+}
+
 const draggableList = computed({
   get: () => store.projects,
   set: (val) => {
@@ -37,12 +42,12 @@ function onDragEnd() {
 </script>
 
 <template>
-  <aside class="w-60 bg-[#26272b]/90 backdrop-blur border-r border-[#393b40] flex flex-col h-full">
+  <aside class="flex h-full w-60 flex-col border-r border-[#393b40] bg-[#26272b]/90 backdrop-blur">
     <!-- Title area with drag region -->
-    <div class="titlebar-drag pt-8 pb-4 px-4">
+    <div class="titlebar-drag px-4 pt-8 pb-4">
       <h1
         @click="router.push('/')"
-        class="text-base font-bold text-gray-200 titlebar-no-drag cursor-pointer hover:text-white transition-colors"
+        class="titlebar-no-drag cursor-pointer text-base font-bold text-gray-200 transition-colors hover:text-white"
       >
         IAP 管理工具
       </h1>
@@ -60,33 +65,38 @@ function onDragEnd() {
         <template #item="{ element: project }">
           <button
             @click="selectProject(project)"
-            class="w-full text-left px-3 py-2 rounded-lg text-sm transition-colors mb-0.5 cursor-grab active:cursor-grabbing"
-            :class="isActive(project.id)
-              ? 'bg-blue-600/20 text-blue-400 font-medium'
-              : 'text-gray-300 hover:bg-[#393b40]'"
+            class="mb-0.5 w-full cursor-grab rounded-lg px-3 py-2 text-left text-sm transition-colors active:cursor-grabbing"
+            :class="
+              isActive(project.id)
+                ? 'bg-blue-600/20 font-medium text-blue-400'
+                : 'text-gray-300 hover:bg-[#393b40]'
+            "
           >
             {{ project.name }}
           </button>
         </template>
       </draggable>
 
-      <p v-if="store.projects.length === 0 && !store.loading" class="text-xs text-gray-500 px-3 py-4 text-center">
+      <p
+        v-if="store.projects.length === 0 && !store.loading"
+        class="px-3 py-4 text-center text-xs text-gray-500"
+      >
         尚未建立任何專案
       </p>
     </nav>
 
     <!-- Bottom actions -->
-    <div class="p-2 border-t border-[#393b40] space-y-1">
+    <div class="space-y-1 border-t border-[#393b40] p-2">
       <button
-        @click="router.push('/'); emit('create-project')"
-        class="w-full text-left px-3 py-2 rounded-lg text-sm text-blue-400 hover:bg-blue-600/15 transition-colors flex items-center gap-2"
+        @click="startCreateProject"
+        class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-blue-400 transition-colors hover:bg-blue-600/15"
       >
         <span class="text-lg leading-none">+</span>
         新增專案
       </button>
       <button
         @click="router.push('/settings')"
-        class="w-full text-left px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-[#393b40] transition-colors flex items-center gap-2"
+        class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
       >
         <span class="text-base leading-none">&#9881;</span>
         設定
