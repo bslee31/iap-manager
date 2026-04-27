@@ -264,9 +264,9 @@ onMounted(() => {
               />
             </div>
             <button
-              @click="savePriceSchedule"
               :disabled="priceSaving || pricePointsLoading || !selectedPricePoint"
               class="rounded-lg bg-blue-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              @click="savePriceSchedule"
             >
               {{ priceSaving ? '儲存中...' : '儲存價格' }}
             </button>
@@ -288,8 +288,8 @@ onMounted(() => {
             />
             <button
               v-if="!allPricesLoading"
-              @click="loadAllTerritoryPrices"
               class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40]"
+              @click="loadAllTerritoryPrices"
             >
               重新載入
             </button>
@@ -302,7 +302,7 @@ onMounted(() => {
             }}) - {{ allPricesData.basePrice }}
           </p>
           <label class="flex cursor-pointer items-center gap-1.5">
-            <input type="checkbox" v-model="priceOnlyAvailable" class="h-3 w-3 rounded" />
+            <input v-model="priceOnlyAvailable" type="checkbox" class="h-3 w-3 rounded" />
             <span class="text-xs text-gray-400">只顯示已上架地區</span>
           </label>
         </div>
@@ -359,9 +359,9 @@ onMounted(() => {
                   <td class="w-5 py-1.5 text-center">
                     <button
                       v-if="tp.territory !== allPricesData?.baseTerritory"
-                      @click="openEditTerritoryPrice(tp)"
                       class="text-gray-500 transition-colors hover:text-blue-400"
                       title="修改價格"
+                      @click="openEditTerritoryPrice(tp)"
                     >
                       &#9998;
                     </button>
@@ -395,8 +395,8 @@ onMounted(() => {
               }})
             </h4>
             <button
-              @click="editingTerrPrice = null"
               class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+              @click="editingTerrPrice = null"
             >
               &times;
             </button>
@@ -414,15 +414,15 @@ onMounted(() => {
             </div>
             <div class="flex justify-end gap-2">
               <button
-                @click="editingTerrPrice = null"
                 class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+                @click="editingTerrPrice = null"
               >
                 取消
               </button>
               <button
-                @click="saveEditTerritoryPrice"
                 :disabled="editTerrSaving || !editTerrSelectedPP"
                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                @click="saveEditTerritoryPrice"
               >
                 {{ editTerrSaving ? '儲存中...' : '儲存' }}
               </button>

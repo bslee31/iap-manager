@@ -20,19 +20,19 @@ defineEmits<{
     <button
       v-for="action in actions"
       :key="action.key"
-      @click="$emit('action', action.key)"
       class="rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors"
       :class="
         action.variant === 'danger'
           ? 'bg-red-600 hover:bg-red-700'
           : 'bg-blue-600 hover:bg-blue-700'
       "
+      @click="$emit('action', action.key)"
     >
       {{ action.label }}
     </button>
     <button
-      @click="$emit('clear')"
       class="ml-2 text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
+      @click="$emit('clear')"
     >
       取消選取
     </button>

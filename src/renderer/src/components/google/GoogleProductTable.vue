@@ -450,23 +450,23 @@ function statusColor(status: string): string {
     <div class="mb-4 flex shrink-0 items-center justify-between px-6 pt-6">
       <div class="flex items-center gap-2">
         <button
-          @click="syncProducts"
           :disabled="syncing"
           class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+          @click="syncProducts"
         >
           同步商品
         </button>
         <button
-          @click="exportProducts"
           :disabled="exporting || syncing || products.length === 0"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          @click="exportProducts"
         >
           匯出
         </button>
         <button
-          @click="importProducts"
           :disabled="exporting || syncing"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          @click="importProducts"
         >
           匯入
         </button>
@@ -495,8 +495,8 @@ function statusColor(status: string): string {
           placeholder="搜尋 Product ID / Name..."
         />
         <button
-          @click="openCreateForm"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
+          @click="openCreateForm"
         >
           + 新增商品
         </button>
@@ -510,19 +510,19 @@ function statusColor(status: string): string {
       <button
         v-for="action in batchActions"
         :key="action.key"
-        @click="handleBatchAction(action.key)"
         class="rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors"
         :class="
           action.variant === 'danger'
             ? 'bg-red-600 text-white hover:bg-red-700'
             : 'bg-green-600 text-white hover:bg-green-700'
         "
+        @click="handleBatchAction(action.key)"
       >
         {{ action.label }}
       </button>
       <button
-        @click="clearSelection"
         class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
+        @click="clearSelection"
       >
         取消選取
       </button>
@@ -531,26 +531,26 @@ function statusColor(status: string): string {
     <!-- Status filter chips -->
     <div v-if="statusGroups.length > 0" class="mb-4 flex shrink-0 flex-wrap gap-2 px-6">
       <button
-        @click="setFilter(null)"
         class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
         :class="
           activeFilter === null
             ? 'bg-green-600 text-white'
             : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
         "
+        @click="setFilter(null)"
       >
         全部 {{ products.length }}
       </button>
       <button
         v-for="group in statusGroups"
         :key="group.status"
-        @click="setFilter(group.status)"
         class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
         :class="
           activeFilter === group.status
             ? 'bg-green-600 text-white'
             : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
         "
+        @click="setFilter(group.status)"
       >
         {{ group.label }} {{ group.count }}
       </button>
@@ -568,8 +568,8 @@ function statusColor(status: string): string {
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">新增 Google 商品</h3>
           <button
-            @click="showCreateForm = false"
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            @click="showCreateForm = false"
           >
             &times;
           </button>
@@ -599,9 +599,9 @@ function statusColor(status: string): string {
                 />
               </div>
               <button
-                @click="detectLanguageInModal"
                 :disabled="detectingLanguage"
                 class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+                @click="detectLanguageInModal"
               >
                 {{ detectingLanguage ? '偵測中...' : '偵測' }}
               </button>
@@ -702,16 +702,16 @@ function statusColor(status: string): string {
         </div>
         <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
           <button
-            @click="showCreateForm = false"
             :disabled="creating"
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            @click="showCreateForm = false"
           >
             取消
           </button>
           <button
-            @click="createProduct"
             :disabled="creating"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            @click="createProduct"
           >
             {{ creating ? '建立中...' : '建立' }}
           </button>
@@ -741,8 +741,8 @@ function statusColor(status: string): string {
                   <input
                     type="checkbox"
                     :checked="allSelected"
-                    @change="toggleAll"
                     class="rounded"
+                    @change="toggleAll"
                   />
                 </th>
                 <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -775,16 +775,16 @@ function statusColor(status: string): string {
               <tr
                 v-for="product in filteredProducts"
                 :key="product.productId"
-                @click="selectedProduct = product"
                 class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
                 :class="{ 'bg-green-600/10': selected.has(product.productId) }"
+                @click="selectedProduct = product"
               >
                 <td class="w-10 px-3 py-3" @click.stop>
                   <input
                     type="checkbox"
                     :checked="selected.has(product.productId)"
-                    @change="toggleItem(product.productId)"
                     class="rounded"
+                    @change="toggleItem(product.productId)"
                   />
                 </td>
                 <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>

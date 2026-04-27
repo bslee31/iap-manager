@@ -251,8 +251,8 @@ async function testGoogle() {
           <label class="mb-1 block text-sm font-medium text-gray-400">私鑰檔案 (.p8)</label>
           <div class="flex items-center gap-3">
             <button
-              @click="importP8"
               class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+              @click="importP8"
             >
               匯入 .p8 檔案
             </button>
@@ -262,15 +262,15 @@ async function testGoogle() {
         </div>
         <div class="flex gap-2 pt-2">
           <button
-            @click="saveApple"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+            @click="saveApple"
           >
             儲存 Apple 憑證
           </button>
           <button
-            @click="testApple"
             :disabled="appleTesting"
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            @click="testApple"
           >
             {{ appleTesting ? '測試中...' : '測試連線' }}
           </button>
@@ -295,8 +295,8 @@ async function testGoogle() {
           <label class="mb-1 block text-sm font-medium text-gray-400">服務帳戶金鑰 (JSON)</label>
           <div class="flex items-center gap-3">
             <button
-              @click="importGoogleJson"
               class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+              @click="importGoogleJson"
             >
               匯入 JSON 檔案
             </button>
@@ -321,9 +321,9 @@ async function testGoogle() {
               />
             </div>
             <button
-              @click="detectGoogleLanguage"
               :disabled="googleDetectingLanguage || !googleSavedAccount"
               class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+              @click="detectGoogleLanguage"
             >
               {{ googleDetectingLanguage ? '偵測中...' : '從 Play Console 偵測' }}
             </button>
@@ -345,15 +345,15 @@ async function testGoogle() {
         </div>
         <div class="flex gap-2 pt-2">
           <button
-            @click="saveGoogle"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+            @click="saveGoogle"
           >
             儲存 Google 憑證
           </button>
           <button
-            @click="testGoogle"
             :disabled="googleTesting"
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            @click="testGoogle"
           >
             {{ googleTesting ? '測試中...' : '測試連線' }}
           </button>

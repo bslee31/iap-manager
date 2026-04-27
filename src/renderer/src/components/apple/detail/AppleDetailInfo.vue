@@ -118,7 +118,6 @@ async function saveReferenceName(): Promise<void> {
 
       <div class="flex justify-end pt-2">
         <button
-          @click="saveReferenceName"
           :disabled="
             !canEditReferenceName ||
             savingReferenceName ||
@@ -126,6 +125,7 @@ async function saveReferenceName(): Promise<void> {
             !referenceNameValid
           "
           class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          @click="saveReferenceName"
         >
           {{ savingReferenceName ? '儲存中...' : '儲存變更' }}
         </button>

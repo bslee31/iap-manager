@@ -53,9 +53,9 @@ function onBlur() {
     <!-- Display / trigger -->
     <button
       type="button"
-      @click="toggle"
       class="flex w-full items-center justify-between rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-left text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
       :class="selectedLabel ? 'text-gray-200' : 'text-gray-500'"
+      @click="toggle"
     >
       <span class="truncate">{{ selectedLabel || placeholder || '請選擇...' }}</span>
       <span class="ml-2 shrink-0 text-[10px] text-gray-500">&#9660;</span>
@@ -84,13 +84,13 @@ function onBlur() {
           v-for="opt in filtered"
           :key="opt.value"
           type="button"
-          @mousedown.prevent="select(opt.value)"
           class="flex w-full items-center justify-between px-3 py-1.5 text-sm transition-colors"
           :class="
             opt.value === modelValue
               ? 'bg-blue-600/20 text-blue-400'
               : 'text-gray-300 hover:bg-[#393b40]'
           "
+          @mousedown.prevent="select(opt.value)"
         >
           <span>{{ opt.label }}</span>
           <span v-if="opt.right" class="ml-3 shrink-0 text-xs text-gray-500">{{ opt.right }}</span>

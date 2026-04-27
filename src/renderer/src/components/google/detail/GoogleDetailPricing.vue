@@ -259,9 +259,9 @@ async function applyNewPricing() {
               {{ currencyForRegion(editRegion) || '---' }}
             </span>
             <button
-              @click="applyNewPricing"
               :disabled="pricingSaving"
               class="rounded-lg bg-green-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              @click="applyNewPricing"
             >
               {{ pricingSaving ? '套用中...' : '套用新價格' }}
             </button>

@@ -148,8 +148,8 @@ onMounted(loadDetail)
           <p class="font-mono text-sm text-gray-400">{{ product.productId }}</p>
         </div>
         <button
-          @click="emit('close')"
           class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          @click="emit('close')"
         >
           &times;
         </button>
@@ -160,13 +160,13 @@ onMounted(loadDetail)
         <button
           v-for="tab in ['info', 'purchaseOptions', 'pricing', 'listings'] as Tab[]"
           :key="tab"
-          @click="activeTab = tab"
           class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
           :class="
             activeTab === tab
               ? 'border-green-500 text-green-400'
               : 'border-transparent text-gray-400 hover:text-gray-200'
           "
+          @click="activeTab = tab"
         >
           {{
             tab === 'info'
@@ -199,13 +199,13 @@ onMounted(loadDetail)
           />
           <GoogleDetailPricing
             v-else-if="activeTab === 'pricing'"
+            v-model:selected-po-id="selectedPoId"
             :project-id="projectId"
             :product-id="product.productId"
             :detail="detail"
             :base-region="baseRegion"
             :supported-regions="supportedRegions"
             :region-options-for-edit="regionOptionsForEdit"
-            v-model:selected-po-id="selectedPoId"
             @updated="onChildUpdated"
           />
           <GoogleDetailListings

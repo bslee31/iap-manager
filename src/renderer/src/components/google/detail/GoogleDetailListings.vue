@@ -142,8 +142,8 @@ async function deleteListing(languageCode: string) {
     <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
       <span class="text-sm text-gray-400">共 {{ detail.listings.length }} 個語言</span>
       <button
-        @click="openNewListing"
         class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
+        @click="openNewListing"
       >
         + 新增語言
       </button>
@@ -172,16 +172,16 @@ async function deleteListing(languageCode: string) {
           </div>
           <div class="flex shrink-0 gap-1">
             <button
-              @click="openEditListing(l)"
               class="p-1 text-gray-500 transition-colors hover:text-blue-400"
               title="編輯"
+              @click="openEditListing(l)"
             >
               &#9998;
             </button>
             <button
-              @click="deleteListing(l.languageCode)"
               class="p-1 text-gray-500 transition-colors hover:text-red-400"
               title="刪除"
+              @click="deleteListing(l.languageCode)"
             >
               &#10005;
             </button>
@@ -204,8 +204,8 @@ async function deleteListing(languageCode: string) {
             {{ editingIsNew ? '新增 Listing' : '編輯 Listing' }}
           </h3>
           <button
-            @click="cancelEditListing"
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            @click="cancelEditListing"
           >
             &times;
           </button>
@@ -256,15 +256,15 @@ async function deleteListing(languageCode: string) {
         </div>
         <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
           <button
-            @click="cancelEditListing"
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            @click="cancelEditListing"
           >
             取消
           </button>
           <button
-            @click="saveListing"
             :disabled="listingSaving"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            @click="saveListing"
           >
             {{ listingSaving ? '儲存中...' : '儲存' }}
           </button>

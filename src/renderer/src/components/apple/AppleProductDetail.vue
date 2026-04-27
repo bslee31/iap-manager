@@ -87,8 +87,8 @@ onMounted(loadAvailability)
           <p class="font-mono text-sm text-gray-400">{{ product.productId }}</p>
         </div>
         <button
-          @click="emit('close')"
           class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          @click="emit('close')"
         >
           &times;
         </button>
@@ -99,13 +99,13 @@ onMounted(loadAvailability)
         <button
           v-for="tab in ['info', 'availability', 'price', 'localization'] as Tab[]"
           :key="tab"
-          @click="activeTab = tab"
           class="-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition-colors"
           :class="
             activeTab === tab
               ? 'border-blue-500 text-blue-400'
               : 'border-transparent text-gray-400 hover:text-gray-200'
           "
+          @click="activeTab = tab"
         >
           {{
             tab === 'info'
@@ -135,12 +135,12 @@ onMounted(loadAvailability)
           />
           <AppleDetailAvailability
             v-else-if="activeTab === 'availability'"
+            v-model:selected-territories="selectedTerritories"
+            v-model:available-in-new="availableInNewTerritories"
             :project-id="projectId"
             :iap-id="product.id"
             :loading="availLoading"
             :all-territories="allTerritories"
-            v-model:selected-territories="selectedTerritories"
-            v-model:available-in-new="availableInNewTerritories"
             @update-availability="(count) => emit('update-availability', count)"
           />
           <AppleDetailPrice

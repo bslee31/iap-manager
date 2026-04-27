@@ -206,8 +206,8 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
     <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
       <span class="text-sm text-gray-400">共 {{ detail.purchaseOptions.length }} 個方案</span>
       <button
-        @click="openAddPoForm"
         class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
+        @click="openAddPoForm"
       >
         + 新增方案
       </button>
@@ -244,25 +244,25 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             </span>
             <button
               v-if="!po.legacyCompatible && po.type === 'BUY'"
-              @click="setAsBackwardsCompatible(po)"
               :disabled="settingLegacyPoId === po.purchaseOptionId"
               class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+              @click="setAsBackwardsCompatible(po)"
             >
               {{ settingLegacyPoId === po.purchaseOptionId ? '...' : '設為主方案' }}
             </button>
             <button
               v-if="po.state === 'ACTIVE'"
-              @click="togglePurchaseOptionState(po)"
               :disabled="togglingPoId === po.purchaseOptionId"
               class="rounded bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700 disabled:opacity-50"
+              @click="togglePurchaseOptionState(po)"
             >
               {{ togglingPoId === po.purchaseOptionId ? '...' : '下架' }}
             </button>
             <button
               v-else
-              @click="togglePurchaseOptionState(po)"
               :disabled="togglingPoId === po.purchaseOptionId"
               class="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+              @click="togglePurchaseOptionState(po)"
             >
               {{ togglingPoId === po.purchaseOptionId ? '...' : '上架' }}
             </button>
@@ -283,8 +283,8 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">新增 Purchase Option</h3>
           <button
-            @click="cancelAddPoForm"
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            @click="cancelAddPoForm"
           >
             &times;
           </button>
@@ -332,15 +332,15 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
         </div>
         <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
           <button
-            @click="cancelAddPoForm"
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            @click="cancelAddPoForm"
           >
             取消
           </button>
           <button
-            @click="saveNewPurchaseOption"
             :disabled="addPoSaving"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            @click="saveNewPurchaseOption"
           >
             {{ addPoSaving ? '新增中...' : '新增' }}
           </button>

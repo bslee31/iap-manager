@@ -208,8 +208,8 @@ function formatDate(iso?: string): string {
         </h3>
         <button
           v-if="state !== 'importing'"
-          @click="close"
           class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          @click="close"
         >
           &times;
         </button>
@@ -411,22 +411,22 @@ function formatDate(iso?: string): string {
       >
         <template v-if="state === 'preview'">
           <button
-            @click="close"
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            @click="close"
           >
             取消
           </button>
           <button
-            @click="confirmImport"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+            @click="confirmImport"
           >
             確認匯入
           </button>
         </template>
         <template v-else>
           <button
-            @click="close"
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+            @click="close"
           >
             關閉
           </button>

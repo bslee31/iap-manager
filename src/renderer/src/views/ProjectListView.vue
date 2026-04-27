@@ -86,8 +86,8 @@ function onDragEnd() {
     <div class="mb-6 flex items-center justify-between">
       <h2 class="text-2xl font-bold text-gray-100">專案列表</h2>
       <button
-        @click="openCreateForm"
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+        @click="openCreateForm"
       >
         + 新增專案
       </button>
@@ -122,15 +122,15 @@ function onDragEnd() {
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button
-            @click="showForm = false"
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            @click="showForm = false"
           >
             取消
           </button>
           <button
-            @click="saveProject"
             :disabled="!editingProject.name.trim()"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            @click="saveProject"
           >
             儲存
           </button>
@@ -156,8 +156,8 @@ function onDragEnd() {
         >
           <span
             class="drag-handle shrink-0 cursor-grab text-gray-600 select-none hover:text-gray-400 active:cursor-grabbing"
-            @click.stop
             title="拖曳排序"
+            @click.stop
             >&#9776;</span
           >
           <h3 class="min-w-0 flex-1 truncate font-semibold text-gray-100">{{ project.name }}</h3>
@@ -187,16 +187,16 @@ function onDragEnd() {
           </div>
           <div class="flex shrink-0 gap-1" @click.stop>
             <button
-              @click="openEditForm(project)"
               class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-600/15 hover:text-blue-400"
               title="編輯"
+              @click="openEditForm(project)"
             >
               &#9998;
             </button>
             <button
-              @click="confirmDelete(project)"
               class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-red-600/15 hover:text-red-400"
               title="刪除"
+              @click="confirmDelete(project)"
             >
               &#10005;
             </button>
@@ -209,8 +209,8 @@ function onDragEnd() {
     <div v-else-if="!store.loading" class="py-20 text-center">
       <p class="mb-4 text-lg text-gray-500">尚未建立任何專案</p>
       <button
-        @click="openCreateForm"
         class="rounded-lg bg-blue-600 px-6 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+        @click="openCreateForm"
       >
         建立第一個專案
       </button>

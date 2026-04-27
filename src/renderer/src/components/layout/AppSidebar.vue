@@ -46,8 +46,8 @@ function onDragEnd() {
     <!-- Title area with drag region -->
     <div class="titlebar-drag px-4 pt-8 pb-4">
       <h1
-        @click="router.push('/')"
         class="titlebar-no-drag cursor-pointer text-base font-bold text-gray-200 transition-colors hover:text-white"
+        @click="router.push('/')"
       >
         IAP 管理工具
       </h1>
@@ -64,13 +64,13 @@ function onDragEnd() {
       >
         <template #item="{ element: project }">
           <button
-            @click="selectProject(project)"
             class="mb-0.5 w-full cursor-grab rounded-lg px-3 py-2 text-left text-sm transition-colors active:cursor-grabbing"
             :class="
               isActive(project.id)
                 ? 'bg-blue-600/20 font-medium text-blue-400'
                 : 'text-gray-300 hover:bg-[#393b40]'
             "
+            @click="selectProject(project)"
           >
             {{ project.name }}
           </button>
@@ -88,15 +88,15 @@ function onDragEnd() {
     <!-- Bottom actions -->
     <div class="space-y-1 border-t border-[#393b40] p-2">
       <button
-        @click="startCreateProject"
         class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-blue-400 transition-colors hover:bg-blue-600/15"
+        @click="startCreateProject"
       >
         <span class="text-lg leading-none">+</span>
         新增專案
       </button>
       <button
-        @click="router.push('/settings')"
         class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+        @click="router.push('/settings')"
       >
         <span class="text-base leading-none">&#9881;</span>
         設定

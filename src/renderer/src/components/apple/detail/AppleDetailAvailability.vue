@@ -128,7 +128,7 @@ async function saveAvailability() {
             class="inline-flex items-center gap-1 rounded-full bg-blue-600/15 px-2 py-0.5 text-xs text-blue-400"
           >
             {{ territoryName(code) }}
-            <button @click="toggleTerritory(code)" class="hover:text-blue-200">&times;</button>
+            <button class="hover:text-blue-200" @click="toggleTerritory(code)">&times;</button>
           </span>
         </div>
         <p v-else-if="selectedTerritories.size > 20" class="mb-3 text-xs text-gray-500">
@@ -137,13 +137,13 @@ async function saveAvailability() {
 
         <div class="flex items-center gap-1 text-xs">
           <span class="text-gray-500">Select</span>
-          <button @click="selectAllTerritories" class="text-blue-400 underline hover:text-blue-300">
+          <button class="text-blue-400 underline hover:text-blue-300" @click="selectAllTerritories">
             All
           </button>
           <span class="text-gray-600">|</span>
           <button
-            @click="deselectAllTerritories"
             class="text-blue-400 underline hover:text-blue-300"
+            @click="deselectAllTerritories"
           >
             None
           </button>
@@ -154,8 +154,8 @@ async function saveAvailability() {
       <div class="min-h-0 flex-1 space-y-1 overflow-y-auto px-6 py-2">
         <div v-for="group in groupedTerritories" :key="group.regionName">
           <button
-            @click="toggleRegion(group.regionName)"
             class="flex w-full items-center gap-2 rounded-lg bg-[#1e1f22] px-3 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-[#333538]"
+            @click="toggleRegion(group.regionName)"
           >
             <span
               class="text-[10px] text-gray-500 transition-transform"
@@ -166,8 +166,8 @@ async function saveAvailability() {
               >{{ group.regionName }} ({{ regionSelectedCount(group) }})</span
             >
             <span
-              @click.stop="toggleRegionAll(group)"
               class="px-1 text-xs text-blue-400 hover:text-blue-300"
+              @click.stop="toggleRegionAll(group)"
             >
               {{
                 group.territories.every((t) => selectedTerritories.has(t.code))
@@ -186,8 +186,8 @@ async function saveAvailability() {
               <input
                 type="checkbox"
                 :checked="selectedTerritories.has(t.code)"
-                @change="toggleTerritory(t.code)"
                 class="h-3.5 w-3.5 rounded"
+                @change="toggleTerritory(t.code)"
               />
               {{ t.name }}
             </label>
@@ -198,7 +198,7 @@ async function saveAvailability() {
       <!-- Footer (pinned at bottom) -->
       <div class="shrink-0 border-t border-[#393b40] px-6 py-4">
         <label class="mb-3 flex cursor-pointer items-center gap-2">
-          <input type="checkbox" v-model="availableInNewTerritories" class="rounded" />
+          <input v-model="availableInNewTerritories" type="checkbox" class="rounded" />
           <span class="text-sm text-gray-300"
             >Make your in-app purchase automatically available in all future App Store countries or
             regions.</span
@@ -206,9 +206,9 @@ async function saveAvailability() {
         </label>
         <div class="flex justify-end">
           <button
-            @click="saveAvailability"
             :disabled="availSaving"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+            @click="saveAvailability"
           >
             {{ availSaving ? '儲存中...' : '儲存 Availability' }}
           </button>

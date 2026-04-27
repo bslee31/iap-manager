@@ -45,13 +45,13 @@ onMounted(async () => {
           <button
             v-for="tab in tabs"
             :key="tab.key"
-            @click="activeTab = tab.key"
             class="titlebar-no-drag border-b-2 px-4 py-2 text-sm font-medium transition-colors"
             :class="
               activeTab === tab.key
                 ? 'border-blue-500 text-blue-400'
                 : 'border-transparent text-gray-500 hover:text-gray-300'
             "
+            @click="activeTab = tab.key"
           >
             {{ tab.label }}
           </button>
@@ -60,14 +60,14 @@ onMounted(async () => {
     </div>
 
     <!-- Tab content -->
-    <div class="min-h-0 flex-1 overflow-y-auto p-6" v-if="activeTab === 'credentials'">
-      <CredentialSettings :project-id="id" :key="'cred-' + id" />
+    <div v-if="activeTab === 'credentials'" class="min-h-0 flex-1 overflow-y-auto p-6">
+      <CredentialSettings :key="'cred-' + id" :project-id="id" />
     </div>
-    <div class="flex min-h-0 flex-1 flex-col" v-else-if="activeTab === 'apple'">
-      <AppleProductTable :project-id="id" :key="'apple-' + id" />
+    <div v-else-if="activeTab === 'apple'" class="flex min-h-0 flex-1 flex-col">
+      <AppleProductTable :key="'apple-' + id" :project-id="id" />
     </div>
-    <div class="flex min-h-0 flex-1 flex-col" v-else-if="activeTab === 'google'">
-      <GoogleProductTable :project-id="id" :key="'google-' + id" />
+    <div v-else-if="activeTab === 'google'" class="flex min-h-0 flex-1 flex-col">
+      <GoogleProductTable :key="'google-' + id" :project-id="id" />
     </div>
   </div>
 </template>

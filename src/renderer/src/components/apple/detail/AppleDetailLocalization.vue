@@ -179,8 +179,8 @@ onMounted(() => {
       <div class="mb-4 flex items-center justify-between">
         <span class="text-sm text-gray-400">{{ localizations.length }} 個語言</span>
         <button
-          @click="openLocForm()"
           class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+          @click="openLocForm()"
         >
           + 新增語言
         </button>
@@ -204,16 +204,16 @@ onMounted(() => {
           </div>
           <div class="flex shrink-0 gap-1">
             <button
-              @click="openLocForm(loc)"
               class="p-1 text-gray-500 transition-colors hover:text-blue-400"
               title="編輯"
+              @click="openLocForm(loc)"
             >
               &#9998;
             </button>
             <button
-              @click="deleteLoc(loc)"
               class="p-1 text-gray-500 transition-colors hover:text-red-400"
               title="刪除"
+              @click="deleteLoc(loc)"
             >
               &#10005;
             </button>
@@ -236,8 +236,8 @@ onMounted(() => {
               {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
             </h4>
             <button
-              @click="editingLoc = null"
               class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+              @click="editingLoc = null"
             >
               &times;
             </button>
@@ -296,15 +296,15 @@ onMounted(() => {
           </div>
           <div class="mt-5 flex justify-end gap-2">
             <button
-              @click="editingLoc = null"
               class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+              @click="editingLoc = null"
             >
               取消
             </button>
             <button
-              @click="saveLoc"
               :disabled="locSaving"
               class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+              @click="saveLoc"
             >
               {{ locSaving ? '儲存中...' : '儲存' }}
             </button>
