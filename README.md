@@ -1,3 +1,5 @@
+[English](./README.en.md) | **繁體中文**
+
 # IAP Manager
 
 Apple & Google 應用程式內購商品批次管理工具。
