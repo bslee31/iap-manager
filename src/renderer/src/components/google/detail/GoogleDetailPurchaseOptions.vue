@@ -193,9 +193,10 @@ const togglingPoId = ref('')
 
 async function togglePurchaseOptionState(po: PurchaseOption) {
   const willActivate = po.state !== 'ACTIVE'
-  // Use the same Activate / Deactivate words as elsewhere in the app — but
-  // pulled out of the Google batch namespace because they read the same.
-  const label = willActivate ? t('google.batch.activate') : t('google.batch.deactivate')
+  // Per-PO toggles use the single-word verbs (`google.action.*`), not the
+  // batch-prefixed ones — confirm / button / toast all say 「上架」 / 「下架」
+  // rather than 「批次上架」 / 「批次下架」.
+  const label = willActivate ? t('google.action.activate') : t('google.action.deactivate')
   if (
     !confirm(
       t('google.detail.purchaseOptions.toggleConfirm', {
@@ -289,7 +290,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               class="rounded bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               @click="togglePurchaseOptionState(po)"
             >
-              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.batch.deactivate') }}
+              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.action.deactivate') }}
             </button>
             <button
               v-else
@@ -297,7 +298,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               class="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50"
               @click="togglePurchaseOptionState(po)"
             >
-              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.batch.activate') }}
+              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.action.activate') }}
             </button>
           </div>
         </div>

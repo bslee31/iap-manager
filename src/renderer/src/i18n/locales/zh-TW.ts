@@ -368,6 +368,13 @@ const zhTW = {
       NO_PURCHASE_OPTION: '未設定方案'
     },
     statusMixed: '{active}/{total} 上架中',
+    // Single-item activate / deactivate verbs — distinct from `batch.*`
+    // (which prefix with 「批次」) because per-PO toggles say just 「上架」
+    // / 「下架」 in confirms, button labels, and toast messages.
+    action: {
+      activate: '上架',
+      deactivate: '下架'
+    },
     empty: {
       noProducts: '尚無商品資料',
       noProductsHint: '請先設定 Google 憑證，然後點擊「同步商品」',
