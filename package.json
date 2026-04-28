@@ -1,6 +1,6 @@
 {
   "name": "iap-manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "IAP batch management tool for Apple & Google",
   "main": "./out/main/index.js",
   "scripts": {
