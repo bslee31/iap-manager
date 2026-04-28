@@ -5,6 +5,7 @@ import {
   getIapAllTerritoryPrices
 } from './apple-iap'
 import { runWithConcurrency, EXPORT_CONCURRENCY } from '../concurrency'
+import { t } from '../../i18n'
 import {
   EXPORT_FORMAT_VERSION,
   type ExportData,
@@ -73,14 +74,14 @@ export async function exportAppleProducts(
   onProgress?: ExportProgressCallback
 ): Promise<{ data: ExportData; errors: ExportError[] }> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  if (!creds.apple?.appId) throw new Error(t('credentials.apple.missingAppId'))
 
   const total = products.length
   const errors: ExportError[] = []
   const exported: ExportedProduct[] = []
   let done = 0
 
-  onProgress?.(0, total, '開始匯出...')
+  onProgress?.(0, total, t('apple.export.starting'))
 
   await runWithConcurrency(products, EXPORT_CONCURRENCY, async (product) => {
     try {
@@ -94,7 +95,7 @@ export async function exportAppleProducts(
       })
     } finally {
       done++
-      onProgress?.(done, total, `匯出中 ${done}/${total}`)
+      onProgress?.(done, total, t('apple.export.progress', { done, total }))
     }
   })
 

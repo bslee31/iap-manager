@@ -8,6 +8,7 @@ import {
 } from './apple-iap'
 import { loadCredentials } from '../credential-store'
 import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
+import { t } from '../../i18n'
 import {
   EXPORT_FORMAT_VERSION,
   type ExportedProduct,
@@ -46,7 +47,7 @@ function validateProduct(
   issues: ImportValidationIssue[]
 ): void {
   if (typeof p !== 'object' || p === null) {
-    pushIssue(issues, index, undefined, '(root)', '商品必須是物件')
+    pushIssue(issues, index, undefined, '(root)', t('apple.import.validation.notObject'))
     return
   }
 
@@ -55,48 +56,96 @@ function validateProduct(
   const pid = typeof rawPid === 'string' && rawPid.length > 0 ? rawPid : undefined
 
   if (!pid) {
-    pushIssue(issues, index, undefined, 'productId', 'productId 不可為空')
+    pushIssue(issues, index, undefined, 'productId', t('apple.import.validation.productIdEmpty'))
   } else if (!PRODUCT_ID_RE.test(pid)) {
-    pushIssue(issues, index, pid, 'productId', 'productId 只能包含英數、. _')
+    pushIssue(issues, index, pid, 'productId', t('apple.import.validation.productIdFormat'))
   } else if (pid.length > MAX_PRODUCT_ID) {
-    pushIssue(issues, index, pid, 'productId', `productId 超過 ${MAX_PRODUCT_ID} 字元`)
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'productId',
+      t('apple.import.validation.productIdTooLong', { max: MAX_PRODUCT_ID })
+    )
   } else {
     if (seenProductIds.has(pid)) {
-      pushIssue(issues, index, pid, 'productId', '檔案內有重複的 productId')
+      pushIssue(
+        issues,
+        index,
+        pid,
+        'productId',
+        t('apple.import.validation.productIdDuplicateFile')
+      )
     }
     if (existingProductIds.has(pid)) {
-      pushIssue(issues, index, pid, 'productId', '已存在於目前專案中')
+      pushIssue(issues, index, pid, 'productId', t('apple.import.validation.productIdExisting'))
     }
     seenProductIds.add(pid)
   }
 
   // referenceName
   if (typeof p.referenceName !== 'string' || p.referenceName.length === 0) {
-    pushIssue(issues, index, pid, 'referenceName', 'referenceName 不可為空')
+    pushIssue(issues, index, pid, 'referenceName', t('apple.import.validation.refNameEmpty'))
   } else if (p.referenceName.length > MAX_REF_NAME) {
-    pushIssue(issues, index, pid, 'referenceName', `referenceName 超過 ${MAX_REF_NAME} 字元`)
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'referenceName',
+      t('apple.import.validation.refNameTooLong', { max: MAX_REF_NAME })
+    )
   }
 
   // type
   if (!VALID_TYPES.has(p.type)) {
-    pushIssue(issues, index, pid, 'type', `type 必須為 ${Array.from(VALID_TYPES).join(' / ')}`)
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'type',
+      t('apple.import.validation.invalidType', { types: Array.from(VALID_TYPES).join(' / ') })
+    )
   }
 
   // availability
   const av = p.availability
   if (!av || typeof av !== 'object') {
-    pushIssue(issues, index, pid, 'availability', 'availability 必須是物件')
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'availability',
+      t('apple.import.validation.availabilityNotObject')
+    )
   } else {
     if (!Array.isArray(av.territories)) {
-      pushIssue(issues, index, pid, 'availability.territories', 'territories 必須是陣列')
+      pushIssue(
+        issues,
+        index,
+        pid,
+        'availability.territories',
+        t('apple.import.validation.territoriesNotArray')
+      )
     } else {
-      for (const t of av.territories) {
-        if (typeof t !== 'string') {
-          pushIssue(issues, index, pid, 'availability.territories', '每個地區代碼必須為字串')
+      for (const terr of av.territories) {
+        if (typeof terr !== 'string') {
+          pushIssue(
+            issues,
+            index,
+            pid,
+            'availability.territories',
+            t('apple.import.validation.territoryNotString')
+          )
           break
         }
-        if (!validTerritoryIds.has(t)) {
-          pushIssue(issues, index, pid, 'availability.territories', `無效的地區代碼: ${t}`)
+        if (!validTerritoryIds.has(terr)) {
+          pushIssue(
+            issues,
+            index,
+            pid,
+            'availability.territories',
+            t('apple.import.validation.invalidTerritory', { territory: terr })
+          )
         }
       }
     }
@@ -106,7 +155,7 @@ function validateProduct(
         index,
         pid,
         'availability.availableInNewTerritories',
-        'availableInNewTerritories 必須是 boolean'
+        t('apple.import.validation.availInNewNotBoolean')
       )
     }
   }
@@ -115,17 +164,29 @@ function validateProduct(
   if (p.priceSchedule !== undefined) {
     const ps = p.priceSchedule
     if (typeof ps !== 'object' || ps === null) {
-      pushIssue(issues, index, pid, 'priceSchedule', 'priceSchedule 必須是物件')
+      pushIssue(
+        issues,
+        index,
+        pid,
+        'priceSchedule',
+        t('apple.import.validation.priceScheduleNotObject')
+      )
     } else {
       if (typeof ps.baseTerritory !== 'string' || ps.baseTerritory.length === 0) {
-        pushIssue(issues, index, pid, 'priceSchedule.baseTerritory', 'baseTerritory 不可為空')
+        pushIssue(
+          issues,
+          index,
+          pid,
+          'priceSchedule.baseTerritory',
+          t('apple.import.validation.baseTerritoryEmpty')
+        )
       } else if (!validTerritoryIds.has(ps.baseTerritory)) {
         pushIssue(
           issues,
           index,
           pid,
           'priceSchedule.baseTerritory',
-          `無效的地區代碼: ${ps.baseTerritory}`
+          t('apple.import.validation.invalidTerritory', { territory: ps.baseTerritory })
         )
       }
       if (typeof ps.basePrice !== 'string' || !PRICE_RE.test(ps.basePrice)) {
@@ -134,18 +195,30 @@ function validateProduct(
           index,
           pid,
           'priceSchedule.basePrice',
-          'basePrice 必須是數字字串（例：0.99）'
+          t('apple.import.validation.basePriceFormat')
         )
       }
       if (ps.customPrices !== undefined) {
         if (!Array.isArray(ps.customPrices)) {
-          pushIssue(issues, index, pid, 'priceSchedule.customPrices', 'customPrices 必須是陣列')
+          pushIssue(
+            issues,
+            index,
+            pid,
+            'priceSchedule.customPrices',
+            t('apple.import.validation.customPricesNotArray')
+          )
         } else {
           const seenTerritories = new Set<string>()
           ps.customPrices.forEach((cp: any, cpIdx: number) => {
             const prefix = `priceSchedule.customPrices[${cpIdx}]`
             if (typeof cp?.territory !== 'string' || cp.territory.length === 0) {
-              pushIssue(issues, index, pid, `${prefix}.territory`, 'territory 不可為空')
+              pushIssue(
+                issues,
+                index,
+                pid,
+                `${prefix}.territory`,
+                t('apple.import.validation.territoryEmpty')
+              )
             } else {
               if (!validTerritoryIds.has(cp.territory)) {
                 pushIssue(
@@ -153,7 +226,7 @@ function validateProduct(
                   index,
                   pid,
                   `${prefix}.territory`,
-                  `無效的地區代碼: ${cp.territory}`
+                  t('apple.import.validation.invalidTerritory', { territory: cp.territory })
                 )
               }
               if (cp.territory === ps.baseTerritory) {
@@ -162,7 +235,7 @@ function validateProduct(
                   index,
                   pid,
                   `${prefix}.territory`,
-                  'customPrices 不可包含 baseTerritory'
+                  t('apple.import.validation.customPriceTerritoryBase')
                 )
               }
               if (seenTerritories.has(cp.territory)) {
@@ -171,13 +244,19 @@ function validateProduct(
                   index,
                   pid,
                   `${prefix}.territory`,
-                  `customPrices 中出現重複地區: ${cp.territory}`
+                  t('apple.import.validation.customPriceDup', { territory: cp.territory })
                 )
               }
               seenTerritories.add(cp.territory)
             }
             if (typeof cp?.price !== 'string' || !PRICE_RE.test(cp.price)) {
-              pushIssue(issues, index, pid, `${prefix}.price`, 'price 必須是數字字串')
+              pushIssue(
+                issues,
+                index,
+                pid,
+                `${prefix}.price`,
+                t('apple.import.validation.priceNotString')
+              )
             }
           })
         }
@@ -188,34 +267,64 @@ function validateProduct(
   // localizations (optional)
   if (p.localizations !== undefined) {
     if (!Array.isArray(p.localizations)) {
-      pushIssue(issues, index, pid, 'localizations', 'localizations 必須是陣列')
+      pushIssue(
+        issues,
+        index,
+        pid,
+        'localizations',
+        t('apple.import.validation.localizationsNotArray')
+      )
     } else {
       const seenLocales = new Set<string>()
       p.localizations.forEach((loc: any, lIdx: number) => {
         const prefix = `localizations[${lIdx}]`
         if (typeof loc?.locale !== 'string' || loc.locale.length === 0) {
-          pushIssue(issues, index, pid, `${prefix}.locale`, 'locale 不可為空')
+          pushIssue(
+            issues,
+            index,
+            pid,
+            `${prefix}.locale`,
+            t('apple.import.validation.localeEmpty')
+          )
         } else {
           if (seenLocales.has(loc.locale)) {
-            pushIssue(issues, index, pid, `${prefix}.locale`, `重複的 locale: ${loc.locale}`)
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${prefix}.locale`,
+              t('apple.import.validation.localeDuplicate', { locale: loc.locale })
+            )
           }
           seenLocales.add(loc.locale)
         }
         if (typeof loc?.name !== 'string' || loc.name.length === 0) {
-          pushIssue(issues, index, pid, `${prefix}.name`, 'name 不可為空')
+          pushIssue(issues, index, pid, `${prefix}.name`, t('apple.import.validation.nameEmpty'))
         } else if (loc.name.length > MAX_LOC_NAME) {
-          pushIssue(issues, index, pid, `${prefix}.name`, `name 超過 ${MAX_LOC_NAME} 字元`)
+          pushIssue(
+            issues,
+            index,
+            pid,
+            `${prefix}.name`,
+            t('apple.import.validation.nameTooLong', { max: MAX_LOC_NAME })
+          )
         }
         if (loc?.description !== undefined) {
           if (typeof loc.description !== 'string') {
-            pushIssue(issues, index, pid, `${prefix}.description`, 'description 必須是字串')
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${prefix}.description`,
+              t('apple.import.validation.descriptionNotString')
+            )
           } else if (loc.description.length > MAX_LOC_DESC) {
             pushIssue(
               issues,
               index,
               pid,
               `${prefix}.description`,
-              `description 超過 ${MAX_LOC_DESC} 字元`
+              t('apple.import.validation.descriptionTooLong', { max: MAX_LOC_DESC })
             )
           }
         }
@@ -238,7 +347,13 @@ export async function validateImport(
     return {
       valid: false,
       products: [],
-      issues: [{ index: -1, field: '(file)', message: `JSON 解析失敗: ${e.message}` }]
+      issues: [
+        {
+          index: -1,
+          field: '(file)',
+          message: t('apple.import.validation.jsonParseFail', { error: e.message })
+        }
+      ]
     }
   }
 
@@ -246,7 +361,7 @@ export async function validateImport(
     return {
       valid: false,
       products: [],
-      issues: [{ index: -1, field: '(root)', message: '檔案格式無效，必須為物件' }]
+      issues: [{ index: -1, field: '(root)', message: t('apple.import.validation.rootNotObject') }]
     }
   }
 
@@ -258,7 +373,10 @@ export async function validateImport(
         {
           index: -1,
           field: 'formatVersion',
-          message: `不相容的 formatVersion: ${parsed.formatVersion}（僅支援 ${EXPORT_FORMAT_VERSION}）`
+          message: t('apple.import.validation.formatVersionMismatch', {
+            got: parsed.formatVersion,
+            expected: EXPORT_FORMAT_VERSION
+          })
         }
       ]
     }
@@ -271,7 +389,9 @@ export async function validateImport(
       exportedAt: parsed.exportedAt,
       appId: parsed.appId,
       products: [],
-      issues: [{ index: -1, field: 'products', message: 'products 必須是非空陣列' }]
+      issues: [
+        { index: -1, field: 'products', message: t('apple.import.validation.productsNotArray') }
+      ]
     }
   }
 
@@ -280,8 +400,8 @@ export async function validateImport(
   let territoryCurrencyMap: Record<string, string>
   try {
     const territories = await getAllTerritories(projectId)
-    validTerritoryIds = new Set(territories.map((t) => t.id))
-    territoryCurrencyMap = Object.fromEntries(territories.map((t) => [t.id, t.currency]))
+    validTerritoryIds = new Set(territories.map((terr) => terr.id))
+    territoryCurrencyMap = Object.fromEntries(territories.map((terr) => [terr.id, terr.currency]))
   } catch (e: any) {
     return {
       valid: false,
@@ -293,7 +413,7 @@ export async function validateImport(
         {
           index: -1,
           field: '(territories)',
-          message: `無法取得地區清單以驗證: ${e.message}`
+          message: t('apple.import.validation.territoryListFail', { error: e.message })
         }
       ]
     }
@@ -334,7 +454,7 @@ async function importSingleProduct(
   }
 
   // Step 1: Create product
-  reportStep?.(`${product.productId} · 建立商品中`)
+  reportStep?.(t('apple.import.step.creating', { productId: product.productId }))
   let iapId: string
   try {
     const created = await createInAppPurchase(projectId, {
@@ -356,7 +476,7 @@ async function importSingleProduct(
   }
 
   // Step 2: Availability
-  reportStep?.(`${product.productId} · 設定 Availability`)
+  reportStep?.(t('apple.import.step.availability', { productId: product.productId }))
   try {
     await updateIapAvailability(
       projectId,
@@ -373,7 +493,7 @@ async function importSingleProduct(
   if (product.priceSchedule) {
     const ps = product.priceSchedule
     try {
-      reportStep?.(`${product.productId} · 查詢價格點`)
+      reportStep?.(t('apple.import.step.priceLookup', { productId: product.productId }))
       // Fetch price points for base + each custom territory in parallel
       const territoriesToResolve = [
         ps.baseTerritory,
@@ -400,7 +520,10 @@ async function importSingleProduct(
         stepErrors.push({
           step: 'price',
           target: ps.baseTerritory,
-          error: `${ps.baseTerritory} 找不到 ${ps.basePrice} 對應的 pricePoint`
+          error: t('apple.import.stepError.pricePointNotFound', {
+            territory: ps.baseTerritory,
+            price: ps.basePrice
+          })
         })
       } else {
         resolvedIds.push(baseMatch.id)
@@ -413,7 +536,10 @@ async function importSingleProduct(
           stepErrors.push({
             step: 'customPrice',
             target: cp.territory,
-            error: `${cp.territory} 找不到 ${cp.price} 對應的 pricePoint`
+            error: t('apple.import.stepError.pricePointNotFound', {
+              territory: cp.territory,
+              price: cp.price
+            })
           })
         } else {
           resolvedIds.push(match.id)
@@ -422,7 +548,7 @@ async function importSingleProduct(
 
       // Only set schedule if base resolved
       if (baseMatch) {
-        reportStep?.(`${product.productId} · 設定價格`)
+        reportStep?.(t('apple.import.step.priceSet', { productId: product.productId }))
         await setIapPriceScheduleBatch(projectId, iapId, ps.baseTerritory, resolvedIds)
         result.priceApplied = true
       }
@@ -434,7 +560,9 @@ async function importSingleProduct(
   // Step 4: Localizations
   if (product.localizations) {
     for (const loc of product.localizations) {
-      reportStep?.(`${product.productId} · 建立本地化 ${loc.locale}`)
+      reportStep?.(
+        t('apple.import.step.localization', { productId: product.productId, locale: loc.locale })
+      )
       try {
         await createIapLocalization(projectId, iapId, {
           locale: loc.locale,
@@ -460,23 +588,23 @@ export async function executeImport(
   onProgress?: ImportProgressCallback
 ): Promise<{ results: ImportProductResult[] }> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  if (!creds.apple?.appId) throw new Error(t('credentials.apple.missingAppId'))
   const appId = creds.apple.appId
 
   const total = products.length
   const results: ImportProductResult[] = []
   let done = 0
 
-  onProgress?.(0, total, `匯入中 0/${total}`)
+  onProgress?.(0, total, t('apple.import.starting', { total }))
 
   await runWithConcurrency(products, IMPORT_CONCURRENCY, async (product) => {
     const reportStep = (phase: string): void => {
-      onProgress?.(done, total, `${phase}（${done}/${total} 完成）`)
+      onProgress?.(done, total, t('apple.import.progressPhase', { phase, done, total }))
     }
     const res = await importSingleProduct(projectId, appId, product, reportStep)
     results.push(res)
     done++
-    onProgress?.(done, total, `匯入中 ${done}/${total}`)
+    onProgress?.(done, total, t('apple.import.progress', { done, total }))
   })
 
   results.sort((a, b) => a.productId.localeCompare(b.productId))
