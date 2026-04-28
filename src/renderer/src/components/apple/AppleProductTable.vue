@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../stores/notification.store'
 import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleProductDetail from './AppleProductDetail.vue'
@@ -8,6 +9,7 @@ import * as appleApi from '../../services/api/apple'
 import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
+const { t, te } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -79,19 +81,20 @@ const allSelected = computed(() => {
   return filteredProducts.value.length > 0 && store.selected.size === filteredProducts.value.length
 })
 
-const batchActions = [
-  { key: 'sync-price', label: '重整 Price' },
-  { key: 'sync-availability', label: '重整 Availability' },
-  { key: 'activate', label: '批次上架' },
-  { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
-]
+// Computed so labels track the current locale.
+const batchActions = computed(() => [
+  { key: 'sync-price', label: t('apple.batch.syncPrice') },
+  { key: 'sync-availability', label: t('apple.batch.syncAvailability') },
+  { key: 'activate', label: t('apple.batch.activate') },
+  { key: 'deactivate', label: t('apple.batch.deactivate'), variant: 'danger' as const }
+])
 
 async function syncAll() {
   const result = await store.syncProducts(props.projectId)
   if (result.success) {
-    notify.success(`同步完成，共 ${result.data.length} 個商品`)
+    notify.success(t('apple.toast.syncSuccess', { count: result.data.length }))
   } else {
-    notify.error(result.error || '同步失敗')
+    notify.error(result.error || t('apple.toast.syncFail'))
   }
 }
 
@@ -117,7 +120,7 @@ async function handleBatchAction(key: string) {
     let success = 0
     const total = ids.length
     for (const id of ids) {
-      store.syncProgress = `重整 Price... ${success + 1}/${total}`
+      store.syncProgress = t('apple.progress.syncingPrice', { current: success + 1, total })
       const result = await appleApi.syncBasePrice(props.projectId, id)
       if (result.success) {
         store.updateProductBasePriceById(id, result.data.basePrice, result.data.baseCurrency)
@@ -126,7 +129,7 @@ async function handleBatchAction(key: string) {
     }
     store.syncing = false
     store.syncProgress = ''
-    notify.success(`已重整 ${success} 個商品的價格`)
+    notify.success(t('apple.toast.syncedPrice', { count: success }))
     return
   }
 
@@ -135,7 +138,7 @@ async function handleBatchAction(key: string) {
     let success = 0
     const total = ids.length
     for (const id of ids) {
-      store.syncProgress = `重整 Availability... ${success + 1}/${total}`
+      store.syncProgress = t('apple.progress.syncingAvail', { current: success + 1, total })
       const result = await appleApi.syncAvailability(props.projectId, id)
       if (result.success) {
         store.updateProductTerritoryCountById(id, result.data.territoryCount)
@@ -144,33 +147,37 @@ async function handleBatchAction(key: string) {
     }
     store.syncing = false
     store.syncProgress = ''
-    notify.success(`已重整 ${success} 個商品的 Availability`)
+    notify.success(t('apple.toast.syncedAvail', { count: success }))
     return
   }
 
   if (key === 'activate' || key === 'deactivate') {
     const available = key === 'activate'
-    const label = available ? '上架' : '下架'
+    const confirmKey = available ? 'apple.batch.confirmActivate' : 'apple.batch.confirmDeactivate'
+    const processingKey = available
+      ? 'apple.batch.processingActivate'
+      : 'apple.batch.processingDeactivate'
+    const successKey = available ? 'apple.batch.activateSuccess' : 'apple.batch.deactivateSuccess'
 
-    if (!confirm(`確定要${label}選取的 ${ids.length} 個商品嗎？`)) return
+    if (!confirm(t(confirmKey, { count: ids.length }))) return
 
-    notify.info(`正在批次${label}...`)
+    notify.info(t(processingKey))
     const result = await appleApi.batchUpdateAvailability(props.projectId, ids, available)
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
-        const errors = data.failed
+        const details = data.failed
           .map((f: { id: string; error: string }) => `${f.id}: ${f.error}`)
           .join('\n')
-        notify.error(`失敗 ${data.failed.length} 項\n${errors}`)
+        notify.error(t('apple.batch.failedItems', { count: data.failed.length, details }))
       }
       if (data.success.length > 0) {
-        notify.success(`成功${label} ${data.success.length} 項`)
+        notify.success(t(successKey, { count: data.success.length }))
       }
       store.clearSelection()
       await syncAll()
     } else {
-      notify.error(result.error || '操作失敗')
+      notify.error(result.error || t('apple.batch.opFailed'))
     }
   }
 }
@@ -190,7 +197,7 @@ async function onImportDone() {
 
 async function exportProducts() {
   if (store.products.length === 0) {
-    notify.error('沒有可匯出的商品，請先同步')
+    notify.error(t('apple.toast.exportEmpty'))
     return
   }
 
@@ -208,13 +215,13 @@ async function exportProducts() {
   }))
 
   store.exporting = true
-  store.exportProgress = '準備匯出...'
+  store.exportProgress = t('apple.progress.exportPreparing')
   const result = await appleApi.exportProducts(props.projectId, payload)
   store.exporting = false
   store.exportProgress = ''
 
   if (!result.success) {
-    notify.error(result.error || '匯出失敗')
+    notify.error(result.error || t('apple.toast.exportFail'))
     return
   }
 
@@ -222,18 +229,25 @@ async function exportProducts() {
   if (data.cancelled) return
 
   if (data.errors.length > 0) {
-    const lines = data.errors
+    const details = data.errors
       .map((e: { productId: string; error: string }) => `${e.productId}: ${e.error}`)
       .join('\n')
-    notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
+    notify.error(
+      t('apple.toast.exportPartial', {
+        exported: data.exported,
+        total: data.total,
+        failed: data.errors.length,
+        details
+      })
+    )
   } else {
-    notify.success(`匯出完成：${data.exported} 個商品`)
+    notify.success(t('apple.toast.exportSuccess', { count: data.exported }))
   }
 }
 
 async function createProduct() {
   if (!newProduct.value.productId || !newProduct.value.referenceName) {
-    notify.error('請填寫商品 ID 和名稱')
+    notify.error(t('apple.toast.createFillRequired'))
     return
   }
 
@@ -243,40 +257,21 @@ async function createProduct() {
   })
 
   if (result.success) {
-    notify.success('商品已建立')
+    notify.success(t('apple.toast.createSuccess'))
     showCreateForm.value = false
     newProduct.value = { productId: '', referenceName: '', inAppPurchaseType: 'CONSUMABLE' }
     await syncAll()
   } else {
-    notify.error(result.error || '建立失敗')
+    notify.error(result.error || t('apple.toast.createFail'))
   }
 }
 
+// Translates an Apple product state enum value, falling back to the raw
+// enum string when no translation exists (e.g. a brand-new state Apple
+// adds before we ship a dictionary update).
 function stateLabel(state: string): string {
-  const map: Record<string, string> = {
-    APPROVED: '已核准',
-    DEVELOPER_ACTION_NEEDED: '需開發者處理',
-    DEVELOPER_REMOVED_FROM_SALE: '已下架',
-    IN_REVIEW: '審核中',
-    MISSING_METADATA: '缺少資料',
-    PENDING_BINARY_UPLOAD: '待上傳',
-    PROCESSING_CONTENT: '處理中',
-    READY_TO_SUBMIT: '準備提交',
-    REJECTED: '已拒絕',
-    REMOVED_FROM_SALE: '已下架',
-    WAITING_FOR_REVIEW: '等待審核',
-    WAITING_FOR_UPLOAD: '待上傳'
-  }
-  return map[state] || state
-}
-
-function typeLabel(type: string): string {
-  const map: Record<string, string> = {
-    CONSUMABLE: '消耗型',
-    NON_CONSUMABLE: '非消耗型',
-    NON_RENEWING_SUBSCRIPTION: '非續訂型訂閱'
-  }
-  return map[type] || type
+  const key = `apple.state.${state}`
+  return te(key) ? t(key) : state
 }
 </script>
 
@@ -290,21 +285,21 @@ function typeLabel(type: string): string {
           class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
           @click="syncAll"
         >
-          同步商品
+          {{ t('apple.toolbar.sync') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing || store.products.length === 0"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="exportProducts"
         >
-          匯出
+          {{ t('apple.toolbar.export') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="importProducts"
         >
-          匯入
+          {{ t('apple.toolbar.import') }}
         </button>
         <span v-if="store.syncing" class="flex items-center gap-2 text-sm text-gray-400">
           <span
@@ -321,9 +316,12 @@ function typeLabel(type: string): string {
         <span v-if="store.products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
           {{
             filteredProducts.length !== store.products.length
-              ? `${filteredProducts.length} / `
-              : ''
-          }}{{ store.products.length }} 個商品
+              ? t('apple.toolbar.productCountFiltered', {
+                  filtered: filteredProducts.length,
+                  total: store.products.length
+                })
+              : t('apple.toolbar.productCount', { count: store.products.length })
+          }}
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -331,20 +329,22 @@ function typeLabel(type: string): string {
           v-model="searchQuery"
           type="text"
           class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          placeholder="搜尋 Product ID / Name..."
+          :placeholder="t('apple.toolbar.searchPlaceholder')"
         />
         <button
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
           @click="showCreateForm = true"
         >
-          + 新增商品
+          {{ t('apple.toolbar.create') }}
         </button>
       </div>
     </div>
 
     <!-- Batch Action Bar (inline) -->
     <div v-if="store.selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
-      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ store.selected.size }} 項</span>
+      <span class="text-sm whitespace-nowrap text-gray-300">
+        {{ t('apple.batch.selected', { count: store.selected.size }) }}
+      </span>
       <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
@@ -363,7 +363,7 @@ function typeLabel(type: string): string {
         class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
         @click="store.clearSelection()"
       >
-        取消選取
+        {{ t('apple.batch.clearSelection') }}
       </button>
     </div>
 
@@ -378,7 +378,7 @@ function typeLabel(type: string): string {
         "
         @click="setFilter(null)"
       >
-        全部 {{ store.products.length }}
+        {{ t('apple.filter.all', { count: store.products.length }) }}
       </button>
       <button
         v-for="group in statusGroups"
@@ -405,7 +405,7 @@ function typeLabel(type: string): string {
         class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
       >
         <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-100">新增 Apple IAP</h3>
+          <h3 class="text-lg font-semibold text-gray-100">{{ t('apple.create.title') }}</h3>
           <button
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
             @click="showCreateForm = false"
@@ -420,7 +420,7 @@ function typeLabel(type: string): string {
               v-model="newProduct.productId"
               type="text"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="例：com.example.coins100"
+              :placeholder="t('apple.create.productIdPlaceholder')"
             />
           </div>
           <div>
@@ -429,17 +429,19 @@ function typeLabel(type: string): string {
               v-model="newProduct.referenceName"
               type="text"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="例：100 金幣"
+              :placeholder="t('apple.create.refNamePlaceholder')"
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">類型</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('apple.create.typeLabel')
+            }}</label>
             <select
               v-model="newProduct.inAppPurchaseType"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
-              <option value="CONSUMABLE">消耗型</option>
-              <option value="NON_CONSUMABLE">非消耗型</option>
+              <option value="CONSUMABLE">{{ t('apple.type.CONSUMABLE') }}</option>
+              <option value="NON_CONSUMABLE">{{ t('apple.type.NON_CONSUMABLE') }}</option>
             </select>
           </div>
         </div>
@@ -448,13 +450,13 @@ function typeLabel(type: string): string {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="showCreateForm = false"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
             @click="createProduct"
           >
-            建立
+            {{ t('common.create') }}
           </button>
         </div>
       </div>
@@ -542,7 +544,11 @@ function typeLabel(type: string): string {
                 <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
                 <td class="px-3 py-3">
                   <span class="rounded-full bg-[#393b40] px-2 py-0.5 text-xs text-gray-400">
-                    {{ typeLabel(product.type) }}
+                    {{
+                      te(`apple.type.${product.type}`)
+                        ? t(`apple.type.${product.type}`)
+                        : product.type
+                    }}
                   </span>
                 </td>
                 <td class="px-3 py-3 font-mono text-sm text-gray-300">
@@ -557,7 +563,11 @@ function typeLabel(type: string): string {
                         : 'bg-red-600/20 text-red-400'
                     "
                   >
-                    {{ product.territoryCount > 0 ? product.territoryCount + ' 個地區' : '無' }}
+                    {{
+                      product.territoryCount > 0
+                        ? t('apple.table.territoryCount', { count: product.territoryCount })
+                        : t('apple.table.noTerritory')
+                    }}
                   </span>
                 </td>
                 <td class="px-3 py-3">
@@ -586,18 +596,20 @@ function typeLabel(type: string): string {
         v-else-if="!store.loading && !store.syncing && store.products.length === 0"
         class="py-20 text-center"
       >
-        <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
-        <p class="text-sm text-gray-500">請先設定 Apple 憑證，然後點擊「同步商品」</p>
+        <p class="mb-2 text-lg text-gray-500">{{ t('apple.empty.noProducts') }}</p>
+        <p class="text-sm text-gray-500">{{ t('apple.empty.noProductsHint') }}</p>
       </div>
       <div
         v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
         class="py-10 text-center"
       >
-        <p class="text-sm text-gray-500">此狀態下沒有商品</p>
+        <p class="text-sm text-gray-500">{{ t('apple.empty.filteredEmpty') }}</p>
       </div>
 
       <!-- Loading -->
-      <div v-if="store.loading" class="py-20 text-center text-gray-500">載入中...</div>
+      <div v-if="store.loading" class="py-20 text-center text-gray-500">
+        {{ t('common.loading') }}
+      </div>
     </div>
 
     <!-- Product Detail Modal -->

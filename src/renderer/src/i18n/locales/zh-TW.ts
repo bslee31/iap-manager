@@ -22,6 +22,8 @@ const zhTW = {
     close: '關閉',
     loading: '載入中...',
     saving: '儲存中...',
+    saveChanges: '儲存變更',
+    reload: '重新載入',
     success: '操作成功',
     error: '發生錯誤'
   },
@@ -63,6 +65,202 @@ const zhTW = {
     title: '設定',
     version: '應用程式版本',
     dataLocation: '資料儲存位置'
+  },
+
+  apple: {
+    toolbar: {
+      sync: '同步商品',
+      export: '匯出',
+      import: '匯入',
+      searchPlaceholder: '搜尋 Product ID / Name...',
+      create: '+ 新增商品',
+      productCount: '{count} 個商品',
+      productCountFiltered: '{filtered} / {total} 個商品'
+    },
+    batch: {
+      selected: '已選 {count} 項',
+      clearSelection: '取消選取',
+      syncPrice: '重整 Price',
+      syncAvailability: '重整 Availability',
+      activate: '批次上架',
+      deactivate: '批次下架',
+      confirmActivate: '確定要上架選取的 {count} 個商品嗎？',
+      confirmDeactivate: '確定要下架選取的 {count} 個商品嗎？',
+      processingActivate: '正在批次上架...',
+      processingDeactivate: '正在批次下架...',
+      activateSuccess: '成功上架 {count} 項',
+      deactivateSuccess: '成功下架 {count} 項',
+      failedItems: '失敗 {count} 項\n{details}',
+      opFailed: '操作失敗'
+    },
+    filter: {
+      all: '全部 {count}'
+    },
+    state: {
+      APPROVED: '已核准',
+      DEVELOPER_ACTION_NEEDED: '需開發者處理',
+      DEVELOPER_REMOVED_FROM_SALE: '已下架',
+      IN_REVIEW: '審核中',
+      MISSING_METADATA: '缺少資料',
+      PENDING_BINARY_UPLOAD: '待上傳',
+      PROCESSING_CONTENT: '處理中',
+      READY_TO_SUBMIT: '準備提交',
+      REJECTED: '已拒絕',
+      REMOVED_FROM_SALE: '已下架',
+      WAITING_FOR_REVIEW: '等待審核',
+      WAITING_FOR_UPLOAD: '待上傳'
+    },
+    type: {
+      CONSUMABLE: '消耗型',
+      NON_CONSUMABLE: '非消耗型',
+      NON_RENEWING_SUBSCRIPTION: '非續訂型訂閱'
+    },
+    table: {
+      territoryCount: '{count} 個地區',
+      noTerritory: '無'
+    },
+    empty: {
+      noProducts: '尚無商品資料',
+      noProductsHint: '請先設定 Apple 憑證，然後點擊「同步商品」',
+      filteredEmpty: '此狀態下沒有商品'
+    },
+    progress: {
+      connecting: '正在連線...',
+      syncingPrice: '重整 Price... {current}/{total}',
+      syncingAvail: '重整 Availability... {current}/{total}',
+      exportPreparing: '準備匯出...'
+    },
+    toast: {
+      syncSuccess: '同步完成，共 {count} 個商品',
+      syncFail: '同步失敗',
+      syncedPrice: '已重整 {count} 個商品的價格',
+      syncedAvail: '已重整 {count} 個商品的 Availability',
+      exportEmpty: '沒有可匯出的商品，請先同步',
+      exportFail: '匯出失敗',
+      exportPartial: '已匯出 {exported}/{total}，{failed} 項失敗\n{details}',
+      exportSuccess: '匯出完成：{count} 個商品',
+      createFillRequired: '請填寫商品 ID 和名稱',
+      createSuccess: '商品已建立',
+      createFail: '建立失敗'
+    },
+    create: {
+      title: '新增 Apple IAP',
+      typeLabel: '類型',
+      productIdPlaceholder: '例：com.example.coins100',
+      refNamePlaceholder: '例：100 金幣'
+    },
+    detail: {
+      tabs: {
+        info: 'Info',
+        availability: 'Availability',
+        price: 'Price Schedule',
+        localization: 'Localization'
+      },
+      info: {
+        idLockedHint: 'Product ID 建立後無法修改',
+        notEditable: '此狀態（{state}）下 Apple 不允許修改',
+        refNameHint: 'App Store Connect 內部顯示名稱，不影響使用者看到的內容',
+        toast: {
+          updateSuccess: 'Reference Name 已更新',
+          updateFail: '更新失敗'
+        }
+      },
+      availability: {
+        loadFail: '載入 Availability 失敗',
+        title: 'Country or Region Availability ({count})',
+        searchPlaceholder: '搜尋地區...',
+        selectedHint: '已選擇 {count} 個地區',
+        selectAll: 'Select All',
+        deselectAll: 'Deselect All',
+        newTerritoriesHint:
+          'Make your in-app purchase automatically available in all future App Store countries or regions.',
+        saveButton: '儲存 Availability',
+        toast: {
+          updateSuccess: 'Availability 已更新',
+          updateFail: '更新失敗'
+        }
+      },
+      price: {
+        adjustBase: '調整基準定價',
+        baseRegion: '基準地區',
+        priceLabel: '價格',
+        baseRegionPlaceholder: '選擇基準地區...',
+        pricePlaceholder: '選擇價格...',
+        loadingPricePoints: '載入價格選項中...',
+        saveButton: '儲存價格',
+        autoConvertHint: 'Apple 會依所選價格點自動換算其他地區。',
+        regionPrices: 'Country or Region Prices',
+        searchPlaceholder: '搜尋地區...',
+        baseLabel: 'Base Country or Region: {region} ({currency}) - {price}',
+        onlyAvailable: '只顯示已上架地區',
+        loading: '載入地區價格中...',
+        noMatch: '找不到符合的地區',
+        noPrices: '尚未設定價格',
+        editTitle: '修改價格 — {region} ({currency})',
+        editTooltip: '修改價格',
+        toast: {
+          missingPricePoint: '請選擇價格',
+          updateSuccess: '價格已更新',
+          updateRegionSuccess: '{region} 價格已更新',
+          updateFail: '更新失敗'
+        }
+      },
+      localization: {
+        langCount: '{count} 個語言',
+        addLang: '+ 新增語言',
+        empty: '尚未新增任何本地化資料',
+        createTitle: '新增本地化',
+        editTitle: '編輯本地化',
+        localePlaceholder: '請選擇語言...',
+        namePlaceholder: '商品名稱',
+        descPlaceholder: '商品描述（選填）',
+        deleteConfirm: '確定要刪除 {locale} 的本地化資料嗎？',
+        toast: {
+          fillRequired: '請填寫 Locale 和 Name',
+          createSuccess: '已新增',
+          createFail: '新增失敗',
+          updateSuccess: '已更新',
+          updateFail: '更新失敗',
+          deleteSuccess: '已刪除',
+          deleteFail: '刪除失敗'
+        }
+      }
+    },
+    import: {
+      header: {
+        validating: '驗證檔案中...',
+        validationError: '匯入檔案有問題',
+        preview: '確認匯入',
+        importing: '匯入中',
+        done: '匯入結果'
+      },
+      validating: '讀取並驗證檔案中...',
+      issuesIntro: '發現 {issues} 個問題（{products} 筆商品），請修正後重新匯入：',
+      productsIntro: '將匯入 {count} 個商品：',
+      importingHint: '匯入過程請勿關閉視窗',
+      stats: {
+        fullSuccess: '完全成功',
+        partial: '部分成功',
+        failed: '建立失敗'
+      },
+      failedTitle: '建立失敗（{count}）',
+      partialTitle: '商品已建立，但部分步驟失敗（{count}）',
+      noResults: '沒有匯入結果',
+      confirmImport: '確認匯入',
+      progressPreparing: '準備匯入...',
+      step: {
+        create: '建立商品',
+        availability: '設定 Availability',
+        price: '設定 Base Price',
+        customPrice: '設定自訂價格',
+        localization: '建立 Localization'
+      },
+      toast: {
+        validationFail: '驗證失敗',
+        importFail: '匯入失敗',
+        ipcFail: 'IPC 呼叫失敗: {detail}'
+      }
+    }
   }
 }
 

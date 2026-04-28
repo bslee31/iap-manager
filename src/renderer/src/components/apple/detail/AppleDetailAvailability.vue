@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import {
@@ -19,6 +20,7 @@ const props = defineProps<{
 const selectedTerritories = defineModel<Set<string>>('selectedTerritories', { required: true })
 const availableInNewTerritories = defineModel<boolean>('availableInNew', { required: true })
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -87,29 +89,29 @@ async function saveAvailability() {
   )
   availSaving.value = false
   if (result.success) {
-    notify.success('Availability 已更新')
+    notify.success(t('apple.detail.availability.toast.updateSuccess'))
     store.updateProductTerritoryCount(selectedTerritories.value.size)
   } else {
-    notify.error(result.error || '更新失敗')
+    notify.error(result.error || t('apple.detail.availability.toast.updateFail'))
   }
 }
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div v-if="loading" class="py-10 text-center text-gray-500">載入中...</div>
+    <div v-if="loading" class="py-10 text-center text-gray-500">{{ t('common.loading') }}</div>
     <template v-else>
       <!-- Top controls (fixed) -->
       <div class="shrink-0 px-6 pt-6 pb-2">
         <div class="mb-3 flex items-center justify-between">
           <h4 class="text-sm font-medium text-gray-200">
-            Country or Region Availability ({{ selectedTerritories.size }})
+            {{ t('apple.detail.availability.title', { count: selectedTerritories.size }) }}
           </h4>
           <input
             v-model="territorySearch"
             type="text"
             class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-            placeholder="搜尋地區..."
+            :placeholder="t('apple.detail.availability.searchPlaceholder')"
           />
         </div>
 
@@ -130,7 +132,7 @@ async function saveAvailability() {
           </span>
         </div>
         <p v-else-if="selectedTerritories.size > 20" class="mb-3 text-xs text-gray-500">
-          已選擇 {{ selectedTerritories.size }} 個地區
+          {{ t('apple.detail.availability.selectedHint', { count: selectedTerritories.size }) }}
         </p>
 
         <div class="flex items-center gap-1 text-xs">
@@ -146,6 +148,7 @@ async function saveAvailability() {
             None
           </button>
         </div>
+        <!-- "Select All / None" kept in English to mirror Apple's own console UI. -->
       </div>
 
       <!-- Scrollable region list -->
@@ -168,9 +171,9 @@ async function saveAvailability() {
               @click.stop="toggleRegionAll(group)"
             >
               {{
-                group.territories.every((t) => selectedTerritories.has(t.code))
-                  ? 'Deselect All'
-                  : 'Select All'
+                group.territories.every((tt) => selectedTerritories.has(tt.code))
+                  ? t('apple.detail.availability.deselectAll')
+                  : t('apple.detail.availability.selectAll')
               }}
             </span>
           </button>
@@ -197,10 +200,9 @@ async function saveAvailability() {
       <div class="shrink-0 border-t border-[#393b40] px-6 py-4">
         <label class="mb-3 flex cursor-pointer items-center gap-2">
           <input v-model="availableInNewTerritories" type="checkbox" class="rounded" />
-          <span class="text-sm text-gray-300"
-            >Make your in-app purchase automatically available in all future App Store countries or
-            regions.</span
-          >
+          <span class="text-sm text-gray-300">{{
+            t('apple.detail.availability.newTerritoriesHint')
+          }}</span>
         </label>
         <div class="flex justify-end">
           <button
@@ -208,7 +210,7 @@ async function saveAvailability() {
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             @click="saveAvailability"
           >
-            {{ availSaving ? '儲存中...' : '儲存 Availability' }}
+            {{ availSaving ? t('common.saving') : t('apple.detail.availability.saveButton') }}
           </button>
         </div>
       </div>

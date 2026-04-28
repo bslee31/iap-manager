@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
 import * as appleApi from '../../../services/api/apple'
 
@@ -8,6 +9,7 @@ const props = defineProps<{
   iapId: string
 }>()
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 
 interface Localization {
@@ -70,14 +72,14 @@ async function saveLoc() {
       description: editingLoc.value.description
     })
     if (result.success) {
-      notify.success('已更新')
+      notify.success(t('apple.detail.localization.toast.updateSuccess'))
       await loadLocalizations()
     } else {
-      notify.error(result.error || '更新失敗')
+      notify.error(result.error || t('apple.detail.localization.toast.updateFail'))
     }
   } else {
     if (!editingLoc.value.locale || !editingLoc.value.name) {
-      notify.error('請填寫 Locale 和 Name')
+      notify.error(t('apple.detail.localization.toast.fillRequired'))
       locSaving.value = false
       return
     }
@@ -87,10 +89,10 @@ async function saveLoc() {
       description: editingLoc.value.description
     })
     if (result.success) {
-      notify.success('已新增')
+      notify.success(t('apple.detail.localization.toast.createSuccess'))
       await loadLocalizations()
     } else {
-      notify.error(result.error || '新增失敗')
+      notify.error(result.error || t('apple.detail.localization.toast.createFail'))
     }
   }
 
@@ -99,13 +101,13 @@ async function saveLoc() {
 }
 
 async function deleteLoc(loc: Localization) {
-  if (!confirm(`確定要刪除 ${loc.locale} 的本地化資料嗎？`)) return
+  if (!confirm(t('apple.detail.localization.deleteConfirm', { locale: loc.locale }))) return
   const result = await appleApi.deleteLocalization(props.projectId, loc.id)
   if (result.success) {
-    notify.success('已刪除')
+    notify.success(t('apple.detail.localization.toast.deleteSuccess'))
     await loadLocalizations()
   } else {
-    notify.error(result.error || '刪除失敗')
+    notify.error(result.error || t('apple.detail.localization.toast.deleteFail'))
   }
 }
 
@@ -173,16 +175,18 @@ onMounted(() => {
 
 <template>
   <div class="flex-1 overflow-y-auto p-6">
-    <div v-if="locLoading" class="py-10 text-center text-gray-500">載入中...</div>
+    <div v-if="locLoading" class="py-10 text-center text-gray-500">{{ t('common.loading') }}</div>
     <template v-else>
       <!-- Add button -->
       <div class="mb-4 flex items-center justify-between">
-        <span class="text-sm text-gray-400">{{ localizations.length }} 個語言</span>
+        <span class="text-sm text-gray-400">{{
+          t('apple.detail.localization.langCount', { count: localizations.length })
+        }}</span>
         <button
           class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
           @click="openLocForm()"
         >
-          + 新增語言
+          {{ t('apple.detail.localization.addLang') }}
         </button>
       </div>
 
@@ -205,14 +209,14 @@ onMounted(() => {
           <div class="flex shrink-0 gap-1">
             <button
               class="p-1 text-gray-500 transition-colors hover:text-blue-400"
-              title="編輯"
+              :title="t('common.edit')"
               @click="openLocForm(loc)"
             >
               &#9998;
             </button>
             <button
               class="p-1 text-gray-500 transition-colors hover:text-red-400"
-              title="刪除"
+              :title="t('common.delete')"
               @click="deleteLoc(loc)"
             >
               &#10005;
@@ -220,7 +224,9 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      <p v-else class="py-6 text-center text-sm text-gray-500">尚未新增任何本地化資料</p>
+      <p v-else class="py-6 text-center text-sm text-gray-500">
+        {{ t('apple.detail.localization.empty') }}
+      </p>
 
       <!-- Edit/Create form modal -->
       <div
@@ -233,7 +239,11 @@ onMounted(() => {
         >
           <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
-              {{ editingLoc.id ? '編輯本地化' : '新增本地化' }}
+              {{
+                editingLoc.id
+                  ? t('apple.detail.localization.editTitle')
+                  : t('apple.detail.localization.createTitle')
+              }}
             </h4>
             <button
               class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
@@ -250,7 +260,9 @@ onMounted(() => {
                 v-model="editingLoc.locale"
                 class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
-                <option value="" disabled>請選擇語言...</option>
+                <option value="" disabled>
+                  {{ t('apple.detail.localization.localePlaceholder') }}
+                </option>
                 <option v-for="l in availableLocales" :key="l.value" :value="l.value">
                   {{ l.label }}
                 </option>
@@ -271,7 +283,7 @@ onMounted(() => {
                 type="text"
                 maxlength="35"
                 class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="商品名稱"
+                :placeholder="t('apple.detail.localization.namePlaceholder')"
               />
             </div>
             <div>
@@ -290,7 +302,7 @@ onMounted(() => {
                 rows="3"
                 maxlength="55"
                 class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                placeholder="商品描述（選填）"
+                :placeholder="t('apple.detail.localization.descPlaceholder')"
               />
             </div>
           </div>
@@ -299,14 +311,14 @@ onMounted(() => {
               class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
               @click="editingLoc = null"
             >
-              取消
+              {{ t('common.cancel') }}
             </button>
             <button
               :disabled="locSaving"
               class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               @click="saveLoc"
             >
-              {{ locSaving ? '儲存中...' : '儲存' }}
+              {{ locSaving ? t('common.saving') : t('common.save') }}
             </button>
           </div>
         </div>

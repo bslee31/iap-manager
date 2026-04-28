@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import * as appleApi from '../../../services/api/apple'
@@ -13,6 +14,7 @@ const props = defineProps<{
   referenceName: string
 }>()
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -48,10 +50,10 @@ async function saveReferenceName(): Promise<void> {
   })
   savingReferenceName.value = false
   if (result.success) {
-    notify.success('Reference Name 已更新')
+    notify.success(t('apple.detail.info.toast.updateSuccess'))
     store.updateProductReferenceName(result.data.referenceName)
   } else {
-    notify.error(result.error || '更新失敗')
+    notify.error(result.error || t('apple.detail.info.toast.updateFail'))
   }
 }
 </script>
@@ -67,7 +69,7 @@ async function saveReferenceName(): Promise<void> {
         >
           {{ productId }}
         </div>
-        <p class="mt-1 text-xs text-gray-500">Product ID 建立後無法修改</p>
+        <p class="mt-1 text-xs text-gray-500">{{ t('apple.detail.info.idLockedHint') }}</p>
       </div>
 
       <!-- Type (read-only) -->
@@ -103,10 +105,10 @@ async function saveReferenceName(): Promise<void> {
         />
         <div class="mt-1 flex items-center justify-between">
           <p v-if="!canEditReferenceName" class="text-xs text-yellow-500">
-            此狀態（{{ state }}）下 Apple 不允許修改
+            {{ t('apple.detail.info.notEditable', { state }) }}
           </p>
           <p v-else class="text-xs text-gray-500">
-            App Store Connect 內部顯示名稱，不影響使用者看到的內容
+            {{ t('apple.detail.info.refNameHint') }}
           </p>
           <p class="ml-2 shrink-0 text-xs text-gray-500">
             {{ editingReferenceName.length }} / {{ MAX_REF_NAME }}
@@ -125,7 +127,7 @@ async function saveReferenceName(): Promise<void> {
           class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           @click="saveReferenceName"
         >
-          {{ savingReferenceName ? '儲存中...' : '儲存變更' }}
+          {{ savingReferenceName ? t('common.saving') : t('common.saveChanges') }}
         </button>
       </div>
     </div>

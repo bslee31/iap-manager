@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../stores/notification.store'
 import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleDetailInfo from './detail/AppleDetailInfo.vue'
@@ -11,6 +12,7 @@ import * as appleApi from '../../services/api/apple'
 const props = defineProps<{ projectId: string }>()
 defineEmits<{ close: [] }>()
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -46,7 +48,7 @@ async function loadAvailability(): Promise<void> {
       allTerritories.value = terrResult.data
     }
   } catch {
-    notify.error('載入 Availability 失敗')
+    notify.error(t('apple.detail.availability.loadFail'))
   }
   availLoading.value = false
 }
@@ -97,15 +99,7 @@ onMounted(loadAvailability)
           "
           @click="activeTab = tab"
         >
-          {{
-            tab === 'info'
-              ? 'Info'
-              : tab === 'availability'
-                ? 'Availability'
-                : tab === 'price'
-                  ? 'Price Schedule'
-                  : 'Localization'
-          }}
+          {{ t(`apple.detail.tabs.${tab}`) }}
         </button>
       </div>
 

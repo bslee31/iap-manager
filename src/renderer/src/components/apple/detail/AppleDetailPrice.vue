@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import { territoryName } from '../../../utils/territory-names'
@@ -15,6 +16,7 @@ const props = defineProps<{
   selectedTerritories: Set<string>
 }>()
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -138,11 +140,15 @@ async function saveEditTerritoryPrice() {
   )
   editTerrSaving.value = false
   if (result.success) {
-    notify.success(`${territoryName(editingTerrPrice.value.territory)} 價格已更新`)
+    notify.success(
+      t('apple.detail.price.toast.updateRegionSuccess', {
+        region: territoryName(editingTerrPrice.value.territory)
+      })
+    )
     editingTerrPrice.value = null
     await loadAllTerritoryPrices()
   } else {
-    notify.error(result.error || '更新失敗')
+    notify.error(result.error || t('apple.detail.price.toast.updateFail'))
   }
 }
 
@@ -203,7 +209,7 @@ async function loadPricePoints() {
 
 async function savePriceSchedule() {
   if (!selectedPricePoint.value) {
-    notify.error('請選擇價格')
+    notify.error(t('apple.detail.price.toast.missingPricePoint'))
     return
   }
   priceSaving.value = true
@@ -215,13 +221,13 @@ async function savePriceSchedule() {
   )
   priceSaving.value = false
   if (result.success) {
-    notify.success('價格已更新')
+    notify.success(t('apple.detail.price.toast.updateSuccess'))
     await Promise.all([loadPriceSchedule(), loadAllTerritoryPrices()])
     if (allPricesData.value) {
       store.updateProductPrice(allPricesData.value.basePrice, allPricesData.value.baseCurrency)
     }
   } else {
-    notify.error(result.error || '更新失敗')
+    notify.error(result.error || t('apple.detail.price.toast.updateFail'))
   }
 }
 
@@ -238,27 +244,37 @@ onMounted(() => {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col">
-    <div v-if="priceLoading" class="py-10 text-center text-gray-500">載入中...</div>
+    <div v-if="priceLoading" class="py-10 text-center text-gray-500">{{ t('common.loading') }}</div>
     <template v-else>
       <!-- Set base price -->
       <div class="shrink-0 px-6 pt-4 pb-3">
         <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
-          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">調整基準定價</div>
+          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">
+            {{ t('apple.detail.price.adjustBase') }}
+          </div>
           <div class="flex items-end gap-2">
             <div class="min-w-0 flex-1">
-              <label class="mb-1 block text-xs text-gray-500">基準地區</label>
+              <label class="mb-1 block text-xs text-gray-500">{{
+                t('apple.detail.price.baseRegion')
+              }}</label>
               <SearchableSelect
                 v-model="selectedTerritory"
-                :options="territoryOptions.map((t) => ({ value: t.code, label: t.label }))"
-                placeholder="選擇基準地區..."
+                :options="territoryOptions.map((opt) => ({ value: opt.code, label: opt.label }))"
+                :placeholder="t('apple.detail.price.baseRegionPlaceholder')"
               />
             </div>
             <div class="min-w-0 flex-1">
-              <label class="mb-1 block text-xs text-gray-500">價格</label>
+              <label class="mb-1 block text-xs text-gray-500">{{
+                t('apple.detail.price.priceLabel')
+              }}</label>
               <SearchableSelect
                 v-model="selectedPricePoint"
                 :options="pricePointOptions"
-                :placeholder="pricePointsLoading ? '載入價格選項中...' : '選擇價格...'"
+                :placeholder="
+                  pricePointsLoading
+                    ? t('apple.detail.price.loadingPricePoints')
+                    : t('apple.detail.price.pricePlaceholder')
+                "
               />
             </div>
             <button
@@ -266,48 +282,56 @@ onMounted(() => {
               class="rounded-lg bg-blue-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               @click="savePriceSchedule"
             >
-              {{ priceSaving ? '儲存中...' : '儲存價格' }}
+              {{ priceSaving ? t('common.saving') : t('apple.detail.price.saveButton') }}
             </button>
           </div>
-          <p class="mt-2 text-xs text-gray-500">Apple 會依所選價格點自動換算其他地區。</p>
+          <p class="mt-2 text-xs text-gray-500">{{ t('apple.detail.price.autoConvertHint') }}</p>
         </div>
       </div>
 
       <!-- All territory prices -->
       <div class="shrink-0 border-t border-[#393b40] px-6 pt-4 pb-2">
         <div class="flex items-center justify-between">
-          <h4 class="text-sm font-medium text-gray-300">Country or Region Prices</h4>
+          <h4 class="text-sm font-medium text-gray-300">
+            {{ t('apple.detail.price.regionPrices') }}
+          </h4>
           <div class="flex items-center gap-3">
             <input
               v-model="priceSearch"
               type="text"
               class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-              placeholder="搜尋地區..."
+              :placeholder="t('apple.detail.price.searchPlaceholder')"
             />
             <button
               v-if="!allPricesLoading"
               class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40]"
               @click="loadAllTerritoryPrices"
             >
-              重新載入
+              {{ t('common.reload') }}
             </button>
           </div>
         </div>
         <div class="mt-1 flex items-center justify-between">
           <p v-if="allPricesData" class="text-xs text-gray-500">
-            Base Country or Region: {{ territoryName(allPricesData.baseTerritory) }} ({{
-              allPricesData.baseCurrency
-            }}) - {{ allPricesData.basePrice }}
+            {{
+              t('apple.detail.price.baseLabel', {
+                region: territoryName(allPricesData.baseTerritory),
+                currency: allPricesData.baseCurrency,
+                price: allPricesData.basePrice
+              })
+            }}
           </p>
           <label class="flex cursor-pointer items-center gap-1.5">
             <input v-model="priceOnlyAvailable" type="checkbox" class="h-3 w-3 rounded" />
-            <span class="text-xs text-gray-400">只顯示已上架地區</span>
+            <span class="text-xs text-gray-400">{{ t('apple.detail.price.onlyAvailable') }}</span>
           </label>
         </div>
       </div>
 
       <div class="min-h-0 flex-1 px-6 pb-4">
-        <div v-if="allPricesLoading" class="py-6 text-center text-gray-500">載入地區價格中...</div>
+        <div v-if="allPricesLoading" class="py-6 text-center text-gray-500">
+          {{ t('apple.detail.price.loading') }}
+        </div>
         <div
           v-else-if="filteredPrices.length > 0"
           class="flex h-full flex-col overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]"
@@ -358,7 +382,7 @@ onMounted(() => {
                     <button
                       v-if="tp.territory !== allPricesData?.baseTerritory"
                       class="text-gray-500 transition-colors hover:text-blue-400"
-                      title="修改價格"
+                      :title="t('apple.detail.price.editTooltip')"
                       @click="openEditTerritoryPrice(tp)"
                     >
                       &#9998;
@@ -370,10 +394,10 @@ onMounted(() => {
           </div>
         </div>
         <p v-else-if="allPricesData && priceSearch" class="py-4 text-center text-sm text-gray-500">
-          找不到符合的地區
+          {{ t('apple.detail.price.noMatch') }}
         </p>
         <p v-else-if="!allPricesLoading" class="py-6 text-center text-sm text-gray-500">
-          尚未設定價格
+          {{ t('apple.detail.price.noPrices') }}
         </p>
       </div>
 
@@ -388,9 +412,12 @@ onMounted(() => {
         >
           <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
-              修改價格 — {{ territoryName(editingTerrPrice.territory) }} ({{
-                editingTerrPrice.currency
-              }})
+              {{
+                t('apple.detail.price.editTitle', {
+                  region: territoryName(editingTerrPrice.territory),
+                  currency: editingTerrPrice.currency
+                })
+              }}
             </h4>
             <button
               class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
@@ -400,14 +427,14 @@ onMounted(() => {
             </button>
           </div>
           <div v-if="editTerrPriceLoading" class="py-6 text-center text-gray-500">
-            載入價格選項中...
+            {{ t('apple.detail.price.loadingPricePoints') }}
           </div>
           <template v-else>
             <div class="mb-4">
               <SearchableSelect
                 v-model="editTerrSelectedPP"
                 :options="editTerrPPOptions"
-                placeholder="選擇價格..."
+                :placeholder="t('apple.detail.price.pricePlaceholder')"
               />
             </div>
             <div class="flex justify-end gap-2">
@@ -415,14 +442,14 @@ onMounted(() => {
                 class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
                 @click="editingTerrPrice = null"
               >
-                取消
+                {{ t('common.cancel') }}
               </button>
               <button
                 :disabled="editTerrSaving || !editTerrSelectedPP"
                 class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
                 @click="saveEditTerritoryPrice"
               >
-                {{ editTerrSaving ? '儲存中...' : '儲存' }}
+                {{ editTerrSaving ? t('common.saving') : t('common.save') }}
               </button>
             </div>
           </template>

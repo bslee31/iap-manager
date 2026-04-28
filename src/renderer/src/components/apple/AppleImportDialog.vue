@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as appleApi from '../../services/api/apple'
 import * as progressApi from '../../services/api/progress'
+
+const { t, te } = useI18n()
 
 interface ImportValidationIssue {
   index: number
@@ -80,7 +83,7 @@ onMounted(async () => {
     props.existingProductIds
   )
   if (!res.success) {
-    fatalError.value = res.error || '驗證失敗'
+    fatalError.value = res.error || t('apple.import.toast.validationFail')
     state.value = 'validationError'
     preview.value = { valid: false, products: [], issues: [] }
     return
@@ -119,7 +122,7 @@ const stats = computed(() => {
 async function confirmImport(): Promise<void> {
   if (!preview.value) return
   state.value = 'importing'
-  importProgress.value = '準備匯入...'
+  importProgress.value = t('apple.import.progressPreparing')
   try {
     // Deep-clone to strip Vue reactive proxies — Electron IPC cannot
     // structured-clone a reactive wrapper.
@@ -127,14 +130,15 @@ async function confirmImport(): Promise<void> {
     const rawCurrencyMap = JSON.parse(JSON.stringify(preview.value.territoryCurrencyMap || {}))
     const res = await appleApi.executeImport(props.projectId, rawProducts, rawCurrencyMap)
     if (!res.success) {
-      fatalError.value = res.error || '匯入失敗'
+      fatalError.value = res.error || t('apple.import.toast.importFail')
       state.value = 'done'
       return
     }
     results.value = res.data.results
     state.value = 'done'
-  } catch (e: any) {
-    fatalError.value = `IPC 呼叫失敗: ${e?.message || String(e)}`
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e)
+    fatalError.value = t('apple.import.toast.ipcFail', { detail })
     state.value = 'done'
   }
 }
@@ -154,23 +158,13 @@ function onBackdropClick(): void {
 }
 
 function stepLabel(step: string): string {
-  const map: Record<string, string> = {
-    create: '建立商品',
-    availability: '設定 Availability',
-    price: '設定 Base Price',
-    customPrice: '設定自訂價格',
-    localization: '建立 Localization'
-  }
-  return map[step] || step
+  const key = `apple.import.step.${step}`
+  return te(key) ? t(key) : step
 }
 
 function typeLabel(type: string): string {
-  const map: Record<string, string> = {
-    CONSUMABLE: '消耗型',
-    NON_CONSUMABLE: '非消耗型',
-    NON_RENEWING_SUBSCRIPTION: '非續訂型訂閱'
-  }
-  return map[type] || type
+  const key = `apple.type.${type}`
+  return te(key) ? t(key) : type
 }
 
 function formatPrice(ps?: ImportedProduct['priceSchedule']): string {
@@ -200,11 +194,7 @@ function formatDate(iso?: string): string {
       <!-- Header -->
       <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] p-6">
         <h3 class="text-lg font-semibold text-gray-100">
-          <template v-if="state === 'validating'">驗證檔案中...</template>
-          <template v-else-if="state === 'validationError'">匯入檔案有問題</template>
-          <template v-else-if="state === 'preview'">確認匯入</template>
-          <template v-else-if="state === 'importing'">匯入中</template>
-          <template v-else-if="state === 'done'">匯入結果</template>
+          {{ t(`apple.import.header.${state}`) }}
         </h3>
         <button
           v-if="state !== 'importing'"
@@ -222,7 +212,7 @@ function formatDate(iso?: string): string {
           <span
             class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"
           />
-          讀取並驗證檔案中...
+          {{ t('apple.import.validating') }}
         </div>
 
         <!-- Validation errors -->
@@ -239,8 +229,12 @@ function formatDate(iso?: string): string {
           </div>
 
           <p v-if="preview && preview.issues.length > 0" class="mb-3 text-sm text-gray-300">
-            發現 {{ preview.issues.length }} 個問題（{{ issuesByProduct.length }}
-            筆商品），請修正後重新匯入：
+            {{
+              t('apple.import.issuesIntro', {
+                issues: preview.issues.length,
+                products: issuesByProduct.length
+              })
+            }}
           </p>
 
           <div v-if="preview" class="space-y-3">
@@ -273,8 +267,7 @@ function formatDate(iso?: string): string {
           </div>
 
           <p class="mb-3 text-sm text-gray-300">
-            將匯入
-            <span class="font-semibold text-blue-400">{{ preview.products.length }}</span> 個商品：
+            {{ t('apple.import.productsIntro', { count: preview.products.length }) }}
           </p>
 
           <!-- Products table -->
@@ -292,7 +285,7 @@ function formatDate(iso?: string): string {
                     Type
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    地區
+                    {{ t('apple.detail.tabs.availability') }}
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Price
@@ -328,7 +321,7 @@ function formatDate(iso?: string): string {
             class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-blue-400 border-t-transparent"
           />
           <div class="text-sm text-gray-300">{{ importProgress }}</div>
-          <div class="text-xs text-gray-500">匯入過程請勿關閉視窗</div>
+          <div class="text-xs text-gray-500">{{ t('apple.import.importingHint') }}</div>
         </div>
 
         <!-- Done -->
@@ -337,22 +330,30 @@ function formatDate(iso?: string): string {
 
           <div class="mb-4 grid grid-cols-3 gap-3">
             <div class="rounded-lg border border-green-600/30 bg-green-600/10 p-3">
-              <div class="mb-1 text-xs text-green-400 uppercase">完全成功</div>
+              <div class="mb-1 text-xs text-green-400 uppercase">
+                {{ t('apple.import.stats.fullSuccess') }}
+              </div>
               <div class="text-2xl font-semibold text-green-300">{{ stats.fullSuccess }}</div>
             </div>
             <div class="rounded-lg border border-yellow-600/30 bg-yellow-600/10 p-3">
-              <div class="mb-1 text-xs text-yellow-400 uppercase">部分成功</div>
+              <div class="mb-1 text-xs text-yellow-400 uppercase">
+                {{ t('apple.import.stats.partial') }}
+              </div>
               <div class="text-2xl font-semibold text-yellow-300">{{ stats.partial }}</div>
             </div>
             <div class="rounded-lg border border-red-600/30 bg-red-600/10 p-3">
-              <div class="mb-1 text-xs text-red-400 uppercase">建立失敗</div>
+              <div class="mb-1 text-xs text-red-400 uppercase">
+                {{ t('apple.import.stats.failed') }}
+              </div>
               <div class="text-2xl font-semibold text-red-300">{{ stats.failed }}</div>
             </div>
           </div>
 
           <!-- Failed products -->
           <div v-if="stats.failed > 0" class="mb-4">
-            <h4 class="mb-2 text-sm font-medium text-red-400">建立失敗（{{ stats.failed }}）</h4>
+            <h4 class="mb-2 text-sm font-medium text-red-400">
+              {{ t('apple.import.failedTitle', { count: stats.failed }) }}
+            </h4>
             <div class="space-y-2">
               <div
                 v-for="r in results.filter((x) => !x.created)"
@@ -376,7 +377,7 @@ function formatDate(iso?: string): string {
           <!-- Partial-success products -->
           <div v-if="stats.partial > 0">
             <h4 class="mb-2 text-sm font-medium text-yellow-400">
-              商品已建立，但部分步驟失敗（{{ stats.partial }}）
+              {{ t('apple.import.partialTitle', { count: stats.partial }) }}
             </h4>
             <div class="space-y-2">
               <div
@@ -399,7 +400,7 @@ function formatDate(iso?: string): string {
           </div>
 
           <div v-if="stats.total === 0 && !fatalError" class="text-sm text-gray-400">
-            沒有匯入結果
+            {{ t('apple.import.noResults') }}
           </div>
         </div>
       </div>
@@ -414,13 +415,13 @@ function formatDate(iso?: string): string {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="close"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
             @click="confirmImport"
           >
-            確認匯入
+            {{ t('apple.import.confirmImport') }}
           </button>
         </template>
         <template v-else>
@@ -428,7 +429,7 @@ function formatDate(iso?: string): string {
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
             @click="close"
           >
-            關閉
+            {{ t('common.close') }}
           </button>
         </template>
       </div>
