@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { statusLabel, statusColor } from '../../../utils/google-product-status'
+import { useI18n } from 'vue-i18n'
+import { statusColor } from '../../../utils/google-product-status'
+
+const { t, te } = useI18n()
 
 interface PurchaseOption {
   purchaseOptionId: string
@@ -37,9 +40,10 @@ const derivedStatusLabel = computed(() => {
   const total = pos.length
   const active = pos.filter((po) => po.state === 'ACTIVE').length
   if (total > 1 && active > 0 && active < total) {
-    return `${active}/${total} 上架中`
+    return t('google.statusMixed', { active, total })
   }
-  return statusLabel(derivedStatus.value)
+  const key = `google.status.${derivedStatus.value}`
+  return te(key) ? t(key) : derivedStatus.value
 })
 </script>
 
@@ -52,7 +56,7 @@ const derivedStatusLabel = computed(() => {
       >
         {{ detail.productId }}
       </div>
-      <p class="mt-1 text-xs text-gray-500">Product ID 建立後無法修改</p>
+      <p class="mt-1 text-xs text-gray-500">{{ t('google.detail.info.idLockedHint') }}</p>
     </div>
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Status</label>
@@ -68,13 +72,13 @@ const derivedStatusLabel = computed(() => {
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Purchase Options</label>
       <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
-        共 {{ detail.purchaseOptions.length }} 個方案
+        {{ t('google.detail.info.poCount', { count: detail.purchaseOptions.length }) }}
       </div>
     </div>
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Listings</label>
       <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
-        共 {{ detail.listings.length }} 個語言
+        {{ t('google.detail.info.listingCount', { count: detail.listings.length }) }}
       </div>
     </div>
   </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../stores/notification.store'
 import { useGoogleProductsStore, type GoogleProduct } from '../../stores/google-products.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
@@ -10,6 +11,7 @@ import * as googleApi from '../../services/api/google'
 import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
+const { t, te } = useI18n()
 const notify = useNotificationStore()
 const store = useGoogleProductsStore()
 
@@ -116,10 +118,10 @@ const allSelected = computed(() => {
   return filteredProducts.value.length > 0 && store.selected.size === filteredProducts.value.length
 })
 
-const batchActions = [
-  { key: 'activate', label: '批次上架' },
-  { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
-]
+const batchActions = computed(() => [
+  { key: 'activate', label: t('google.batch.activate') },
+  { key: 'deactivate', label: t('google.batch.deactivate'), variant: 'danger' as const }
+])
 
 async function loadProjectSettings() {
   const result = await googleApi.getSettings(props.projectId)
@@ -146,7 +148,7 @@ async function openCreateForm() {
     if (result.success && result.data) {
       supportedRegions.value = result.data
     } else {
-      notify.error(result.error || '無法取得支援地區')
+      notify.error(result.error || t('google.toast.regionFail'))
     }
   }
 }
@@ -158,18 +160,18 @@ async function detectLanguageInModal() {
   if (result.success && result.data) {
     projectDefaultLanguage.value = result.data.defaultLanguage
     newProduct.value.languageCode = result.data.defaultLanguage
-    notify.success(`已偵測到預設語言：${result.data.defaultLanguage}`)
+    notify.success(t('google.toast.detectSuccess', { language: result.data.defaultLanguage }))
   } else {
-    notify.error(result.error || '偵測失敗')
+    notify.error(result.error || t('google.toast.detectFail'))
   }
 }
 
 async function syncAll() {
   const result = await store.syncProducts(props.projectId)
   if (result.success) {
-    notify.success(`同步完成，共 ${result.data.length} 個商品`)
+    notify.success(t('google.toast.syncSuccess', { count: result.data.length }))
   } else {
-    notify.error(result.error || '同步失敗')
+    notify.error(result.error || t('google.toast.syncFail'))
   }
 }
 
@@ -188,7 +190,7 @@ async function onImportDone() {
 
 async function exportProducts() {
   if (store.products.length === 0) {
-    notify.error('沒有可匯出的商品，請先同步')
+    notify.error(t('google.toast.exportEmpty'))
     return
   }
 
@@ -200,13 +202,13 @@ async function exportProducts() {
   const payload = source.map((p) => ({ productId: p.productId }))
 
   store.exporting = true
-  store.exportProgress = '準備匯出...'
+  store.exportProgress = t('google.progress.exportPreparing')
   const result = await googleApi.exportProducts(props.projectId, payload)
   store.exporting = false
   store.exportProgress = ''
 
   if (!result.success) {
-    notify.error(result.error || '匯出失敗')
+    notify.error(result.error || t('google.toast.exportFail'))
     return
   }
 
@@ -214,12 +216,19 @@ async function exportProducts() {
   if (data.cancelled) return
 
   if (data.errors.length > 0) {
-    const lines = data.errors
+    const details = data.errors
       .map((e: { productId: string; error: string }) => `${e.productId}: ${e.error}`)
       .join('\n')
-    notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
+    notify.error(
+      t('google.toast.exportPartial', {
+        exported: data.exported,
+        total: data.total,
+        failed: data.errors.length,
+        details
+      })
+    )
   } else {
-    notify.success(`匯出完成：${data.exported} 個商品`)
+    notify.success(t('google.toast.exportSuccess', { count: data.exported }))
   }
 }
 
@@ -237,11 +246,15 @@ async function handleBatchAction(key: string) {
 
   if (key === 'activate' || key === 'deactivate') {
     const active = key === 'activate'
-    const label = active ? '上架' : '下架'
+    const confirmKey = active ? 'google.batch.confirmActivate' : 'google.batch.confirmDeactivate'
+    const processingKey = active
+      ? 'google.batch.processingActivate'
+      : 'google.batch.processingDeactivate'
+    const successKey = active ? 'google.batch.activateSuccess' : 'google.batch.deactivateSuccess'
 
-    if (!confirm(`確定要${label}選取的 ${ids.length} 個商品嗎？`)) return
+    if (!confirm(t(confirmKey, { count: ids.length }))) return
 
-    notify.info(`正在批次${label}...`)
+    notify.info(t(processingKey))
     // IPC structuredClone bails on Vue's reactive proxies, so flatten before
     // sending. This is the same workaround the original code used.
     const plainProducts = JSON.parse(JSON.stringify(store.products))
@@ -249,18 +262,18 @@ async function handleBatchAction(key: string) {
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
-        const errors = data.failed
+        const details = data.failed
           .map((f: { id: string; error: string }) => `${f.id}: ${f.error}`)
           .join('\n')
-        notify.error(`失敗 ${data.failed.length} 項\n${errors}`)
+        notify.error(t('google.batch.failedItems', { count: data.failed.length, details }))
       }
       if (data.success.length > 0) {
-        notify.success(`成功${label} ${data.success.length} 項`)
+        notify.success(t(successKey, { count: data.success.length }))
       }
       store.clearSelection()
       await syncAll()
     } else {
-      notify.error(result.error || '操作失敗')
+      notify.error(result.error || t('google.batch.opFailed'))
     }
   }
 }
@@ -276,38 +289,38 @@ function parsePriceToUnitsNanos(input: string): { units: string; nanos: number }
 
 async function createProduct() {
   if (!newProduct.value.productId || !newProduct.value.name) {
-    notify.error('請填寫商品 ID 和名稱')
+    notify.error(t('google.toast.createFillRequired'))
     return
   }
   if (!/^[a-z0-9][a-z0-9._]*$/.test(newProduct.value.productId)) {
-    notify.error('Product ID 必須以小寫英數開頭，只能含小寫英數、_、.')
+    notify.error(t('google.toast.createIdInvalid'))
     return
   }
   if (!newProduct.value.languageCode) {
-    notify.error('請選擇語言')
+    notify.error(t('google.toast.createNeedLanguage'))
     return
   }
   if (!newProduct.value.baseRegionCode) {
-    notify.error('請選擇基準國家')
+    notify.error(t('google.toast.createNeedRegion'))
     return
   }
   const baseCurrency = currencyForRegion(newProduct.value.baseRegionCode)
   if (!baseCurrency) {
-    notify.error('找不到該國家的幣別')
+    notify.error(t('google.toast.createNeedCurrency'))
     return
   }
   const parsed = parsePriceToUnitsNanos(newProduct.value.basePrice)
   if (!parsed) {
-    notify.error('請輸入有效的基準價格')
+    notify.error(t('google.toast.createNeedPrice'))
     return
   }
   const poid = newProduct.value.purchaseOptionId.trim()
   if (!poid) {
-    notify.error('請填寫 Purchase Option ID')
+    notify.error(t('google.toast.createNeedPoId'))
     return
   }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(poid)) {
-    notify.error('Purchase Option ID 必須以小寫英數開頭，只能含小寫英數和 -')
+    notify.error(t('google.toast.createPoIdInvalid'))
     return
   }
 
@@ -328,10 +341,13 @@ async function createProduct() {
     const skipped = (result as { skippedRegions?: string[] }).skippedRegions
     if (skipped && skipped.length > 0) {
       notify.success(
-        `商品已建立（草稿）。略過 ${skipped.length} 個地區：${skipped.join(', ')}（可到 Play Console 手動設定）`
+        t('google.toast.createSuccessSkipped', {
+          count: skipped.length,
+          regions: skipped.join(', ')
+        })
       )
     } else {
-      notify.success('商品已建立（草稿）')
+      notify.success(t('google.toast.createSuccess'))
     }
     showCreateForm.value = false
     newProduct.value = {
@@ -345,19 +361,13 @@ async function createProduct() {
     }
     await syncAll()
   } else {
-    notify.error(result.error || '建立失敗')
+    notify.error(result.error || t('google.toast.createFail'))
   }
 }
 
 function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    ACTIVE: '上架中',
-    INACTIVE: '已下架',
-    INACTIVE_PUBLISHED: '已下架（保留）',
-    DRAFT: '草稿',
-    NO_PURCHASE_OPTION: '未設定方案'
-  }
-  return map[status] || status
+  const key = `google.status.${status}`
+  return te(key) ? t(key) : status
 }
 
 function productStatusLabel(product: GoogleProduct): string {
@@ -366,7 +376,7 @@ function productStatusLabel(product: GoogleProduct): string {
   // Only show the split when states are actually mixed; uniform states fall
   // back to the aggregated label to avoid noisy "0/2" or "2/2" displays.
   if (total > 1 && active > 0 && active < total) {
-    return `${active}/${total} 上架中`
+    return t('google.statusMixed', { active, total })
   }
   return statusLabel(product.status)
 }
@@ -401,21 +411,21 @@ function statusColor(status: string): string {
           class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
           @click="syncAll"
         >
-          同步商品
+          {{ t('google.toolbar.sync') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing || store.products.length === 0"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="exportProducts"
         >
-          匯出
+          {{ t('google.toolbar.export') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="importProducts"
         >
-          匯入
+          {{ t('google.toolbar.import') }}
         </button>
         <span v-if="store.syncing" class="flex items-center gap-2 text-sm text-gray-400">
           <span
@@ -432,9 +442,12 @@ function statusColor(status: string): string {
         <span v-if="store.products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
           {{
             filteredProducts.length !== store.products.length
-              ? `${filteredProducts.length} / `
-              : ''
-          }}{{ store.products.length }} 個商品
+              ? t('google.toolbar.productCountFiltered', {
+                  filtered: filteredProducts.length,
+                  total: store.products.length
+                })
+              : t('google.toolbar.productCount', { count: store.products.length })
+          }}
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -442,20 +455,22 @@ function statusColor(status: string): string {
           v-model="searchQuery"
           type="text"
           class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-          placeholder="搜尋 Product ID / Name..."
+          :placeholder="t('google.toolbar.searchPlaceholder')"
         />
         <button
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
           @click="openCreateForm"
         >
-          + 新增商品
+          {{ t('google.toolbar.create') }}
         </button>
       </div>
     </div>
 
     <!-- Batch Action Bar (inline) -->
     <div v-if="store.selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
-      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ store.selected.size }} 項</span>
+      <span class="text-sm whitespace-nowrap text-gray-300">
+        {{ t('google.batch.selected', { count: store.selected.size }) }}
+      </span>
       <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
@@ -474,7 +489,7 @@ function statusColor(status: string): string {
         class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
         @click="store.clearSelection()"
       >
-        取消選取
+        {{ t('google.batch.clearSelection') }}
       </button>
     </div>
 
@@ -489,7 +504,7 @@ function statusColor(status: string): string {
         "
         @click="setFilter(null)"
       >
-        全部 {{ store.products.length }}
+        {{ t('google.filter.all', { count: store.products.length }) }}
       </button>
       <button
         v-for="group in statusGroups"
@@ -516,7 +531,7 @@ function statusColor(status: string): string {
         class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
-          <h3 class="text-lg font-semibold text-gray-100">新增 Google 商品</h3>
+          <h3 class="text-lg font-semibold text-gray-100">{{ t('google.create.title') }}</h3>
           <button
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
             @click="showCreateForm = false"
@@ -532,20 +547,20 @@ function statusColor(status: string): string {
               type="text"
               maxlength="139"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-              placeholder="例：coins_100"
+              :placeholder="t('google.create.productIdPlaceholder')"
             />
-            <p class="mt-1 text-xs text-gray-500">
-              以小寫英數開頭，只能含小寫英數、_、.；建立後無法修改
-            </p>
+            <p class="mt-1 text-xs text-gray-500">{{ t('google.create.productIdHint') }}</p>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">語言</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.create.languageLabel')
+            }}</label>
             <div class="flex items-center gap-2">
               <div class="flex-1">
                 <SearchableSelect
                   v-model="newProduct.languageCode"
                   :options="languageOptions"
-                  placeholder="請選擇語言"
+                  :placeholder="t('google.create.languagePlaceholder')"
                 />
               </div>
               <button
@@ -553,32 +568,34 @@ function statusColor(status: string): string {
                 class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
                 @click="detectLanguageInModal"
               >
-                {{ detectingLanguage ? '偵測中...' : '偵測' }}
+                {{ detectingLanguage ? t('google.create.detecting') : t('google.create.detect') }}
               </button>
             </div>
-            <p class="mt-1 text-xs text-gray-500">
-              按「偵測」會從 Play Console 讀取並設為專案預設；手動選擇則只影響此次建立。
-            </p>
+            <p class="mt-1 text-xs text-gray-500">{{ t('google.create.languageHint') }}</p>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">名稱</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.create.nameLabel')
+            }}</label>
             <input
               v-model="newProduct.name"
               type="text"
               maxlength="55"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-              placeholder="例：100 金幣"
+              :placeholder="t('google.create.namePlaceholder')"
             />
             <p class="mt-1 text-right text-xs text-gray-500">{{ newProduct.name.length }} / 55</p>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">描述</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.create.descriptionLabel')
+            }}</label>
             <textarea
               v-model="newProduct.description"
               maxlength="200"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               rows="3"
-              placeholder="商品描述"
+              :placeholder="t('google.create.descriptionPlaceholder')"
             />
             <p class="mt-1 text-right text-xs text-gray-500">
               {{ newProduct.description.length }} / 200
@@ -586,56 +603,56 @@ function statusColor(status: string): string {
           </div>
 
           <div class="border-t border-[#393b40] pt-4">
-            <div class="mb-3 text-xs text-gray-500">
-              方案設定（建立為草稿狀態，需到 Play Console 再上架）
-            </div>
+            <div class="mb-3 text-xs text-gray-500">{{ t('google.create.poSection') }}</div>
             <div class="space-y-4">
               <div>
-                <label class="mb-1 block text-sm font-medium text-gray-400"
-                  >Purchase Option ID</label
-                >
+                <label class="mb-1 block text-sm font-medium text-gray-400">{{
+                  t('google.create.poIdLabel')
+                }}</label>
                 <input
                   v-model="newProduct.purchaseOptionId"
                   type="text"
                   maxlength="63"
                   class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                  placeholder="例：base"
+                  :placeholder="t('google.create.poIdPlaceholder')"
                 />
-                <p class="mt-1 text-xs text-gray-500">
-                  以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）
-                </p>
+                <p class="mt-1 text-xs text-gray-500">{{ t('google.create.poIdHint') }}</p>
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-gray-400">Purchase type</label>
+                <label class="mb-1 block text-sm font-medium text-gray-400">{{
+                  t('google.create.purchaseTypeLabel')
+                }}</label>
                 <select
                   class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 >
                   <option value="BUY" selected>Buy</option>
-                  <option value="RENT" disabled>Rent（尚未支援）</option>
+                  <option value="RENT" disabled>{{ t('google.create.rentNotSupported') }}</option>
                 </select>
               </div>
               <div>
                 <label class="mb-1 block text-sm font-medium text-gray-400">
-                  基準國家
-                  <span v-if="loadingRegions" class="ml-1 text-xs font-normal text-gray-500"
-                    >載入中...</span
-                  >
+                  {{ t('google.create.baseRegionLabel') }}
+                  <span v-if="loadingRegions" class="ml-1 text-xs font-normal text-gray-500">{{
+                    t('google.create.baseRegionLoading')
+                  }}</span>
                 </label>
                 <SearchableSelect
                   v-model="newProduct.baseRegionCode"
                   :options="regionOptions"
-                  placeholder="請選擇基準國家"
+                  :placeholder="t('google.create.baseRegionPlaceholder')"
                 />
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-gray-400">基準價格</label>
+                <label class="mb-1 block text-sm font-medium text-gray-400">{{
+                  t('google.create.basePriceLabel')
+                }}</label>
                 <div class="flex items-center gap-2">
                   <input
                     v-model="newProduct.basePrice"
                     type="text"
                     inputmode="decimal"
                     class="flex-1 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                    placeholder="例：30"
+                    :placeholder="t('google.create.basePricePlaceholder')"
                   />
                   <span
                     class="min-w-[4rem] rounded-lg border border-[#43454a] bg-[#22252a] px-3 py-2 text-center text-sm text-gray-300"
@@ -643,9 +660,7 @@ function statusColor(status: string): string {
                     {{ currencyForRegion(newProduct.baseRegionCode) || '---' }}
                   </span>
                 </div>
-                <p class="mt-1 text-xs text-gray-500">
-                  其他國家的價格會由 Google 依基準價自動換算。
-                </p>
+                <p class="mt-1 text-xs text-gray-500">{{ t('google.create.autoConvertHint') }}</p>
               </div>
             </div>
           </div>
@@ -656,14 +671,14 @@ function statusColor(status: string): string {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40] disabled:opacity-50"
             @click="showCreateForm = false"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             :disabled="creating"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             @click="createProduct"
           >
-            {{ creating ? '建立中...' : '建立' }}
+            {{ creating ? t('google.create.creating') : t('common.create') }}
           </button>
         </div>
       </div>
@@ -761,17 +776,19 @@ function statusColor(status: string): string {
         v-else-if="!store.loading && !store.syncing && store.products.length === 0"
         class="py-20 text-center"
       >
-        <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
-        <p class="text-sm text-gray-500">請先設定 Google 憑證，然後點擊「同步商品」</p>
+        <p class="mb-2 text-lg text-gray-500">{{ t('google.empty.noProducts') }}</p>
+        <p class="text-sm text-gray-500">{{ t('google.empty.noProductsHint') }}</p>
       </div>
       <div
         v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
         class="py-10 text-center"
       >
-        <p class="text-sm text-gray-500">此狀態下沒有商品</p>
+        <p class="text-sm text-gray-500">{{ t('google.empty.filteredEmpty') }}</p>
       </div>
 
-      <div v-if="store.loading" class="py-20 text-center text-gray-500">載入中...</div>
+      <div v-if="store.loading" class="py-20 text-center text-gray-500">
+        {{ t('common.loading') }}
+      </div>
     </div>
 
     <!-- Product Detail Modal -->

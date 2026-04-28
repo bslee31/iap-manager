@@ -1,9 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, watch, onActivated, onDeactivated } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
-import { statusLabel } from '../../../utils/google-product-status'
 import SearchableSelect from '../../common/SearchableSelect.vue'
 import * as googleApi from '../../../services/api/google'
+
+const { t, te } = useI18n()
+
+function statusLabel(status: string): string {
+  const key = `google.status.${status}`
+  return te(key) ? t(key) : status
+}
 
 interface RegionalConfig {
   regionCode: string
@@ -151,22 +158,26 @@ onDeactivated(() => {
 async function applyNewPricing() {
   if (!selectedPo.value) return
   if (!editRegion.value) {
-    notify.error('請選擇基準國家')
+    notify.error(t('google.detail.pricing.toast.regionRequired'))
     return
   }
   const currency = currencyForRegion(editRegion.value)
   if (!currency) {
-    notify.error('找不到該國家的幣別')
+    notify.error(t('google.detail.pricing.toast.currencyMissing'))
     return
   }
   const parsed = parsePriceToUnitsNanos(editPrice.value)
   if (!parsed) {
-    notify.error('請輸入有效的價格')
+    notify.error(t('google.detail.pricing.toast.priceRequired'))
     return
   }
   if (
     !confirm(
-      `確定要用 ${editRegion.value} ${currency} ${editPrice.value} 當基準，更新所有地區的價格嗎？`
+      t('google.detail.pricing.applyConfirm', {
+        region: editRegion.value,
+        currency,
+        price: editPrice.value
+      })
     )
   )
     return
@@ -181,15 +192,20 @@ async function applyNewPricing() {
   )
   pricingSaving.value = false
   if (result.success) {
-    const skipped = (result as any).skippedRegions as string[] | undefined
+    const skipped = (result as { skippedRegions?: string[] }).skippedRegions
     if (skipped && skipped.length > 0) {
-      notify.success(`定價已更新，略過 ${skipped.length} 個地區：${skipped.join(', ')}`)
+      notify.success(
+        t('google.detail.pricing.toast.applySuccessSkipped', {
+          count: skipped.length,
+          regions: skipped.join(', ')
+        })
+      )
     } else {
-      notify.success('定價已更新')
+      notify.success(t('google.detail.pricing.toast.applySuccess'))
     }
     emit('updated')
   } else {
-    notify.error(result.error || '更新失敗')
+    notify.error(result.error || t('google.detail.pricing.toast.applyFail'))
   }
 }
 </script>
@@ -200,12 +216,14 @@ async function applyNewPricing() {
     <div class="shrink-0 px-6 pt-4">
       <div class="flex items-center gap-3">
         <div class="flex-1">
-          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">方案</label>
+          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">{{
+            t('google.detail.pricing.poLabel')
+          }}</label>
           <SearchableSelect
             v-if="poOptions.length > 1"
             v-model="selectedPoId"
             :options="poOptions"
-            placeholder="選擇方案"
+            :placeholder="t('google.detail.pricing.poPlaceholder')"
           />
           <div
             v-else-if="selectedPo"
@@ -218,11 +236,13 @@ async function applyNewPricing() {
           </div>
         </div>
         <div class="flex-1">
-          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">搜尋地區</label>
+          <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">{{
+            t('google.detail.pricing.regionSearchLabel')
+          }}</label>
           <input
             v-model="regionSearch"
             type="text"
-            placeholder="代碼或名稱"
+            :placeholder="t('google.detail.pricing.regionSearchPlaceholder')"
             class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           />
         </div>
@@ -231,22 +251,30 @@ async function applyNewPricing() {
 
     <!-- Pricing body -->
     <div class="flex min-h-0 flex-1 flex-col px-6 pt-4 pb-6">
-      <div v-if="!selectedPo" class="py-10 text-center text-gray-500">沒有方案</div>
+      <div v-if="!selectedPo" class="py-10 text-center text-gray-500">
+        {{ t('google.detail.pricing.noPo') }}
+      </div>
       <template v-else>
         <!-- Edit form -->
         <div class="mb-3 rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
-          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">調整基準定價</div>
+          <div class="mb-2 text-xs font-medium text-gray-500 uppercase">
+            {{ t('google.detail.pricing.adjustBase') }}
+          </div>
           <div class="flex items-end gap-2">
             <div class="min-w-0 flex-1">
-              <label class="mb-1 block text-xs text-gray-500">基準國家</label>
+              <label class="mb-1 block text-xs text-gray-500">{{
+                t('google.detail.pricing.baseRegionLabel')
+              }}</label>
               <SearchableSelect
                 v-model="editRegion"
                 :options="regionOptionsForEdit"
-                placeholder="選擇基準國家"
+                :placeholder="t('google.detail.pricing.baseRegionPlaceholder')"
               />
             </div>
             <div class="w-28 shrink-0">
-              <label class="mb-1 block text-xs text-gray-500">價格</label>
+              <label class="mb-1 block text-xs text-gray-500">{{
+                t('google.detail.pricing.priceLabel')
+              }}</label>
               <input
                 v-model="editPrice"
                 type="text"
@@ -263,12 +291,14 @@ async function applyNewPricing() {
               class="rounded-lg bg-green-600 px-4 py-1.5 text-sm whitespace-nowrap text-white transition-colors hover:bg-green-700 disabled:opacity-50"
               @click="applyNewPricing"
             >
-              {{ pricingSaving ? '套用中...' : '套用新價格' }}
+              {{
+                pricingSaving
+                  ? t('google.detail.pricing.applyingButton')
+                  : t('google.detail.pricing.applyButton')
+              }}
             </button>
           </div>
-          <p class="mt-2 text-xs text-gray-500">
-            套用後其他國家的價格由 Google 自動換算，將覆蓋目前所有地區的定價。
-          </p>
+          <p class="mt-2 text-xs text-gray-500">{{ t('google.detail.pricing.applyHint') }}</p>
         </div>
         <div
           class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#43454a] bg-[#1e1f22]"
@@ -284,9 +314,15 @@ async function applyNewPricing() {
                 <tr
                   class="border-b border-[#393b40] bg-[#22252a] text-left text-xs text-gray-500 uppercase"
                 >
-                  <th class="px-3 py-2 font-medium">地區</th>
-                  <th class="px-3 py-2 font-medium">代碼</th>
-                  <th class="px-3 py-2 font-medium">價格</th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t('google.detail.pricing.regionColumn') }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t('google.detail.pricing.codeColumn') }}
+                  </th>
+                  <th class="px-3 py-2 font-medium">
+                    {{ t('google.detail.pricing.priceColumn') }}
+                  </th>
                 </tr>
               </thead>
             </table>
@@ -312,7 +348,9 @@ async function applyNewPricing() {
                   <td class="px-3 py-2 font-mono text-gray-300">{{ formatPrice(c.price) }}</td>
                 </tr>
                 <tr v-if="filteredConfigs.length === 0">
-                  <td colspan="3" class="px-3 py-6 text-center text-gray-500">找不到地區</td>
+                  <td colspan="3" class="px-3 py-6 text-center text-gray-500">
+                    {{ t('google.detail.pricing.noRegions') }}
+                  </td>
                 </tr>
               </tbody>
             </table>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../stores/notification.store'
 import { useGoogleProductsStore } from '../../stores/google-products.store'
 import GoogleDetailInfo from './detail/GoogleDetailInfo.vue'
@@ -11,6 +12,7 @@ import * as googleApi from '../../services/api/google'
 const props = defineProps<{ projectId: string }>()
 defineEmits<{ close: [] }>()
 
+const { t } = useI18n()
 const notify = useNotificationStore()
 const store = useGoogleProductsStore()
 
@@ -105,7 +107,7 @@ async function loadDetail(): Promise<void> {
       selectedPoId.value = detail.value.purchaseOptions[0].purchaseOptionId
     }
   } else {
-    notify.error(detailResult.error || '載入失敗')
+    notify.error(detailResult.error || t('common.error'))
   }
   if (settingsResult.success && settingsResult.data) {
     baseRegion.value =
@@ -165,22 +167,14 @@ onMounted(loadDetail)
           "
           @click="activeTab = tab"
         >
-          {{
-            tab === 'info'
-              ? 'Info'
-              : tab === 'purchaseOptions'
-                ? 'Purchase Options'
-                : tab === 'pricing'
-                  ? 'Pricing'
-                  : 'Listings'
-          }}
+          {{ t(`google.detail.tabs.${tab}`) }}
         </button>
       </div>
 
       <!-- Tab content (KeepAlive preserves per-tab UI state across switches) -->
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div v-if="loading" class="flex flex-1 items-center justify-center text-gray-500">
-          載入中...
+          {{ t('common.loading') }}
         </div>
         <KeepAlive v-else-if="detail">
           <GoogleDetailInfo v-if="activeTab === 'info'" :detail="detail" />

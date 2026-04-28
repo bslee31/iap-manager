@@ -1,9 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
-import { statusLabel, statusColor } from '../../../utils/google-product-status'
+import { statusColor } from '../../../utils/google-product-status'
 import SearchableSelect from '../../common/SearchableSelect.vue'
 import * as googleApi from '../../../services/api/google'
+
+const { t, te } = useI18n()
+
+function statusLabel(status: string): string {
+  const key = `google.status.${status}`
+  return te(key) ? t(key) : status
+}
 
 interface PurchaseOption {
   purchaseOptionId: string
@@ -97,29 +105,29 @@ function cancelAddPoForm() {
 async function saveNewPurchaseOption() {
   const id = newPo.value.purchaseOptionId.trim()
   if (!id) {
-    notify.error('請輸入 Purchase Option ID')
+    notify.error(t('google.detail.purchaseOptions.toast.poIdRequired'))
     return
   }
   if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) {
-    notify.error('Purchase Option ID 必須以小寫英數開頭，只能含小寫英數和 -')
+    notify.error(t('google.detail.purchaseOptions.toast.poIdInvalid'))
     return
   }
   if (props.detail.purchaseOptions.some((po) => po.purchaseOptionId === id)) {
-    notify.error('此 Purchase Option ID 已存在')
+    notify.error(t('google.detail.purchaseOptions.toast.poIdExists'))
     return
   }
   if (!newPo.value.baseRegionCode) {
-    notify.error('請選擇基準國家')
+    notify.error(t('google.detail.purchaseOptions.toast.regionRequired'))
     return
   }
   const currency = currencyForRegion(newPo.value.baseRegionCode)
   if (!currency) {
-    notify.error('找不到該國家的幣別')
+    notify.error(t('google.detail.purchaseOptions.toast.currencyMissing'))
     return
   }
   const parsed = parsePriceToUnitsNanos(newPo.value.basePrice)
   if (!parsed) {
-    notify.error('請輸入有效的價格')
+    notify.error(t('google.detail.purchaseOptions.toast.priceRequired'))
     return
   }
 
@@ -133,16 +141,21 @@ async function saveNewPurchaseOption() {
   )
   addPoSaving.value = false
   if (result.success) {
-    const skipped = (result as any).skippedRegions as string[] | undefined
+    const skipped = (result as { skippedRegions?: string[] }).skippedRegions
     if (skipped && skipped.length > 0) {
-      notify.success(`方案已新增，略過 ${skipped.length} 個地區：${skipped.join(', ')}`)
+      notify.success(
+        t('google.detail.purchaseOptions.toast.addSuccessSkipped', {
+          count: skipped.length,
+          regions: skipped.join(', ')
+        })
+      )
     } else {
-      notify.success('方案已新增')
+      notify.success(t('google.detail.purchaseOptions.toast.addSuccess'))
     }
     showAddPoForm.value = false
     emit('updated')
   } else {
-    notify.error(result.error || '新增失敗')
+    notify.error(result.error || t('google.detail.purchaseOptions.toast.addFail'))
   }
 }
 
@@ -152,14 +165,11 @@ const settingLegacyPoId = ref('')
 async function setAsBackwardsCompatible(po: PurchaseOption) {
   if (po.legacyCompatible) return
   if (po.type !== 'BUY') {
-    notify.error('只有 BUY 型方案可以設為主方案')
+    notify.error(t('google.detail.purchaseOptions.primaryNonBuy'))
     return
   }
-  const confirmMsg =
-    `將「${po.purchaseOptionId}」設為主方案（Backwards compatible）？\n\n` +
-    `設定後，使用舊版 Billing Library（v5 以前）的 client 會看到這個方案的定價。` +
-    `原本的主方案會失去此標記，但其狀態（上架/下架）不變。`
-  if (!confirm(confirmMsg)) return
+  if (!confirm(t('google.detail.purchaseOptions.primaryConfirm', { poId: po.purchaseOptionId })))
+    return
 
   settingLegacyPoId.value = po.purchaseOptionId
   const result = await googleApi.setLegacyCompatible(
@@ -169,10 +179,12 @@ async function setAsBackwardsCompatible(po: PurchaseOption) {
   )
   settingLegacyPoId.value = ''
   if (result.success) {
-    notify.success(`「${po.purchaseOptionId}」已設為主方案`)
+    notify.success(
+      t('google.detail.purchaseOptions.toast.primarySuccess', { poId: po.purchaseOptionId })
+    )
     emit('updated')
   } else {
-    notify.error(result.error || '設定失敗')
+    notify.error(result.error || t('google.detail.purchaseOptions.toast.primaryFail'))
   }
 }
 
@@ -181,8 +193,18 @@ const togglingPoId = ref('')
 
 async function togglePurchaseOptionState(po: PurchaseOption) {
   const willActivate = po.state !== 'ACTIVE'
-  const label = willActivate ? '上架' : '下架'
-  if (!confirm(`確定要${label}方案「${po.purchaseOptionId}」嗎？`)) return
+  // Use the same Activate / Deactivate words as elsewhere in the app — but
+  // pulled out of the Google batch namespace because they read the same.
+  const label = willActivate ? t('google.batch.activate') : t('google.batch.deactivate')
+  if (
+    !confirm(
+      t('google.detail.purchaseOptions.toggleConfirm', {
+        label,
+        poId: po.purchaseOptionId
+      })
+    )
+  )
+    return
 
   togglingPoId.value = po.purchaseOptionId
   const result = await googleApi.setPurchaseOptionState(
@@ -193,10 +215,10 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
   )
   togglingPoId.value = ''
   if (result.success) {
-    notify.success(`方案已${label}`)
+    notify.success(t('google.detail.purchaseOptions.toast.toggleSuccess', { label }))
     emit('updated')
   } else {
-    notify.error(result.error || `${label}失敗`)
+    notify.error(result.error || t('google.detail.purchaseOptions.toast.toggleFail', { label }))
   }
 }
 </script>
@@ -204,17 +226,19 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
-      <span class="text-sm text-gray-400">共 {{ detail.purchaseOptions.length }} 個方案</span>
+      <span class="text-sm text-gray-400">{{
+        t('google.detail.purchaseOptions.summary', { count: detail.purchaseOptions.length })
+      }}</span>
       <button
         class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
         @click="openAddPoForm"
       >
-        + 新增方案
+        {{ t('google.detail.purchaseOptions.addPo') }}
       </button>
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
       <div v-if="detail.purchaseOptions.length === 0" class="py-10 text-center text-gray-500">
-        尚無方案
+        {{ t('google.detail.purchaseOptions.empty') }}
       </div>
       <div v-else class="space-y-2">
         <div
@@ -228,14 +252,19 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             <span v-if="basePriceLabel(po)" class="font-mono text-xs text-gray-300">
               · {{ basePriceLabel(po) }}
             </span>
-            <span class="text-xs text-gray-500"
-              >· {{ availableRegionCount(po) }} countries / regions</span
-            >
+            <span class="text-xs text-gray-500">
+              ·
+              {{
+                t('google.detail.purchaseOptions.regionsCount', {
+                  count: availableRegionCount(po)
+                })
+              }}
+            </span>
             <span
               v-if="po.legacyCompatible"
               class="rounded-full bg-blue-600/20 px-2 py-0.5 text-xs text-blue-400"
             >
-              Backwards compatible
+              {{ t('google.detail.purchaseOptions.backwardsCompatible') }}
             </span>
           </div>
           <div class="flex shrink-0 items-center gap-2">
@@ -248,7 +277,11 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
               @click="setAsBackwardsCompatible(po)"
             >
-              {{ settingLegacyPoId === po.purchaseOptionId ? '...' : '設為主方案' }}
+              {{
+                settingLegacyPoId === po.purchaseOptionId
+                  ? '...'
+                  : t('google.detail.purchaseOptions.setAsPrimary')
+              }}
             </button>
             <button
               v-if="po.state === 'ACTIVE'"
@@ -256,7 +289,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               class="rounded bg-red-600 px-2 py-1 text-xs text-white transition-colors hover:bg-red-700 disabled:opacity-50"
               @click="togglePurchaseOptionState(po)"
             >
-              {{ togglingPoId === po.purchaseOptionId ? '...' : '下架' }}
+              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.batch.deactivate') }}
             </button>
             <button
               v-else
@@ -264,7 +297,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               class="rounded bg-green-600 px-2 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50"
               @click="togglePurchaseOptionState(po)"
             >
-              {{ togglingPoId === po.purchaseOptionId ? '...' : '上架' }}
+              {{ togglingPoId === po.purchaseOptionId ? '...' : t('google.batch.activate') }}
             </button>
           </div>
         </div>
@@ -281,7 +314,9 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
         class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
-          <h3 class="text-lg font-semibold text-gray-100">新增 Purchase Option</h3>
+          <h3 class="text-lg font-semibold text-gray-100">
+            {{ t('google.detail.purchaseOptions.addDialogTitle') }}
+          </h3>
           <button
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
             @click="cancelAddPoForm"
@@ -296,23 +331,27 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               v-model="newPo.purchaseOptionId"
               type="text"
               maxlength="63"
-              placeholder="例如：premium"
+              :placeholder="t('google.detail.purchaseOptions.addPoIdPlaceholder')"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
             <p class="mt-1 text-xs text-gray-500">
-              以小寫英數開頭，只能含小寫英數和 -（不可有 _ 或 .）；建立後無法修改
+              {{ t('google.detail.purchaseOptions.addPoIdHint') }}
             </p>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">基準國家</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.detail.purchaseOptions.baseRegionLabel')
+            }}</label>
             <SearchableSelect
               v-model="newPo.baseRegionCode"
               :options="regionOptionsForEdit"
-              placeholder="選擇基準國家"
+              :placeholder="t('google.detail.purchaseOptions.baseRegionPlaceholder')"
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">基準價格</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.detail.purchaseOptions.basePriceLabel')
+            }}</label>
             <div class="flex items-center gap-2">
               <input
                 v-model="newPo.basePrice"
@@ -326,7 +365,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               </span>
             </div>
             <p class="mt-1 text-xs text-gray-500">
-              其他國家的價格由 Google 自動換算。新方案建立後為 DRAFT 狀態，需要手動上架。
+              {{ t('google.detail.purchaseOptions.addAutoConvertHint') }}
             </p>
           </div>
         </div>
@@ -335,14 +374,18 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="cancelAddPoForm"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             :disabled="addPoSaving"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             @click="saveNewPurchaseOption"
           >
-            {{ addPoSaving ? '新增中...' : '新增' }}
+            {{
+              addPoSaving
+                ? t('google.detail.purchaseOptions.addingButton')
+                : t('google.detail.purchaseOptions.addButton')
+            }}
           </button>
         </div>
       </div>

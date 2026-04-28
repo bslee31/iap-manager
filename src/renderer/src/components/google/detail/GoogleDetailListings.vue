@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../../stores/notification.store'
 import { GOOGLE_LANGUAGES, getLanguageLabel } from '../../../utils/google-languages'
 import SearchableSelect from '../../common/SearchableSelect.vue'
 import * as googleApi from '../../../services/api/google'
+
+const { t } = useI18n()
 
 interface Listing {
   languageCode: string
@@ -67,11 +70,11 @@ async function saveListing() {
   if (!editingListing.value) return
   const e = editingListing.value
   if (!e.languageCode) {
-    notify.error('請選擇語言')
+    notify.error(t('google.detail.listings.toast.fillRequired.language'))
     return
   }
   if (!e.title.trim()) {
-    notify.error('請填寫名稱')
+    notify.error(t('google.detail.listings.toast.fillRequired.title'))
     return
   }
   // Build a plain array (not reactive proxies) so Electron IPC can clone it.
@@ -82,7 +85,7 @@ async function saveListing() {
   }))
   if (editingIsNew.value) {
     if (next.some((l) => l.languageCode === e.languageCode)) {
-      notify.error('此語言已存在')
+      notify.error(t('google.detail.listings.toast.langExists'))
       return
     }
     next.push({
@@ -93,7 +96,7 @@ async function saveListing() {
   } else {
     const idx = next.findIndex((l) => l.languageCode === e.languageCode)
     if (idx < 0) {
-      notify.error('找不到要更新的 listing')
+      notify.error(t('google.detail.listings.toast.listingNotFound'))
       return
     }
     next[idx] = {
@@ -107,19 +110,24 @@ async function saveListing() {
   listingSaving.value = false
   if (result.success && result.data) {
     editingListing.value = null
-    notify.success('Listings 已更新')
+    notify.success(t('google.detail.listings.toast.updateSuccess'))
     emit('updated')
   } else {
-    notify.error(result.error || '儲存失敗')
+    notify.error(result.error || t('google.detail.listings.toast.updateFail'))
   }
 }
 
 async function deleteListing(languageCode: string) {
   if (props.detail.listings.length <= 1) {
-    notify.error('至少需保留一個 listing')
+    notify.error(t('google.detail.listings.toast.minOne'))
     return
   }
-  if (!confirm(`確定刪除 ${getLanguageLabel(languageCode)} 的 listing 嗎？`)) return
+  if (
+    !confirm(
+      t('google.detail.listings.deleteConfirm', { language: getLanguageLabel(languageCode) })
+    )
+  )
+    return
   const next: Listing[] = props.detail.listings
     .filter((l) => l.languageCode !== languageCode)
     .map((l) => ({
@@ -129,10 +137,10 @@ async function deleteListing(languageCode: string) {
     }))
   const result = await googleApi.updateListings(props.projectId, props.productId, next)
   if (result.success && result.data) {
-    notify.success('已刪除')
+    notify.success(t('google.detail.listings.toast.deleteSuccess'))
     emit('updated')
   } else {
-    notify.error(result.error || '刪除失敗')
+    notify.error(result.error || t('google.detail.listings.toast.deleteFail'))
   }
 }
 </script>
@@ -140,17 +148,19 @@ async function deleteListing(languageCode: string) {
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
     <div class="flex shrink-0 items-center justify-between px-6 pt-4 pb-3">
-      <span class="text-sm text-gray-400">共 {{ detail.listings.length }} 個語言</span>
+      <span class="text-sm text-gray-400">{{
+        t('google.detail.listings.langCount', { count: detail.listings.length })
+      }}</span>
       <button
         class="rounded-lg bg-green-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-green-700"
         @click="openNewListing"
       >
-        + 新增語言
+        {{ t('google.detail.listings.addLang') }}
       </button>
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto px-6 pb-6">
       <div v-if="detail.listings.length === 0" class="py-10 text-center text-gray-500">
-        尚無 listings
+        {{ t('google.detail.listings.empty') }}
       </div>
       <div v-else class="space-y-2">
         <div
@@ -173,14 +183,14 @@ async function deleteListing(languageCode: string) {
           <div class="flex shrink-0 gap-1">
             <button
               class="p-1 text-gray-500 transition-colors hover:text-blue-400"
-              title="編輯"
+              :title="t('common.edit')"
               @click="openEditListing(l)"
             >
               &#9998;
             </button>
             <button
               class="p-1 text-gray-500 transition-colors hover:text-red-400"
-              title="刪除"
+              :title="t('common.delete')"
               @click="deleteListing(l.languageCode)"
             >
               &#10005;
@@ -201,7 +211,11 @@ async function deleteListing(languageCode: string) {
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">
-            {{ editingIsNew ? '新增 Listing' : '編輯 Listing' }}
+            {{
+              editingIsNew
+                ? t('google.detail.listings.dialogTitleNew')
+                : t('google.detail.listings.dialogTitleEdit')
+            }}
           </h3>
           <button
             class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
@@ -212,12 +226,14 @@ async function deleteListing(languageCode: string) {
         </div>
         <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 pb-2">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">語言</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.detail.listings.langLabel')
+            }}</label>
             <SearchableSelect
               v-if="editingIsNew"
               v-model="editingListing.languageCode"
               :options="addableLanguageOptions"
-              placeholder="選擇語言"
+              :placeholder="t('google.detail.listings.langPlaceholder')"
             />
             <div
               v-else
@@ -230,7 +246,9 @@ async function deleteListing(languageCode: string) {
             </div>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">名稱 (title)</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.detail.listings.titleLabel')
+            }}</label>
             <input
               v-model="editingListing.title"
               type="text"
@@ -242,7 +260,9 @@ async function deleteListing(languageCode: string) {
             </p>
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">描述 (description)</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('google.detail.listings.descriptionLabel')
+            }}</label>
             <textarea
               v-model="editingListing.description"
               rows="4"
@@ -259,14 +279,14 @@ async function deleteListing(languageCode: string) {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="cancelEditListing"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             :disabled="listingSaving"
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
             @click="saveListing"
           >
-            {{ listingSaving ? '儲存中...' : '儲存' }}
+            {{ listingSaving ? t('common.saving') : t('common.save') }}
           </button>
         </div>
       </div>

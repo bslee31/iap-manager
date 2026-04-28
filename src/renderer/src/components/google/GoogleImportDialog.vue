@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as googleApi from '../../services/api/google'
 import * as progressApi from '../../services/api/progress'
+
+const { t, te } = useI18n()
 
 interface ImportValidationIssue {
   index: number
@@ -101,7 +104,7 @@ onMounted(async () => {
     props.existingProductIds
   )
   if (!res.success) {
-    fatalError.value = res.error || '驗證失敗'
+    fatalError.value = res.error || t('google.import.toast.validationFail')
     state.value = 'validationError'
     preview.value = { valid: false, products: [], issues: [] }
     return
@@ -140,21 +143,22 @@ const stats = computed(() => {
 async function confirmImport(): Promise<void> {
   if (!preview.value) return
   state.value = 'importing'
-  importProgress.value = '準備匯入...'
+  importProgress.value = t('google.import.progressPreparing')
   try {
     // Deep-clone to strip Vue reactive proxies — Electron IPC cannot
     // structured-clone a reactive wrapper.
     const rawProducts = JSON.parse(JSON.stringify(preview.value.products))
     const res = await googleApi.executeImport(props.projectId, rawProducts)
     if (!res.success) {
-      fatalError.value = res.error || '匯入失敗'
+      fatalError.value = res.error || t('google.import.toast.importFail')
       state.value = 'done'
       return
     }
     results.value = res.data.results
     state.value = 'done'
-  } catch (e: any) {
-    fatalError.value = `IPC 呼叫失敗: ${e?.message || String(e)}`
+  } catch (e) {
+    const detail = e instanceof Error ? e.message : String(e)
+    fatalError.value = t('google.import.toast.ipcFail', { detail })
     state.value = 'done'
   }
 }
@@ -172,10 +176,8 @@ function onBackdropClick(): void {
 }
 
 function stepLabel(step: string): string {
-  const map: Record<string, string> = {
-    create: '建立商品'
-  }
-  return map[step] || step
+  const key = `google.import.step.${step}`
+  return te(key) ? t(key) : step
 }
 
 function formatPrice(po: ImportedPurchaseOption): string {
@@ -228,11 +230,7 @@ function formatDate(iso?: string): string {
       <!-- Header -->
       <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] p-6">
         <h3 class="text-lg font-semibold text-gray-100">
-          <template v-if="state === 'validating'">驗證檔案中...</template>
-          <template v-else-if="state === 'validationError'">匯入檔案有問題</template>
-          <template v-else-if="state === 'preview'">確認匯入</template>
-          <template v-else-if="state === 'importing'">匯入中</template>
-          <template v-else-if="state === 'done'">匯入結果</template>
+          {{ t(`google.import.header.${state}`) }}
         </h3>
         <button
           v-if="state !== 'importing'"
@@ -250,7 +248,7 @@ function formatDate(iso?: string): string {
           <span
             class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
           />
-          讀取並驗證檔案中...
+          {{ t('google.import.validating') }}
         </div>
 
         <!-- Validation errors -->
@@ -267,8 +265,12 @@ function formatDate(iso?: string): string {
           </div>
 
           <p v-if="preview && preview.issues.length > 0" class="mb-3 text-sm text-gray-300">
-            發現 {{ preview.issues.length }} 個問題（{{ issuesByProduct.length }}
-            筆商品），請修正後重新匯入：
+            {{
+              t('google.import.issuesIntro', {
+                issues: preview.issues.length,
+                products: issuesByProduct.length
+              })
+            }}
           </p>
 
           <div v-if="preview" class="space-y-3">
@@ -300,8 +302,7 @@ function formatDate(iso?: string): string {
           </div>
 
           <p class="mb-3 text-sm text-gray-300">
-            將匯入
-            <span class="font-semibold text-green-400">{{ preview.products.length }}</span> 個商品：
+            {{ t('google.import.productsIntro', { count: preview.products.length }) }}
           </p>
 
           <div class="overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]">
@@ -312,19 +313,23 @@ function formatDate(iso?: string): string {
                     Product ID
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    Name
+                    {{ t('google.import.table.nameColumn') }}
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    POs
+                    {{ t('google.import.table.posColumn') }}
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    主 PO 基準價<span v-if="baseRegion"> ({{ baseRegion }})</span>
+                    {{
+                      baseRegion
+                        ? t('google.import.table.basePriceColumnRegion', { region: baseRegion })
+                        : t('google.import.table.basePriceColumn')
+                    }}
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    地區
+                    {{ t('google.import.table.regionsColumn') }}
                   </th>
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
-                    語言
+                    {{ t('google.import.table.listingsColumn') }}
                   </th>
                 </tr>
               </thead>
@@ -349,9 +354,7 @@ function formatDate(iso?: string): string {
             </table>
           </div>
 
-          <p class="mt-3 text-xs text-gray-500">
-            匯入的商品一律以 DRAFT 狀態建立。請自行在 Detail 頁確認後再手動上架。
-          </p>
+          <p class="mt-3 text-xs text-gray-500">{{ t('google.import.draftHint') }}</p>
         </div>
 
         <!-- Importing -->
@@ -360,7 +363,7 @@ function formatDate(iso?: string): string {
             class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-green-400 border-t-transparent"
           />
           <div class="text-sm text-gray-300">{{ importProgress }}</div>
-          <div class="text-xs text-gray-500">匯入過程請勿關閉視窗</div>
+          <div class="text-xs text-gray-500">{{ t('google.import.importingHint') }}</div>
         </div>
 
         <!-- Done -->
@@ -369,22 +372,30 @@ function formatDate(iso?: string): string {
 
           <div class="mb-4 grid grid-cols-3 gap-3">
             <div class="rounded-lg border border-green-600/30 bg-green-600/10 p-3">
-              <div class="mb-1 text-xs text-green-400 uppercase">完全成功</div>
+              <div class="mb-1 text-xs text-green-400 uppercase">
+                {{ t('google.import.stats.fullSuccess') }}
+              </div>
               <div class="text-2xl font-semibold text-green-300">{{ stats.fullSuccess }}</div>
             </div>
             <div class="rounded-lg border border-yellow-600/30 bg-yellow-600/10 p-3">
-              <div class="mb-1 text-xs text-yellow-400 uppercase">部分成功</div>
+              <div class="mb-1 text-xs text-yellow-400 uppercase">
+                {{ t('google.import.stats.partial') }}
+              </div>
               <div class="text-2xl font-semibold text-yellow-300">{{ stats.partial }}</div>
             </div>
             <div class="rounded-lg border border-red-600/30 bg-red-600/10 p-3">
-              <div class="mb-1 text-xs text-red-400 uppercase">建立失敗</div>
+              <div class="mb-1 text-xs text-red-400 uppercase">
+                {{ t('google.import.stats.failed') }}
+              </div>
               <div class="text-2xl font-semibold text-red-300">{{ stats.failed }}</div>
             </div>
           </div>
 
           <!-- Failed products -->
           <div v-if="stats.failed > 0" class="mb-4">
-            <h4 class="mb-2 text-sm font-medium text-red-400">建立失敗（{{ stats.failed }}）</h4>
+            <h4 class="mb-2 text-sm font-medium text-red-400">
+              {{ t('google.import.failedTitle', { count: stats.failed }) }}
+            </h4>
             <div class="space-y-2">
               <div
                 v-for="r in results.filter((x) => !x.created)"
@@ -407,7 +418,7 @@ function formatDate(iso?: string): string {
           <!-- Partial-success products -->
           <div v-if="stats.partial > 0">
             <h4 class="mb-2 text-sm font-medium text-yellow-400">
-              商品已建立，但部分步驟失敗（{{ stats.partial }}）
+              {{ t('google.import.partialTitle', { count: stats.partial }) }}
             </h4>
             <div class="space-y-2">
               <div
@@ -425,8 +436,11 @@ function formatDate(iso?: string): string {
                   </li>
                 </ul>
                 <p v-if="r.skippedRegions.length > 0" class="mt-2 text-xs text-gray-500">
-                  Google 略過的地區（{{ r.skippedRegions.length }}）：{{
-                    r.skippedRegions.join(', ')
+                  {{
+                    t('google.import.googleSkippedRegions', {
+                      count: r.skippedRegions.length,
+                      regions: r.skippedRegions.join(', ')
+                    })
                   }}
                 </p>
               </div>
@@ -443,7 +457,9 @@ function formatDate(iso?: string): string {
             "
             class="mt-4"
           >
-            <h4 class="mb-2 text-sm font-medium text-gray-400">完成匯入但有略過地區</h4>
+            <h4 class="mb-2 text-sm font-medium text-gray-400">
+              {{ t('google.import.fullSuccessSkipTitle') }}
+            </h4>
             <div class="space-y-2">
               <div
                 v-for="r in results.filter(
@@ -454,14 +470,19 @@ function formatDate(iso?: string): string {
               >
                 <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
                 <p class="mt-1 text-xs text-gray-500">
-                  略過地區（{{ r.skippedRegions.length }}）：{{ r.skippedRegions.join(', ') }}
+                  {{
+                    t('google.import.skippedRegions', {
+                      count: r.skippedRegions.length,
+                      regions: r.skippedRegions.join(', ')
+                    })
+                  }}
                 </p>
               </div>
             </div>
           </div>
 
           <div v-if="stats.total === 0 && !fatalError" class="text-sm text-gray-400">
-            沒有匯入結果
+            {{ t('google.import.noResults') }}
           </div>
         </div>
       </div>
@@ -476,13 +497,13 @@ function formatDate(iso?: string): string {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="close"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700"
             @click="confirmImport"
           >
-            確認匯入
+            {{ t('google.import.confirmImport') }}
           </button>
         </template>
         <template v-else>
@@ -490,7 +511,7 @@ function formatDate(iso?: string): string {
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
             @click="close"
           >
-            關閉
+            {{ t('common.close') }}
           </button>
         </template>
       </div>
