@@ -1,28 +1,22 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import { useGoogleProductsStore } from '../../stores/google-products.store'
 import GoogleDetailInfo from './detail/GoogleDetailInfo.vue'
 import GoogleDetailPurchaseOptions from './detail/GoogleDetailPurchaseOptions.vue'
 import GoogleDetailPricing from './detail/GoogleDetailPricing.vue'
 import GoogleDetailListings from './detail/GoogleDetailListings.vue'
 import * as googleApi from '../../services/api/google'
 
-const props = defineProps<{
-  projectId: string
-  product: {
-    productId: string
-    name: string
-    description: string
-    status: string
-  }
-}>()
-
-const emit = defineEmits<{
-  close: []
-  updated: []
-}>()
+const props = defineProps<{ projectId: string }>()
+defineEmits<{ close: [] }>()
 
 const notify = useNotificationStore()
+const store = useGoogleProductsStore()
+
+// GoogleProductTable wraps this component in v-if="store.selectedProduct",
+// so the ref is non-null for the entire mounted lifetime.
+const product = computed(() => store.selectedProduct!)
 
 type Tab = 'info' | 'purchaseOptions' | 'pricing' | 'listings'
 const activeTab = ref<Tab>('info')
@@ -72,7 +66,7 @@ const displayName = computed(() => {
       listings[0]
     if (pick?.title) return pick.title
   }
-  return props.product.name || ''
+  return product.value.name || ''
 })
 
 const regionDisplay = new Intl.DisplayNames(['en'], { type: 'region' })
@@ -98,7 +92,7 @@ function inferRegionFromLanguage(lang: string | null): string {
 async function loadDetail(): Promise<void> {
   loading.value = true
   const [detailResult, settingsResult, regionsResult] = await Promise.all([
-    googleApi.getProductDetail(props.projectId, props.product.productId),
+    googleApi.getProductDetail(props.projectId, product.value.productId),
     googleApi.getSettings(props.projectId),
     googleApi.getRegions(props.projectId)
   ])
@@ -123,9 +117,12 @@ async function loadDetail(): Promise<void> {
   }
 }
 
+// Child tabs emit 'updated' after a successful save. We reload the detail
+// view here, then resync the table list via the store so the row reflects
+// the new state without leaving the modal.
 function onChildUpdated(): void {
   loadDetail()
-  emit('updated')
+  store.syncProducts(props.projectId)
 }
 
 onMounted(loadDetail)
@@ -134,7 +131,7 @@ onMounted(loadDetail)
 <template>
   <div
     class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
-    @click.self="emit('close')"
+    @click.self="$emit('close')"
   >
     <div
       class="titlebar-no-drag flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
@@ -149,7 +146,7 @@ onMounted(loadDetail)
         </div>
         <button
           class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
-          @click="emit('close')"
+          @click="$emit('close')"
         >
           &times;
         </button>

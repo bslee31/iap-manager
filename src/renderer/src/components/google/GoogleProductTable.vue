@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import { useGoogleProductsStore, type GoogleProduct } from '../../stores/google-products.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
 import GoogleProductDetail from './GoogleProductDetail.vue'
 import GoogleImportDialog from './GoogleImportDialog.vue'
 import * as googleApi from '../../services/api/google'
 import * as dialogApi from '../../services/api/dialog'
-import * as progressApi from '../../services/api/progress'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
+const store = useGoogleProductsStore()
 
 const languageOptions = GOOGLE_LANGUAGES.map((l) => ({
   value: l.code,
@@ -18,6 +19,8 @@ const languageOptions = GOOGLE_LANGUAGES.map((l) => ({
   right: l.code
 }))
 
+// Project settings — kept local because they're only relevant to the create
+// form on this screen.
 const projectDefaultLanguage = ref('')
 const detectingLanguage = ref(false)
 const creating = ref(false)
@@ -44,48 +47,12 @@ function currencyForRegion(regionCode: string): string {
   return supportedRegions.value.find((r) => r.regionCode === regionCode)?.currencyCode || ''
 }
 
-interface GoogleProduct {
-  productId: string
-  name: string
-  description: string
-  status: string
-  purchaseOptionId?: string
-  purchaseOptionCount?: number
-  activePurchaseOptionCount?: number
-  basePrice?: string
-  baseCurrency?: string
-  syncedAt: string
-}
+const existingProductIds = computed(() => store.products.map((p) => p.productId))
 
-const products = ref<GoogleProduct[]>([])
-const selected = ref<Set<string>>(new Set())
-const loading = ref(false)
-const syncing = ref(false)
-const exporting = ref(false)
-const exportProgress = ref('')
+// Pure UI state — kept local because no other component cares about it.
 const importFileContent = ref<string | null>(null)
 const showCreateForm = ref(false)
 const searchQuery = ref('')
-const syncProgress = ref('')
-const selectedProduct = ref<GoogleProduct | null>(null)
-
-const existingProductIds = computed(() => products.value.map((p) => p.productId))
-
-let cleanupProgress: (() => void) | null = null
-let cleanupExportProgress: (() => void) | null = null
-onMounted(() => {
-  cleanupProgress = progressApi.onSync((data) => {
-    syncProgress.value = data.phase
-  })
-  cleanupExportProgress = progressApi.onExport((data) => {
-    exportProgress.value = data.phase
-  })
-})
-onUnmounted(() => {
-  cleanupProgress?.()
-  cleanupExportProgress?.()
-})
-
 const newProduct = ref({
   productId: '',
   name: '',
@@ -97,6 +64,17 @@ const newProduct = ref({
 })
 const activeFilter = ref<string | null>(null)
 
+// Reset on mount AND unmount: project switches re-mount this component, and
+// we want the store cleared on the way in (defence against an unclean prior
+// unmount) and on the way out (so the next project starts clean).
+onMounted(async () => {
+  store.reset()
+  await Promise.all([store.loadCached(props.projectId), loadProjectSettings()])
+})
+onUnmounted(() => {
+  store.reset()
+})
+
 const STATUS_ORDER: Record<string, number> = {
   ACTIVE: 0,
   DRAFT: 1,
@@ -107,7 +85,7 @@ const STATUS_ORDER: Record<string, number> = {
 
 const statusGroups = computed(() => {
   const counts = new Map<string, number>()
-  for (const p of products.value) {
+  for (const p of store.products) {
     counts.set(p.status, (counts.get(p.status) || 0) + 1)
   }
   return Array.from(counts.entries())
@@ -116,7 +94,7 @@ const statusGroups = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  let result = products.value
+  let result = store.products
   if (activeFilter.value) {
     result = result.filter((p) => p.status === activeFilter.value)
   }
@@ -131,11 +109,11 @@ const filteredProducts = computed(() => {
 
 function setFilter(status: string | null) {
   activeFilter.value = activeFilter.value === status ? null : status
-  selected.value.clear()
+  store.clearSelection()
 }
 
 const allSelected = computed(() => {
-  return filteredProducts.value.length > 0 && selected.value.size === filteredProducts.value.length
+  return filteredProducts.value.length > 0 && store.selected.size === filteredProducts.value.length
 })
 
 const batchActions = [
@@ -143,24 +121,11 @@ const batchActions = [
   { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
 ]
 
-onMounted(async () => {
-  await Promise.all([loadCached(), loadProjectSettings()])
-})
-
 async function loadProjectSettings() {
   const result = await googleApi.getSettings(props.projectId)
   if (result.success && result.data) {
     projectDefaultLanguage.value = result.data.defaultLanguage || ''
   }
-}
-
-async function loadCached() {
-  loading.value = true
-  const result = await googleApi.getCachedProducts(props.projectId)
-  if (result.success) {
-    products.value = result.data
-  }
-  loading.value = false
 }
 
 async function openCreateForm() {
@@ -199,15 +164,9 @@ async function detectLanguageInModal() {
   }
 }
 
-async function syncProducts() {
-  syncing.value = true
-  syncProgress.value = '正在連線...'
-  const result = await googleApi.fetchProducts(props.projectId)
-  syncing.value = false
-  syncProgress.value = ''
+async function syncAll() {
+  const result = await store.syncProducts(props.projectId)
   if (result.success) {
-    products.value = result.data
-    selected.value.clear()
     notify.success(`同步完成，共 ${result.data.length} 個商品`)
   } else {
     notify.error(result.error || '同步失敗')
@@ -224,28 +183,27 @@ async function onImportDone() {
   importFileContent.value = null
   // Re-sync so the list reflects the newly created products (and their
   // status / price via the usual listOneTimeProducts aggregation).
-  await syncProducts()
+  await syncAll()
 }
 
 async function exportProducts() {
-  if (products.value.length === 0) {
+  if (store.products.length === 0) {
     notify.error('沒有可匯出的商品，請先同步')
     return
   }
 
-  // Export selected if any, otherwise all — mirrors the Apple table.
   const source =
-    selected.value.size > 0
-      ? products.value.filter((p) => selected.value.has(p.productId))
-      : products.value
+    store.selected.size > 0
+      ? store.products.filter((p) => store.selected.has(p.productId))
+      : store.products
 
   const payload = source.map((p) => ({ productId: p.productId }))
 
-  exporting.value = true
-  exportProgress.value = '準備匯出...'
+  store.exporting = true
+  store.exportProgress = '準備匯出...'
   const result = await googleApi.exportProducts(props.projectId, payload)
-  exporting.value = false
-  exportProgress.value = ''
+  store.exporting = false
+  store.exportProgress = ''
 
   if (!result.success) {
     notify.error(result.error || '匯出失敗')
@@ -256,7 +214,9 @@ async function exportProducts() {
   if (data.cancelled) return
 
   if (data.errors.length > 0) {
-    const lines = data.errors.map((e: any) => `${e.productId}: ${e.error}`).join('\n')
+    const lines = data.errors
+      .map((e: { productId: string; error: string }) => `${e.productId}: ${e.error}`)
+      .join('\n')
     notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
   } else {
     notify.success(`匯出完成：${data.exported} 個商品`)
@@ -265,30 +225,14 @@ async function exportProducts() {
 
 function toggleAll() {
   if (allSelected.value) {
-    selected.value.clear()
+    store.clearSelection()
   } else {
-    selected.value = new Set(filteredProducts.value.map((p) => p.productId))
+    store.setSelection(filteredProducts.value.map((p) => p.productId))
   }
-}
-
-// Clear the selected Set and reassign to a new instance so reactivity fires
-// (Set mutation alone wouldn't trigger reactive updates of dependants).
-function clearSelection() {
-  selected.value.clear()
-  selected.value = new Set()
-}
-
-function toggleItem(id: string) {
-  if (selected.value.has(id)) {
-    selected.value.delete(id)
-  } else {
-    selected.value.add(id)
-  }
-  selected.value = new Set(selected.value)
 }
 
 async function handleBatchAction(key: string) {
-  const ids = Array.from(selected.value)
+  const ids = Array.from(store.selected)
   if (ids.length === 0) return
 
   if (key === 'activate' || key === 'deactivate') {
@@ -298,19 +242,23 @@ async function handleBatchAction(key: string) {
     if (!confirm(`確定要${label}選取的 ${ids.length} 個商品嗎？`)) return
 
     notify.info(`正在批次${label}...`)
-    const plainProducts = JSON.parse(JSON.stringify(products.value))
+    // IPC structuredClone bails on Vue's reactive proxies, so flatten before
+    // sending. This is the same workaround the original code used.
+    const plainProducts = JSON.parse(JSON.stringify(store.products))
     const result = await googleApi.batchUpdateStatus(props.projectId, ids, active, plainProducts)
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
-        const errors = data.failed.map((f: any) => `${f.id}: ${f.error}`).join('\n')
+        const errors = data.failed
+          .map((f: { id: string; error: string }) => `${f.id}: ${f.error}`)
+          .join('\n')
         notify.error(`失敗 ${data.failed.length} 項\n${errors}`)
       }
       if (data.success.length > 0) {
         notify.success(`成功${label} ${data.success.length} 項`)
       }
-      selected.value.clear()
-      await syncProducts()
+      store.clearSelection()
+      await syncAll()
     } else {
       notify.error(result.error || '操作失敗')
     }
@@ -377,7 +325,7 @@ async function createProduct() {
   })
   creating.value = false
   if (result.success) {
-    const skipped = (result as any).skippedRegions as string[] | undefined
+    const skipped = (result as { skippedRegions?: string[] }).skippedRegions
     if (skipped && skipped.length > 0) {
       notify.success(
         `商品已建立（草稿）。略過 ${skipped.length} 個地區：${skipped.join(', ')}（可到 Play Console 手動設定）`
@@ -395,7 +343,7 @@ async function createProduct() {
       baseRegionCode: '',
       basePrice: ''
     }
-    await syncProducts()
+    await syncAll()
   } else {
     notify.error(result.error || '建立失敗')
   }
@@ -425,7 +373,6 @@ function productStatusLabel(product: GoogleProduct): string {
 
 function productPriceLabel(product: GoogleProduct): string {
   if (!product.basePrice || !product.baseCurrency) return '-'
-  // Format matches the Apple table: amount then currency (e.g. "200.00 TWD").
   return `${product.basePrice} ${product.baseCurrency}`
 }
 
@@ -450,41 +397,44 @@ function statusColor(status: string): string {
     <div class="mb-4 flex shrink-0 items-center justify-between px-6 pt-6">
       <div class="flex items-center gap-2">
         <button
-          :disabled="syncing"
+          :disabled="store.syncing"
           class="rounded-lg bg-green-600 px-4 py-2 text-sm text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-          @click="syncProducts"
+          @click="syncAll"
         >
           同步商品
         </button>
         <button
-          :disabled="exporting || syncing || products.length === 0"
+          :disabled="store.exporting || store.syncing || store.products.length === 0"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="exportProducts"
         >
           匯出
         </button>
         <button
-          :disabled="exporting || syncing"
+          :disabled="store.exporting || store.syncing"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="importProducts"
         >
           匯入
         </button>
-        <span v-if="syncing" class="flex items-center gap-2 text-sm text-gray-400">
+        <span v-if="store.syncing" class="flex items-center gap-2 text-sm text-gray-400">
           <span
             class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
           />
-          {{ syncProgress }}
+          {{ store.syncProgress }}
         </span>
-        <span v-if="exporting" class="flex items-center gap-2 text-sm text-gray-400">
+        <span v-if="store.exporting" class="flex items-center gap-2 text-sm text-gray-400">
           <span
             class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-green-400 border-t-transparent"
           />
-          {{ exportProgress }}
+          {{ store.exportProgress }}
         </span>
-        <span v-if="products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
-          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : ''
-          }}{{ products.length }} 個商品
+        <span v-if="store.products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
+          {{
+            filteredProducts.length !== store.products.length
+              ? `${filteredProducts.length} / `
+              : ''
+          }}{{ store.products.length }} 個商品
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -504,8 +454,8 @@ function statusColor(status: string): string {
     </div>
 
     <!-- Batch Action Bar (inline) -->
-    <div v-if="selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
-      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ selected.size }} 項</span>
+    <div v-if="store.selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
+      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ store.selected.size }} 項</span>
       <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
@@ -522,7 +472,7 @@ function statusColor(status: string): string {
       </button>
       <button
         class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
-        @click="clearSelection"
+        @click="store.clearSelection()"
       >
         取消選取
       </button>
@@ -539,7 +489,7 @@ function statusColor(status: string): string {
         "
         @click="setFilter(null)"
       >
-        全部 {{ products.length }}
+        全部 {{ store.products.length }}
       </button>
       <button
         v-for="group in statusGroups"
@@ -776,15 +726,15 @@ function statusColor(status: string): string {
                 v-for="product in filteredProducts"
                 :key="product.productId"
                 class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
-                :class="{ 'bg-green-600/10': selected.has(product.productId) }"
-                @click="selectedProduct = product"
+                :class="{ 'bg-green-600/10': store.selected.has(product.productId) }"
+                @click="store.setSelectedProduct(product)"
               >
                 <td class="w-10 px-3 py-3" @click.stop>
                   <input
                     type="checkbox"
-                    :checked="selected.has(product.productId)"
+                    :checked="store.selected.has(product.productId)"
                     class="rounded"
-                    @change="toggleItem(product.productId)"
+                    @change="store.toggleSelection(product.productId)"
                   />
                 </td>
                 <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
@@ -807,27 +757,28 @@ function statusColor(status: string): string {
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="!loading && !syncing && products.length === 0" class="py-20 text-center">
+      <div
+        v-else-if="!store.loading && !store.syncing && store.products.length === 0"
+        class="py-20 text-center"
+      >
         <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
         <p class="text-sm text-gray-500">請先設定 Google 憑證，然後點擊「同步商品」</p>
       </div>
       <div
-        v-else-if="!loading && !syncing && filteredProducts.length === 0"
+        v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
         class="py-10 text-center"
       >
         <p class="text-sm text-gray-500">此狀態下沒有商品</p>
       </div>
 
-      <div v-if="loading" class="py-20 text-center text-gray-500">載入中...</div>
+      <div v-if="store.loading" class="py-20 text-center text-gray-500">載入中...</div>
     </div>
 
     <!-- Product Detail Modal -->
     <GoogleProductDetail
-      v-if="selectedProduct"
+      v-if="store.selectedProduct"
       :project-id="projectId"
-      :product="selectedProduct"
-      @close="selectedProduct = null"
-      @updated="syncProducts"
+      @close="store.setSelectedProduct(null)"
     />
 
     <!-- Import Dialog -->
