@@ -63,7 +63,7 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
 - Project list and sidebar support drag-and-drop reordering
 - Tab state preserved when switching projects
 
-## Tech stack
+## Tech Stack
 
 - Electron + electron-vite
 - Vue 3 + TypeScript + Vue Router + Pinia

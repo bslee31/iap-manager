@@ -28,10 +28,10 @@ Apple & Google 應用程式內購商品批次管理工具。
 
 ### Google One-time Products
 
-- 同步商品列表（含 Purchase Option 匯總狀態與主 PO 在 Base Region 的價格）
+- 同步商品列表（含 Purchase Option 彙總狀態與主 PO 在 Base Region 的價格）
 - 列表欄位：Product ID / Product name / Price / Status，佈局對齊 Apple
   - Price 取「主 PO」（`buyOption.legacyCompatible=true`，Play Console 的 Backwards compatible）在 Base Region 的價格
-  - Status 採優先級聚合（ACTIVE > INACTIVE > DRAFT > NO_PURCHASE_OPTION）；多 PO 混合狀態會顯示 `N/M 上架中`
+  - Status 採優先順序聚合（ACTIVE > INACTIVE > DRAFT > NO_PURCHASE_OPTION）；多 PO 混合狀態會顯示 `N/M 上架中`
 - 批次上架 / 下架（作用於主 PO / Backwards compatible，對齊列表 Price 欄的語意；alternate PO 不受影響，如需個別操作請進 Detail）
 - 依狀態篩選（上架中、已下架、草稿、未設定方案等）
 - 新增商品
@@ -63,7 +63,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 - 專案列表和側欄支援拖曳排序
 - 切換專案時保留分頁狀態
 
-## 技術棧
+## Tech Stack
 
 - Electron + electron-vite
 - Vue 3 + TypeScript + Vue Router + Pinia
