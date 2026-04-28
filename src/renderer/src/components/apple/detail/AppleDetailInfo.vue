@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
+import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import * as appleApi from '../../../services/api/apple'
 
 const props = defineProps<{
@@ -12,11 +13,8 @@ const props = defineProps<{
   referenceName: string
 }>()
 
-const emit = defineEmits<{
-  'update-reference-name': [referenceName: string]
-}>()
-
 const notify = useNotificationStore()
+const store = useAppleProductsStore()
 
 const MAX_REF_NAME = 64
 // States where Apple blocks edits (conservative list; API error also surfaced)
@@ -51,7 +49,7 @@ async function saveReferenceName(): Promise<void> {
   savingReferenceName.value = false
   if (result.success) {
     notify.success('Reference Name 已更新')
-    emit('update-reference-name', result.data.referenceName)
+    store.updateProductReferenceName(result.data.referenceName)
   } else {
     notify.error(result.error || '更新失敗')
   }

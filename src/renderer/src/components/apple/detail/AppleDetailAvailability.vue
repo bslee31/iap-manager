@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
+import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import {
   territoryName,
   groupTerritoriesByRegion,
@@ -15,14 +16,11 @@ const props = defineProps<{
   allTerritories: { id: string; currency: string }[]
 }>()
 
-const emit = defineEmits<{
-  'update-availability': [count: number]
-}>()
-
 const selectedTerritories = defineModel<Set<string>>('selectedTerritories', { required: true })
 const availableInNewTerritories = defineModel<boolean>('availableInNew', { required: true })
 
 const notify = useNotificationStore()
+const store = useAppleProductsStore()
 
 const availSaving = ref(false)
 const territorySearch = ref('')
@@ -90,7 +88,7 @@ async function saveAvailability() {
   availSaving.value = false
   if (result.success) {
     notify.success('Availability 已更新')
-    emit('update-availability', selectedTerritories.value.size)
+    store.updateProductTerritoryCount(selectedTerritories.value.size)
   } else {
     notify.error(result.error || '更新失敗')
   }

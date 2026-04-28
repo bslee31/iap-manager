@@ -1,40 +1,30 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleDetailInfo from './detail/AppleDetailInfo.vue'
 import AppleDetailAvailability from './detail/AppleDetailAvailability.vue'
 import AppleDetailPrice from './detail/AppleDetailPrice.vue'
 import AppleDetailLocalization from './detail/AppleDetailLocalization.vue'
 import * as appleApi from '../../services/api/apple'
 
-const props = defineProps<{
-  projectId: string
-  product: {
-    id: string
-    productId: string
-    referenceName: string
-    type: string
-    state: string
-    territoryCount: number
-  }
-}>()
-
-const emit = defineEmits<{
-  close: []
-  'update-availability': [count: number]
-  'update-price': [price: string, currency: string]
-  'update-reference-name': [referenceName: string]
-}>()
+const props = defineProps<{ projectId: string }>()
+defineEmits<{ close: [] }>()
 
 const notify = useNotificationStore()
+const store = useAppleProductsStore()
+
+// AppleProductTable wraps this component in v-if="store.selectedProduct",
+// so the ref is non-null for the entire mounted lifetime.
+const product = computed(() => store.selectedProduct!)
 
 type Tab = 'info' | 'availability' | 'price' | 'localization'
 const activeTab = ref<Tab>('info')
 
-// Availability data lives on the parent because both the Availability tab
-// (read/write) and the Price tab (read-only filter "only show available")
-// need it. Loaded once on open, refreshed only via the Availability tab's
-// own save call.
+// Availability data lives on this Detail component because both the
+// Availability tab (read/write) and the Price tab (read-only filter
+// "only show available") need it. Loaded once on open, refreshed only
+// via the Availability tab's own save call.
 const availLoading = ref(false)
 const allTerritories = ref<{ id: string; currency: string }[]>([])
 const selectedTerritories = ref<Set<string>>(new Set())
@@ -45,7 +35,7 @@ async function loadAvailability(): Promise<void> {
   availLoading.value = true
   try {
     const [availResult, terrResult] = await Promise.all([
-      appleApi.getAvailabilityDetail(props.projectId, props.product.id),
+      appleApi.getAvailabilityDetail(props.projectId, product.value.id),
       appleApi.getAllTerritories(props.projectId)
     ])
     if (availResult.success) {
@@ -61,8 +51,8 @@ async function loadAvailability(): Promise<void> {
   availLoading.value = false
 }
 
-// Safety net for the rare case where the user clicks into Availability or
-// Price before the initial onMounted load finished or was triggered.
+// Safety net: if the user clicks into Availability or Price before the
+// initial onMounted load finished, kick the load.
 watch(activeTab, (tab) => {
   if ((tab === 'availability' || tab === 'price') && allTerritories.value.length === 0) {
     loadAvailability()
@@ -75,7 +65,7 @@ onMounted(loadAvailability)
 <template>
   <div
     class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
-    @click.self="emit('close')"
+    @click.self="$emit('close')"
   >
     <div
       class="titlebar-no-drag flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
@@ -88,7 +78,7 @@ onMounted(loadAvailability)
         </div>
         <button
           class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
-          @click="emit('close')"
+          @click="$emit('close')"
         >
           &times;
         </button>
@@ -131,7 +121,6 @@ onMounted(loadAvailability)
             :type="product.type"
             :state="product.state"
             :reference-name="product.referenceName"
-            @update-reference-name="(name) => emit('update-reference-name', name)"
           />
           <AppleDetailAvailability
             v-else-if="activeTab === 'availability'"
@@ -141,7 +130,6 @@ onMounted(loadAvailability)
             :iap-id="product.id"
             :loading="availLoading"
             :all-territories="allTerritories"
-            @update-availability="(count) => emit('update-availability', count)"
           />
           <AppleDetailPrice
             v-else-if="activeTab === 'price'"
@@ -149,7 +137,6 @@ onMounted(loadAvailability)
             :iap-id="product.id"
             :all-territories="allTerritories"
             :selected-territories="selectedTerritories"
-            @update-price="(price, currency) => emit('update-price', price, currency)"
           />
           <AppleDetailLocalization v-else :project-id="projectId" :iap-id="product.id" />
         </KeepAlive>

@@ -1,62 +1,38 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useNotificationStore } from '../../stores/notification.store'
+import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleProductDetail from './AppleProductDetail.vue'
 import AppleImportDialog from './AppleImportDialog.vue'
 import * as appleApi from '../../services/api/apple'
 import * as dialogApi from '../../services/api/dialog'
-import * as progressApi from '../../services/api/progress'
 
 const props = defineProps<{ projectId: string }>()
 const notify = useNotificationStore()
+const store = useAppleProductsStore()
 
-interface AppleProduct {
-  id: string
-  productId: string
-  referenceName: string
-  type: string
-  state: string
-  territoryCount: number
-  basePrice: string
-  baseCurrency: string
-  syncedAt: string
-}
-
-const products = ref<AppleProduct[]>([])
-const selected = ref<Set<string>>(new Set())
-const loading = ref(false)
-const syncing = ref(false)
-const exporting = ref(false)
-const exportProgress = ref('')
-const importFileContent = ref<string | null>(null)
-const existingProductIds = computed(() => products.value.map((p) => p.productId))
+// Pure UI state — kept local because no other component cares about it.
 const showCreateForm = ref(false)
 const activeFilter = ref<string | null>(null)
 const searchQuery = ref('')
-const syncProgress = ref('')
-const selectedProduct = ref<AppleProduct | null>(null)
-
-// Listen for sync/export progress from main process
-let cleanupProgress: (() => void) | null = null
-let cleanupExportProgress: (() => void) | null = null
-onMounted(() => {
-  cleanupProgress = progressApi.onSync((data) => {
-    syncProgress.value = data.phase
-  })
-  cleanupExportProgress = progressApi.onExport((data) => {
-    exportProgress.value = data.phase
-  })
-})
-onUnmounted(() => {
-  cleanupProgress?.()
-  cleanupExportProgress?.()
-})
-
-// Create form
+const importFileContent = ref<string | null>(null)
 const newProduct = ref({
   productId: '',
   referenceName: '',
   inAppPurchaseType: 'CONSUMABLE' as string
+})
+
+const existingProductIds = computed(() => store.products.map((p) => p.productId))
+
+// Reset on mount AND unmount: project switches re-mount this component, and
+// we want the store cleared on the way in (defence against an unclean prior
+// unmount) and on the way out (so the next project starts clean).
+onMounted(async () => {
+  store.reset()
+  await store.loadCached(props.projectId)
+})
+onUnmounted(() => {
+  store.reset()
 })
 
 // Status filter
@@ -77,7 +53,7 @@ const STATUS_ORDER: Record<string, number> = {
 
 const statusGroups = computed(() => {
   const counts = new Map<string, number>()
-  for (const p of products.value) {
+  for (const p of store.products) {
     counts.set(p.state, (counts.get(p.state) || 0) + 1)
   }
   return Array.from(counts.entries())
@@ -86,7 +62,7 @@ const statusGroups = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  let result = products.value
+  let result = store.products
   if (activeFilter.value) {
     result = result.filter((p) => p.state === activeFilter.value)
   }
@@ -100,7 +76,7 @@ const filteredProducts = computed(() => {
 })
 
 const allSelected = computed(() => {
-  return filteredProducts.value.length > 0 && selected.value.size === filteredProducts.value.length
+  return filteredProducts.value.length > 0 && store.selected.size === filteredProducts.value.length
 })
 
 const batchActions = [
@@ -110,122 +86,64 @@ const batchActions = [
   { key: 'deactivate', label: '批次下架', variant: 'danger' as const }
 ]
 
-onMounted(loadCached)
-
-async function loadCached() {
-  loading.value = true
-  const result = await appleApi.getCachedProducts(props.projectId)
+async function syncAll() {
+  const result = await store.syncProducts(props.projectId)
   if (result.success) {
-    products.value = result.data
-  }
-  loading.value = false
-}
-
-async function syncProducts() {
-  syncing.value = true
-  syncProgress.value = '正在連線...'
-  const result = await appleApi.fetchProducts(props.projectId)
-  syncing.value = false
-  syncProgress.value = ''
-  if (result.success) {
-    products.value = result.data
-    selected.value.clear()
     notify.success(`同步完成，共 ${result.data.length} 個商品`)
   } else {
     notify.error(result.error || '同步失敗')
   }
 }
 
-function onAvailabilityUpdated(count: number) {
-  if (selectedProduct.value) {
-    selectedProduct.value.territoryCount = count
-  }
-}
-
-function onPriceUpdated(price: string, currency: string) {
-  if (selectedProduct.value) {
-    selectedProduct.value.basePrice = price
-    selectedProduct.value.baseCurrency = currency
-  }
-}
-
-function onReferenceNameUpdated(referenceName: string) {
-  if (selectedProduct.value) {
-    selectedProduct.value.referenceName = referenceName
-  }
-}
-
 function toggleAll() {
   if (allSelected.value) {
-    selected.value.clear()
+    store.clearSelection()
   } else {
-    selected.value = new Set(filteredProducts.value.map((p) => p.id))
+    store.setSelection(filteredProducts.value.map((p) => p.id))
   }
-}
-
-// Clear the selected Set and reassign to a new instance so reactivity fires
-// (Set mutation alone wouldn't trigger reactive updates of dependants).
-function clearSelection() {
-  selected.value.clear()
-  selected.value = new Set()
 }
 
 function setFilter(state: string | null) {
   activeFilter.value = activeFilter.value === state ? null : state
-  selected.value.clear()
-}
-
-function toggleItem(id: string) {
-  if (selected.value.has(id)) {
-    selected.value.delete(id)
-  } else {
-    selected.value.add(id)
-  }
-  // Trigger reactivity
-  selected.value = new Set(selected.value)
+  store.clearSelection()
 }
 
 async function handleBatchAction(key: string) {
-  const ids = Array.from(selected.value)
+  const ids = Array.from(store.selected)
   if (ids.length === 0) return
 
   if (key === 'sync-price') {
-    syncing.value = true
+    store.syncing = true
     let success = 0
     const total = ids.length
     for (const id of ids) {
-      const product = products.value.find((p) => p.id === id)
-      if (!product) continue
-      syncProgress.value = `重整 Price... ${success + 1}/${total}`
+      store.syncProgress = `重整 Price... ${success + 1}/${total}`
       const result = await appleApi.syncBasePrice(props.projectId, id)
       if (result.success) {
-        product.basePrice = result.data.basePrice
-        product.baseCurrency = result.data.baseCurrency
+        store.updateProductBasePriceById(id, result.data.basePrice, result.data.baseCurrency)
         success++
       }
     }
-    syncing.value = false
-    syncProgress.value = ''
+    store.syncing = false
+    store.syncProgress = ''
     notify.success(`已重整 ${success} 個商品的價格`)
     return
   }
 
   if (key === 'sync-availability') {
-    syncing.value = true
+    store.syncing = true
     let success = 0
     const total = ids.length
     for (const id of ids) {
-      const product = products.value.find((p) => p.id === id)
-      if (!product) continue
-      syncProgress.value = `重整 Availability... ${success + 1}/${total}`
+      store.syncProgress = `重整 Availability... ${success + 1}/${total}`
       const result = await appleApi.syncAvailability(props.projectId, id)
       if (result.success) {
-        product.territoryCount = result.data.territoryCount
+        store.updateProductTerritoryCountById(id, result.data.territoryCount)
         success++
       }
     }
-    syncing.value = false
-    syncProgress.value = ''
+    store.syncing = false
+    store.syncProgress = ''
     notify.success(`已重整 ${success} 個商品的 Availability`)
     return
   }
@@ -241,14 +159,16 @@ async function handleBatchAction(key: string) {
     if (result.success) {
       const { data } = result
       if (data.failed.length > 0) {
-        const errors = data.failed.map((f: any) => `${f.id}: ${f.error}`).join('\n')
+        const errors = data.failed
+          .map((f: { id: string; error: string }) => `${f.id}: ${f.error}`)
+          .join('\n')
         notify.error(`失敗 ${data.failed.length} 項\n${errors}`)
       }
       if (data.success.length > 0) {
         notify.success(`成功${label} ${data.success.length} 項`)
       }
-      selected.value.clear()
-      await syncProducts()
+      store.clearSelection()
+      await syncAll()
     } else {
       notify.error(result.error || '操作失敗')
     }
@@ -263,22 +183,22 @@ async function importProducts() {
 
 async function onImportDone() {
   importFileContent.value = null
-  // Main process has already updated local DB with imported products,
-  // so just reload the cached list (no extra Apple API calls).
-  await loadCached()
+  // Main process has already written the imported products to the local DB,
+  // so just reload the cached list — no extra Apple API calls.
+  await store.loadCached(props.projectId)
 }
 
 async function exportProducts() {
-  if (products.value.length === 0) {
+  if (store.products.length === 0) {
     notify.error('沒有可匯出的商品，請先同步')
     return
   }
 
-  // 有勾選就匯出勾選的，沒勾選就匯出全部
+  // Export selection if any boxes are checked, otherwise everything.
   const source =
-    selected.value.size > 0
-      ? products.value.filter((p) => selected.value.has(p.id))
-      : products.value
+    store.selected.size > 0
+      ? store.products.filter((p) => store.selected.has(p.id))
+      : store.products
 
   const payload = source.map((p) => ({
     id: p.id,
@@ -287,11 +207,11 @@ async function exportProducts() {
     type: p.type
   }))
 
-  exporting.value = true
-  exportProgress.value = '準備匯出...'
+  store.exporting = true
+  store.exportProgress = '準備匯出...'
   const result = await appleApi.exportProducts(props.projectId, payload)
-  exporting.value = false
-  exportProgress.value = ''
+  store.exporting = false
+  store.exportProgress = ''
 
   if (!result.success) {
     notify.error(result.error || '匯出失敗')
@@ -302,7 +222,9 @@ async function exportProducts() {
   if (data.cancelled) return
 
   if (data.errors.length > 0) {
-    const lines = data.errors.map((e: any) => `${e.productId}: ${e.error}`).join('\n')
+    const lines = data.errors
+      .map((e: { productId: string; error: string }) => `${e.productId}: ${e.error}`)
+      .join('\n')
     notify.error(`已匯出 ${data.exported}/${data.total}，${data.errors.length} 項失敗\n${lines}`)
   } else {
     notify.success(`匯出完成：${data.exported} 個商品`)
@@ -317,14 +239,14 @@ async function createProduct() {
 
   const result = await appleApi.createProduct(props.projectId, {
     ...newProduct.value,
-    appId: '' // Will be filled from credentials in main process
+    appId: '' // Filled from credentials in the main process
   })
 
   if (result.success) {
     notify.success('商品已建立')
     showCreateForm.value = false
     newProduct.value = { productId: '', referenceName: '', inAppPurchaseType: 'CONSUMABLE' }
-    await syncProducts()
+    await syncAll()
   } else {
     notify.error(result.error || '建立失敗')
   }
@@ -364,41 +286,44 @@ function typeLabel(type: string): string {
     <div class="mb-4 flex shrink-0 items-center justify-between px-6 pt-6">
       <div class="flex items-center gap-2">
         <button
-          :disabled="syncing"
+          :disabled="store.syncing"
           class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
-          @click="syncProducts"
+          @click="syncAll"
         >
           同步商品
         </button>
         <button
-          :disabled="exporting || syncing || products.length === 0"
+          :disabled="store.exporting || store.syncing || store.products.length === 0"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="exportProducts"
         >
           匯出
         </button>
         <button
-          :disabled="exporting || syncing"
+          :disabled="store.exporting || store.syncing"
           class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
           @click="importProducts"
         >
           匯入
         </button>
-        <span v-if="syncing" class="flex items-center gap-2 text-sm text-gray-400">
+        <span v-if="store.syncing" class="flex items-center gap-2 text-sm text-gray-400">
           <span
             class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"
           />
-          {{ syncProgress }}
+          {{ store.syncProgress }}
         </span>
-        <span v-if="exporting" class="flex items-center gap-2 text-sm text-gray-400">
+        <span v-if="store.exporting" class="flex items-center gap-2 text-sm text-gray-400">
           <span
             class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"
           />
-          {{ exportProgress }}
+          {{ store.exportProgress }}
         </span>
-        <span v-if="products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
-          {{ filteredProducts.length !== products.length ? `${filteredProducts.length} / ` : ''
-          }}{{ products.length }} 個商品
+        <span v-if="store.products.length > 0" class="text-sm whitespace-nowrap text-gray-500">
+          {{
+            filteredProducts.length !== store.products.length
+              ? `${filteredProducts.length} / `
+              : ''
+          }}{{ store.products.length }} 個商品
         </span>
       </div>
       <div class="flex items-center gap-3">
@@ -418,8 +343,8 @@ function typeLabel(type: string): string {
     </div>
 
     <!-- Batch Action Bar (inline) -->
-    <div v-if="selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
-      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ selected.size }} 項</span>
+    <div v-if="store.selected.size > 0" class="mb-3 flex shrink-0 items-center gap-3 px-6">
+      <span class="text-sm whitespace-nowrap text-gray-300">已選 {{ store.selected.size }} 項</span>
       <div class="h-5 w-px bg-[#43454a]" />
       <button
         v-for="action in batchActions"
@@ -436,7 +361,7 @@ function typeLabel(type: string): string {
       </button>
       <button
         class="text-sm whitespace-nowrap text-gray-400 transition-colors hover:text-white"
-        @click="clearSelection"
+        @click="store.clearSelection()"
       >
         取消選取
       </button>
@@ -453,7 +378,7 @@ function typeLabel(type: string): string {
         "
         @click="setFilter(null)"
       >
-        全部 {{ products.length }}
+        全部 {{ store.products.length }}
       </button>
       <button
         v-for="group in statusGroups"
@@ -602,15 +527,15 @@ function typeLabel(type: string): string {
                 v-for="product in filteredProducts"
                 :key="product.id"
                 class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
-                :class="{ 'bg-blue-600/10': selected.has(product.id) }"
-                @click="selectedProduct = product"
+                :class="{ 'bg-blue-600/10': store.selected.has(product.id) }"
+                @click="store.setSelectedProduct(product)"
               >
                 <td class="px-3 py-3" @click.stop>
                   <input
                     type="checkbox"
-                    :checked="selected.has(product.id)"
+                    :checked="store.selected.has(product.id)"
                     class="rounded"
-                    @change="toggleItem(product.id)"
+                    @change="store.toggleSelection(product.id)"
                   />
                 </td>
                 <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
@@ -657,30 +582,29 @@ function typeLabel(type: string): string {
       </div>
 
       <!-- Empty state -->
-      <div v-else-if="!loading && !syncing && products.length === 0" class="py-20 text-center">
+      <div
+        v-else-if="!store.loading && !store.syncing && store.products.length === 0"
+        class="py-20 text-center"
+      >
         <p class="mb-2 text-lg text-gray-500">尚無商品資料</p>
         <p class="text-sm text-gray-500">請先設定 Apple 憑證，然後點擊「同步商品」</p>
       </div>
       <div
-        v-else-if="!loading && !syncing && filteredProducts.length === 0"
+        v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
         class="py-10 text-center"
       >
         <p class="text-sm text-gray-500">此狀態下沒有商品</p>
       </div>
 
       <!-- Loading -->
-      <div v-if="loading" class="py-20 text-center text-gray-500">載入中...</div>
+      <div v-if="store.loading" class="py-20 text-center text-gray-500">載入中...</div>
     </div>
 
     <!-- Product Detail Modal -->
     <AppleProductDetail
-      v-if="selectedProduct"
+      v-if="store.selectedProduct"
       :project-id="props.projectId"
-      :product="selectedProduct"
-      @close="selectedProduct = null"
-      @update-availability="onAvailabilityUpdated"
-      @update-price="onPriceUpdated"
-      @update-reference-name="onReferenceNameUpdated"
+      @close="store.setSelectedProduct(null)"
     />
 
     <!-- Import Dialog -->

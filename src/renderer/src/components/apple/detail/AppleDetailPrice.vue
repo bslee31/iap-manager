@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useNotificationStore } from '../../../stores/notification.store'
+import { useAppleProductsStore } from '../../../stores/apple-products.store'
 import { territoryName } from '../../../utils/territory-names'
 import SearchableSelect from '../../common/SearchableSelect.vue'
 import * as appleApi from '../../../services/api/apple'
@@ -14,11 +15,8 @@ const props = defineProps<{
   selectedTerritories: Set<string>
 }>()
 
-const emit = defineEmits<{
-  'update-price': [price: string, currency: string]
-}>()
-
 const notify = useNotificationStore()
+const store = useAppleProductsStore()
 
 interface PricePoint {
   id: string
@@ -220,7 +218,7 @@ async function savePriceSchedule() {
     notify.success('價格已更新')
     await Promise.all([loadPriceSchedule(), loadAllTerritoryPrices()])
     if (allPricesData.value) {
-      emit('update-price', allPricesData.value.basePrice, allPricesData.value.baseCurrency)
+      store.updateProductPrice(allPricesData.value.basePrice, allPricesData.value.baseCurrency)
     }
   } else {
     notify.error(result.error || '更新失敗')
