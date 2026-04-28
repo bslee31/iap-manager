@@ -61,9 +61,12 @@ export const useGoogleProductsStore = defineStore('google-products', () => {
     return result
   }
 
+  // The caller is expected to set syncProgress beforehand if it wants an
+  // initial phase string ("正在連線..." in zh-TW) — keeping the i18n call
+  // in the component avoids pulling vue-i18n into the store. Once the
+  // main-process listener kicks in, it overwrites this with phase updates.
   async function syncProducts(projectId: string) {
     syncing.value = true
-    syncProgress.value = '正在連線...'
     const result = await googleApi.fetchProducts(projectId)
     syncing.value = false
     syncProgress.value = ''

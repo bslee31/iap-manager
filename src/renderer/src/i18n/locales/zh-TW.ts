@@ -15,7 +15,6 @@ const zhTW = {
   common: {
     save: '儲存',
     cancel: '取消',
-    confirm: '確認',
     delete: '刪除',
     edit: '編輯',
     create: '建立',
@@ -24,7 +23,6 @@ const zhTW = {
     saving: '儲存中...',
     saveChanges: '儲存變更',
     reload: '重新載入',
-    success: '操作成功',
     error: '發生錯誤',
     selectPlaceholder: '請選擇...',
     searchPlaceholder: '搜尋...',

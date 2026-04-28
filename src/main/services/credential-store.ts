@@ -47,7 +47,7 @@ export function loadCredentials(projectId: string): ProjectCredentials {
 
 export function saveCredentials(projectId: string, creds: ProjectCredentials): void {
   if (!safeStorage.isEncryptionAvailable()) {
-    throw new Error('系統加密��能不可用')
+    throw new Error('系統加密功能不可用')
   }
 
   const json = JSON.stringify(creds)

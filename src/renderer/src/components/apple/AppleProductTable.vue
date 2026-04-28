@@ -90,6 +90,10 @@ const batchActions = computed(() => [
 ])
 
 async function syncAll() {
+  // Set the initial phase string here (not in the store) so the i18n call
+  // stays in the component layer. The main-process progress listener will
+  // overwrite this with concrete phase updates as the sync proceeds.
+  store.syncProgress = t('apple.progress.connecting')
   const result = await store.syncProducts(props.projectId)
   if (result.success) {
     notify.success(t('apple.toast.syncSuccess', { count: result.data.length }))
