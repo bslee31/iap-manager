@@ -1,18 +1,10 @@
-// Shared status formatting for Google one-time products and their purchase
-// options. Used by the Detail tabs (Info / Purchase Options / Pricing) so the
-// status badge styling stays consistent across the modal.
-
-export function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    ACTIVE: '上架中',
-    INACTIVE: '已下架',
-    INACTIVE_PUBLISHED: '已下架（保留）',
-    DRAFT: '草稿',
-    NO_PURCHASE_OPTION: '未設定方案',
-    UNKNOWN: '未知'
-  }
-  return map[status] || status
-}
+// Status badge tailwind classes for Google one-time products and their
+// purchase options. Used by the Detail tabs and the product table.
+//
+// The matching status *label* used to live here as a hand-rolled map but has
+// since moved to the i18n dictionary (`google.status.*`); each component
+// now does its own `te()` / `t()` lookup so this file only deals with
+// presentation styling.
 
 export function statusColor(status: string): string {
   switch (status) {
