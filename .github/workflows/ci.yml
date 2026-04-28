@@ -1,7 +1,7 @@
 name: CI
 
-# Run the four scripts wired up locally (lint + format check + typecheck +
-# build) on every push to main and on every pull request targeting main.
+# Run the five scripts wired up locally (lint + format check + typecheck +
+# test + build) on every push to main and on every pull request targeting main.
 on:
   push:
     branches: [main]
@@ -36,4 +36,5 @@ jobs:
       - run: npm run lint
       - run: npm run format:check
       - run: npm run typecheck
+      - run: npm run test:run
       - run: npm run build

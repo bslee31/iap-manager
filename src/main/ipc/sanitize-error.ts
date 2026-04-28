@@ -11,13 +11,15 @@ import { is } from '@electron-toolkit/utils'
 // etc.) without juggling consoles. The threat we're guarding against is
 // shipped builds echoing internal paths back to a UI screenshot.
 export function sanitizeError(e: unknown): string {
+  let message: string
   if (e instanceof Error) {
     console.error(e)
-    if (is.dev) return e.message
-    return scrubPaths(e.message)
+    message = e.message
+  } else {
+    console.error('Non-Error thrown:', e)
+    message = String(e)
   }
-  console.error('Non-Error thrown:', e)
-  return String(e)
+  return is.dev ? message : scrubPaths(message)
 }
 
 function scrubPaths(msg: string): string {
