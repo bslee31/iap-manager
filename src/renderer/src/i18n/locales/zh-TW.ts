@@ -25,7 +25,10 @@ const zhTW = {
     saveChanges: '儲存變更',
     reload: '重新載入',
     success: '操作成功',
-    error: '發生錯誤'
+    error: '發生錯誤',
+    selectPlaceholder: '請選擇...',
+    searchPlaceholder: '搜尋...',
+    noMatch: '找不到結果'
   },
 
   sidebar: {
@@ -65,6 +68,72 @@ const zhTW = {
     title: '設定',
     version: '應用程式版本',
     dataLocation: '資料儲存位置'
+  },
+
+  credentials: {
+    apple: {
+      sectionTitle: 'Apple App Store Connect',
+      keyIdLabel: 'Key ID',
+      keyIdPlaceholder: '例：ABC1234DEF',
+      issuerIdLabel: 'Issuer ID',
+      issuerIdPlaceholder: '例：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+      appIdLabel: 'App ID',
+      appIdPlaceholder: '例：1234567890',
+      privateKeyLabel: '私鑰檔案 (.p8)',
+      importP8: '匯入 .p8 檔案',
+      configured: '已設定',
+      notConfigured: '未設定',
+      saveButton: '儲存 Apple 憑證',
+      testButton: '測試連線',
+      testing: '測試中...',
+      toast: {
+        p8Imported: '已匯入 .p8 檔案',
+        fillIds: '請填寫 Key ID 和 Issuer ID',
+        importP8First: '請匯入 .p8 私鑰檔案',
+        saveSuccess: 'Apple 憑證已儲存',
+        saveFail: '儲存失敗',
+        testSuccess: '連線成功',
+        testFail: '連線失敗'
+      }
+    },
+    google: {
+      sectionTitle: 'Google Play Console',
+      packageNameLabel: 'Package Name',
+      packageNamePlaceholder: '例：com.example.myapp',
+      jsonLabel: '服務帳戶金鑰 (JSON)',
+      importJson: '匯入 JSON 檔案',
+      configured: '已設定',
+      notConfigured: '未設定',
+      defaultLanguageLabel: '預設語言',
+      defaultLanguageHint: '（新增商品時使用的 listing 語言）',
+      defaultLanguageNotSet: '未設定',
+      detectFromPlay: '從 Play Console 偵測',
+      detecting: '偵測中...',
+      baseRegionLabel: '優先顯示國家',
+      baseRegionHint: '（商品詳情 Price / Availability 會把此國家排在第一）',
+      baseRegionLoading: '載入中...',
+      baseRegionNotSet: '未設定（自動從預設語言推斷）',
+      saveButton: '儲存 Google 憑證',
+      testButton: '測試連線',
+      testing: '測試中...',
+      toast: {
+        jsonImported: '已匯入 Service Account JSON',
+        fillPackageName: '請填寫 Package Name',
+        importJsonFirst: '請匯入 Service Account JSON',
+        saveSuccess: 'Google 憑證已儲存',
+        saveFail: '儲存失敗',
+        testSuccess: '連線成功',
+        testFail: '連線失敗',
+        regionLoadFail: '載入國家清單失敗',
+        baseRegionUpdateSuccess: '已更新優先顯示國家',
+        baseRegionUpdateFail: '儲存失敗',
+        languageUpdateSuccess: '已更新預設語言',
+        languageUpdateFail: '儲存預設語言失敗',
+        saveCredsFirst: '請先儲存 Google 憑證',
+        detectSuccess: '已從 Play Console 偵測到預設語言：{language}',
+        detectFail: '偵測失敗'
+      }
+    }
   },
 
   apple: {
@@ -184,6 +253,7 @@ const zhTW = {
         adjustBase: '調整基準定價',
         baseRegion: '基準地區',
         priceLabel: '價格',
+        proceedsLabel: '收益',
         baseRegionPlaceholder: '選擇基準地區...',
         pricePlaceholder: '選擇價格...',
         loadingPricePoints: '載入價格選項中...',

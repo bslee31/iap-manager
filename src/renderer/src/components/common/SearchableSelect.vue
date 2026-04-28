@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   modelValue: string
@@ -8,6 +9,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+
+const { t } = useI18n()
 
 const open = ref(false)
 const search = ref('')
@@ -57,7 +60,9 @@ function onBlur() {
       :class="selectedLabel ? 'text-gray-200' : 'text-gray-500'"
       @click="toggle"
     >
-      <span class="truncate">{{ selectedLabel || placeholder || '請選擇...' }}</span>
+      <span class="truncate">{{
+        selectedLabel || placeholder || t('common.selectPlaceholder')
+      }}</span>
       <span class="ml-2 shrink-0 text-[10px] text-gray-500">&#9660;</span>
     </button>
 
@@ -74,7 +79,7 @@ function onBlur() {
           v-model="search"
           type="text"
           class="w-full rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
-          placeholder="搜尋..."
+          :placeholder="t('common.searchPlaceholder')"
           @blur="onBlur"
         />
       </div>
@@ -96,7 +101,7 @@ function onBlur() {
           <span v-if="opt.right" class="ml-3 shrink-0 text-xs text-gray-500">{{ opt.right }}</span>
         </button>
         <p v-if="filtered.length === 0" class="px-3 py-2 text-center text-xs text-gray-500">
-          找不到結果
+          {{ t('common.noMatch') }}
         </p>
       </div>
     </div>

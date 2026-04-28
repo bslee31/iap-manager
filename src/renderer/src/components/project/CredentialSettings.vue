@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotificationStore } from '../../stores/notification.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
@@ -8,6 +9,7 @@ import * as googleApi from '../../services/api/google'
 import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
+const { t } = useI18n()
 const notify = useNotificationStore()
 
 // Apple
@@ -77,7 +79,7 @@ onMounted(async () => {
     if (regionsResult.success && regionsResult.data) {
       googleRegions.value = regionsResult.data
     } else {
-      notify.error(regionsResult.error || '載入國家清單失敗')
+      notify.error(regionsResult.error || t('credentials.google.toast.regionLoadFail'))
     }
   }
 })
@@ -86,9 +88,9 @@ async function onGoogleBaseRegionChange(value: string) {
   googleBaseRegion.value = value
   const result = await googleApi.setBaseRegion(props.projectId, value || null)
   if (result.success) {
-    notify.success('已更新優先顯示國家')
+    notify.success(t('credentials.google.toast.baseRegionUpdateSuccess'))
   } else {
-    notify.error(result.error || '儲存失敗')
+    notify.error(result.error || t('credentials.google.toast.baseRegionUpdateFail'))
   }
 }
 
@@ -96,15 +98,15 @@ async function onGoogleLanguageChange(value: string) {
   googleDefaultLanguage.value = value
   const result = await googleApi.setDefaultLanguage(props.projectId, value || null)
   if (result.success) {
-    notify.success('已更新預設語言')
+    notify.success(t('credentials.google.toast.languageUpdateSuccess'))
   } else {
-    notify.error(result.error || '儲存預設語言失敗')
+    notify.error(result.error || t('credentials.google.toast.languageUpdateFail'))
   }
 }
 
 async function detectGoogleLanguage() {
   if (!googleSavedAccount.value) {
-    notify.error('請先儲存 Google 憑證')
+    notify.error(t('credentials.google.toast.saveCredsFirst'))
     return
   }
   googleDetectingLanguage.value = true
@@ -112,9 +114,11 @@ async function detectGoogleLanguage() {
   googleDetectingLanguage.value = false
   if (result.success && result.data) {
     googleDefaultLanguage.value = result.data.defaultLanguage
-    notify.success(`已從 Play Console 偵測到預設語言：${result.data.defaultLanguage}`)
+    notify.success(
+      t('credentials.google.toast.detectSuccess', { language: result.data.defaultLanguage })
+    )
   } else {
-    notify.error(result.error || '偵測失敗')
+    notify.error(result.error || t('credentials.google.toast.detectFail'))
   }
 }
 
@@ -123,21 +127,26 @@ async function importP8() {
   if (result.success && result.data) {
     appleP8Content.value = result.data
     appleHasKey.value = true
-    notify.info('已匯入 .p8 檔案')
+    notify.info(t('credentials.apple.toast.p8Imported'))
   }
 }
 
 async function saveApple() {
   if (!appleKeyId.value || !appleIssuerId.value) {
-    notify.error('請填寫 Key ID 和 Issuer ID')
+    notify.error(t('credentials.apple.toast.fillIds'))
     return
   }
   if (!appleP8Content.value && !appleHasKey.value) {
-    notify.error('請匯入 .p8 私鑰檔案')
+    notify.error(t('credentials.apple.toast.importP8First'))
     return
   }
 
-  const creds: any = {
+  const creds: {
+    keyId: string
+    issuerId: string
+    appId: string
+    privateKey?: string
+  } = {
     keyId: appleKeyId.value,
     issuerId: appleIssuerId.value,
     appId: appleAppId.value
@@ -148,9 +157,9 @@ async function saveApple() {
 
   const result = await credentialApi.saveApple(props.projectId, creds)
   if (result.success) {
-    notify.success('Apple 憑證已儲存')
+    notify.success(t('credentials.apple.toast.saveSuccess'))
   } else {
-    notify.error(result.error || '儲存失敗')
+    notify.error(result.error || t('credentials.apple.toast.saveFail'))
   }
 }
 
@@ -159,9 +168,9 @@ async function testApple() {
   const result = await credentialApi.testApple(props.projectId)
   appleTesting.value = false
   if (result.success) {
-    notify.success(result.message || '連線成功')
+    notify.success(result.message || t('credentials.apple.toast.testSuccess'))
   } else {
-    notify.error(result.error || '連線失敗')
+    notify.error(result.error || t('credentials.apple.toast.testFail'))
   }
 }
 
@@ -172,21 +181,24 @@ async function importGoogleJson() {
   if (result.success && result.data) {
     googleJsonContent.value = result.data
     googleHasAccount.value = true
-    notify.info('已匯入 Service Account JSON')
+    notify.info(t('credentials.google.toast.jsonImported'))
   }
 }
 
 async function saveGoogle() {
   if (!googlePackageName.value) {
-    notify.error('請填寫 Package Name')
+    notify.error(t('credentials.google.toast.fillPackageName'))
     return
   }
   if (!googleJsonContent.value && !googleHasAccount.value) {
-    notify.error('請匯入 Service Account JSON')
+    notify.error(t('credentials.google.toast.importJsonFirst'))
     return
   }
 
-  const creds: any = {
+  const creds: {
+    packageName: string
+    serviceAccountJson?: string
+  } = {
     packageName: googlePackageName.value
   }
   if (googleJsonContent.value) {
@@ -196,9 +208,9 @@ async function saveGoogle() {
   const result = await credentialApi.saveGoogle(props.projectId, creds)
   if (result.success) {
     googleSavedAccount.value = true
-    notify.success('Google 憑證已儲存')
+    notify.success(t('credentials.google.toast.saveSuccess'))
   } else {
-    notify.error(result.error || '儲存失敗')
+    notify.error(result.error || t('credentials.google.toast.saveFail'))
   }
 }
 
@@ -207,9 +219,9 @@ async function testGoogle() {
   const result = await credentialApi.testGoogle(props.projectId)
   googleTesting.value = false
   if (result.success) {
-    notify.success(result.message || '連線成功')
+    notify.success(result.message || t('credentials.google.toast.testSuccess'))
   } else {
-    notify.error(result.error || '連線失敗')
+    notify.error(result.error || t('credentials.google.toast.testFail'))
   }
 }
 </script>
@@ -218,46 +230,60 @@ async function testGoogle() {
   <div class="space-y-8">
     <!-- Apple Section -->
     <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
-      <h3 class="mb-4 text-lg font-semibold text-gray-100">Apple App Store Connect</h3>
+      <h3 class="mb-4 text-lg font-semibold text-gray-100">
+        {{ t('credentials.apple.sectionTitle') }}
+      </h3>
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">Key ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.apple.keyIdLabel')
+          }}</label>
           <input
             v-model="appleKeyId"
             type="text"
             class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="例：ABC1234DEF"
+            :placeholder="t('credentials.apple.keyIdPlaceholder')"
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">Issuer ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.apple.issuerIdLabel')
+          }}</label>
           <input
             v-model="appleIssuerId"
             type="text"
             class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="例：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+            :placeholder="t('credentials.apple.issuerIdPlaceholder')"
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">App ID</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.apple.appIdLabel')
+          }}</label>
           <input
             v-model="appleAppId"
             type="text"
             class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="例：1234567890"
+            :placeholder="t('credentials.apple.appIdPlaceholder')"
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">私鑰檔案 (.p8)</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.apple.privateKeyLabel')
+          }}</label>
           <div class="flex items-center gap-3">
             <button
               class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
               @click="importP8"
             >
-              匯入 .p8 檔案
+              {{ t('credentials.apple.importP8') }}
             </button>
-            <span v-if="appleHasKey" class="text-sm text-green-400">&#10003; 已設定</span>
-            <span v-else class="text-sm text-gray-500">未設定</span>
+            <span v-if="appleHasKey" class="text-sm text-green-400">
+              &#10003; {{ t('credentials.apple.configured') }}
+            </span>
+            <span v-else class="text-sm text-gray-500">
+              {{ t('credentials.apple.notConfigured') }}
+            </span>
           </div>
         </div>
         <div class="flex gap-2 pt-2">
@@ -265,14 +291,14 @@ async function testGoogle() {
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
             @click="saveApple"
           >
-            儲存 Apple 憑證
+            {{ t('credentials.apple.saveButton') }}
           </button>
           <button
             :disabled="appleTesting"
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
             @click="testApple"
           >
-            {{ appleTesting ? '測試中...' : '測試連線' }}
+            {{ appleTesting ? t('credentials.apple.testing') : t('credentials.apple.testButton') }}
           </button>
         </div>
       </div>
@@ -280,43 +306,53 @@ async function testGoogle() {
 
     <!-- Google Section -->
     <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
-      <h3 class="mb-4 text-lg font-semibold text-gray-100">Google Play Console</h3>
+      <h3 class="mb-4 text-lg font-semibold text-gray-100">
+        {{ t('credentials.google.sectionTitle') }}
+      </h3>
       <div class="space-y-4">
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">Package Name</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.google.packageNameLabel')
+          }}</label>
           <input
             v-model="googlePackageName"
             type="text"
             class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            placeholder="例：com.example.myapp"
+            :placeholder="t('credentials.google.packageNamePlaceholder')"
           />
         </div>
         <div>
-          <label class="mb-1 block text-sm font-medium text-gray-400">服務帳戶金鑰 (JSON)</label>
+          <label class="mb-1 block text-sm font-medium text-gray-400">{{
+            t('credentials.google.jsonLabel')
+          }}</label>
           <div class="flex items-center gap-3">
             <button
               class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
               @click="importGoogleJson"
             >
-              匯入 JSON 檔案
+              {{ t('credentials.google.importJson') }}
             </button>
-            <span v-if="googleHasAccount" class="text-sm text-green-400">&#10003; 已設定</span>
-            <span v-else class="text-sm text-gray-500">未設定</span>
+            <span v-if="googleHasAccount" class="text-sm text-green-400">
+              &#10003; {{ t('credentials.google.configured') }}
+            </span>
+            <span v-else class="text-sm text-gray-500">
+              {{ t('credentials.google.notConfigured') }}
+            </span>
           </div>
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-400">
-            預設語言
-            <span class="ml-1 text-xs font-normal text-gray-500"
-              >（新增商品時使用的 listing 語言）</span
-            >
+            {{ t('credentials.google.defaultLanguageLabel') }}
+            <span class="ml-1 text-xs font-normal text-gray-500">
+              {{ t('credentials.google.defaultLanguageHint') }}
+            </span>
           </label>
           <div class="flex items-center gap-2">
             <div class="flex-1">
               <SearchableSelect
                 :model-value="googleDefaultLanguage"
                 :options="languageOptions"
-                placeholder="未設定"
+                :placeholder="t('credentials.google.defaultLanguageNotSet')"
                 @update:model-value="onGoogleLanguageChange"
               />
             </div>
@@ -325,21 +361,29 @@ async function testGoogle() {
               class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
               @click="detectGoogleLanguage"
             >
-              {{ googleDetectingLanguage ? '偵測中...' : '從 Play Console 偵測' }}
+              {{
+                googleDetectingLanguage
+                  ? t('credentials.google.detecting')
+                  : t('credentials.google.detectFromPlay')
+              }}
             </button>
           </div>
         </div>
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-400">
-            優先顯示國家
-            <span class="ml-1 text-xs font-normal text-gray-500"
-              >（商品詳情 Price / Availability 會把此國家排在第一）</span
-            >
+            {{ t('credentials.google.baseRegionLabel') }}
+            <span class="ml-1 text-xs font-normal text-gray-500">
+              {{ t('credentials.google.baseRegionHint') }}
+            </span>
           </label>
           <SearchableSelect
             :model-value="googleBaseRegion"
             :options="regionOptions"
-            :placeholder="googleRegionsLoading ? '載入中...' : '未設定（自動從預設語言推斷）'"
+            :placeholder="
+              googleRegionsLoading
+                ? t('credentials.google.baseRegionLoading')
+                : t('credentials.google.baseRegionNotSet')
+            "
             @update:model-value="onGoogleBaseRegionChange"
           />
         </div>
@@ -348,14 +392,16 @@ async function testGoogle() {
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
             @click="saveGoogle"
           >
-            儲存 Google 憑證
+            {{ t('credentials.google.saveButton') }}
           </button>
           <button
             :disabled="googleTesting"
             class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
             @click="testGoogle"
           >
-            {{ googleTesting ? '測試中...' : '測試連線' }}
+            {{
+              googleTesting ? t('credentials.google.testing') : t('credentials.google.testButton')
+            }}
           </button>
         </div>
       </div>

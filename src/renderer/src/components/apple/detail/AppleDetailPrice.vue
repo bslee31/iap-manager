@@ -56,7 +56,7 @@ const pricePointsLoading = ref(false)
 const pricePointOptions = computed(() =>
   pricePoints.value.map((pp) => ({
     value: pp.id,
-    label: `${pp.customerPrice} (收益: ${pp.proceeds})`
+    label: `${pp.customerPrice} (${t('apple.detail.price.proceedsLabel')}: ${pp.proceeds})`
   }))
 )
 
