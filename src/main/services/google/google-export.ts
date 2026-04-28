@@ -1,6 +1,7 @@
 import { getPackageName } from './google-auth'
 import { getOneTimeProduct } from './google-product'
 import { runWithConcurrency, EXPORT_CONCURRENCY } from '../concurrency'
+import { t } from '../../i18n'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
   type ExportedGoogleProduct,
@@ -76,7 +77,7 @@ export async function exportGoogleProducts(
   const exported: ExportedGoogleProduct[] = []
   let done = 0
 
-  onProgress?.(0, total, '開始匯出...')
+  onProgress?.(0, total, t('google.export.starting'))
 
   await runWithConcurrency(products, EXPORT_CONCURRENCY, async (product) => {
     try {
@@ -89,7 +90,7 @@ export async function exportGoogleProducts(
       })
     } finally {
       done++
-      onProgress?.(done, total, `匯出中 ${done}/${total}`)
+      onProgress?.(done, total, t('google.export.progress', { done, total }))
     }
   })
 

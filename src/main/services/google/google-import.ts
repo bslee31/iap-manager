@@ -1,6 +1,7 @@
 import { googleRequest } from './google-auth'
 import { REGIONS_VERSION, parseProblematicRegions, fetchSupportedRegions } from './google-product'
 import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
+import { t } from '../../i18n'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
   type ExportedGoogleProduct,
@@ -43,7 +44,7 @@ function validateProduct(
   issues: GoogleImportValidationIssue[]
 ): void {
   if (typeof p !== 'object' || p === null) {
-    pushIssue(issues, index, undefined, '(root)', '商品必須是物件')
+    pushIssue(issues, index, undefined, '(root)', t('google.import.validation.notObject'))
     return
   }
 
@@ -51,36 +52,48 @@ function validateProduct(
   const pid = typeof rawPid === 'string' && rawPid.length > 0 ? rawPid : undefined
 
   if (!pid) {
-    pushIssue(issues, index, undefined, 'productId', 'productId 不可為空')
+    pushIssue(issues, index, undefined, 'productId', t('google.import.validation.productIdEmpty'))
   } else if (!PRODUCT_ID_RE.test(pid)) {
+    pushIssue(issues, index, pid, 'productId', t('google.import.validation.productIdFormat'))
+  } else if (pid.length > MAX_PRODUCT_ID) {
     pushIssue(
       issues,
       index,
       pid,
       'productId',
-      'productId 必須以小寫英數開頭，只能包含小寫英數、. _'
+      t('google.import.validation.productIdTooLong', { max: MAX_PRODUCT_ID })
     )
-  } else if (pid.length > MAX_PRODUCT_ID) {
-    pushIssue(issues, index, pid, 'productId', `productId 超過 ${MAX_PRODUCT_ID} 字元`)
   } else {
     if (seenProductIds.has(pid)) {
-      pushIssue(issues, index, pid, 'productId', '檔案內有重複的 productId')
+      pushIssue(
+        issues,
+        index,
+        pid,
+        'productId',
+        t('google.import.validation.productIdDuplicateFile')
+      )
     }
     if (existingProductIds.has(pid)) {
-      pushIssue(issues, index, pid, 'productId', '已存在於目前專案中')
+      pushIssue(issues, index, pid, 'productId', t('google.import.validation.productIdExisting'))
     }
     seenProductIds.add(pid)
   }
 
   // listings
   if (!Array.isArray(p.listings) || p.listings.length === 0) {
-    pushIssue(issues, index, pid, 'listings', 'listings 必須是非空陣列')
+    pushIssue(issues, index, pid, 'listings', t('google.import.validation.listingsNotArray'))
   } else {
     const seenLangs = new Set<string>()
     p.listings.forEach((l: any, lIdx: number) => {
       const prefix = `listings[${lIdx}]`
       if (typeof l?.languageCode !== 'string' || l.languageCode.length === 0) {
-        pushIssue(issues, index, pid, `${prefix}.languageCode`, 'languageCode 不可為空')
+        pushIssue(
+          issues,
+          index,
+          pid,
+          `${prefix}.languageCode`,
+          t('google.import.validation.languageCodeEmpty')
+        )
       } else {
         if (seenLangs.has(l.languageCode)) {
           pushIssue(
@@ -88,25 +101,37 @@ function validateProduct(
             index,
             pid,
             `${prefix}.languageCode`,
-            `重複的 languageCode: ${l.languageCode}`
+            t('google.import.validation.languageCodeDup', { code: l.languageCode })
           )
         }
         seenLangs.add(l.languageCode)
       }
       if (typeof l?.title !== 'string' || l.title.length === 0) {
-        pushIssue(issues, index, pid, `${prefix}.title`, 'title 不可為空')
+        pushIssue(issues, index, pid, `${prefix}.title`, t('google.import.validation.titleEmpty'))
       } else if (l.title.length > MAX_TITLE) {
-        pushIssue(issues, index, pid, `${prefix}.title`, `title 超過 ${MAX_TITLE} 字元`)
+        pushIssue(
+          issues,
+          index,
+          pid,
+          `${prefix}.title`,
+          t('google.import.validation.titleTooLong', { max: MAX_TITLE })
+        )
       }
       if (typeof l?.description !== 'string' || l.description.length === 0) {
-        pushIssue(issues, index, pid, `${prefix}.description`, 'description 不可為空')
+        pushIssue(
+          issues,
+          index,
+          pid,
+          `${prefix}.description`,
+          t('google.import.validation.descriptionEmpty')
+        )
       } else if (l.description.length > MAX_DESCRIPTION) {
         pushIssue(
           issues,
           index,
           pid,
           `${prefix}.description`,
-          `description 超過 ${MAX_DESCRIPTION} 字元`
+          t('google.import.validation.descriptionTooLong', { max: MAX_DESCRIPTION })
         )
       }
     })
@@ -114,21 +139,33 @@ function validateProduct(
 
   // purchaseOptions
   if (!Array.isArray(p.purchaseOptions) || p.purchaseOptions.length === 0) {
-    pushIssue(issues, index, pid, 'purchaseOptions', 'purchaseOptions 必須是非空陣列')
+    pushIssue(
+      issues,
+      index,
+      pid,
+      'purchaseOptions',
+      t('google.import.validation.purchaseOptionsNotArray')
+    )
   } else {
     const seenPoIds = new Set<string>()
     let legacyCount = 0
     p.purchaseOptions.forEach((po: any, poIdx: number) => {
       const prefix = `purchaseOptions[${poIdx}]`
       if (typeof po?.purchaseOptionId !== 'string' || po.purchaseOptionId.length === 0) {
-        pushIssue(issues, index, pid, `${prefix}.purchaseOptionId`, 'purchaseOptionId 不可為空')
+        pushIssue(
+          issues,
+          index,
+          pid,
+          `${prefix}.purchaseOptionId`,
+          t('google.import.validation.poIdEmpty')
+        )
       } else if (!PURCHASE_OPTION_ID_RE.test(po.purchaseOptionId)) {
         pushIssue(
           issues,
           index,
           pid,
           `${prefix}.purchaseOptionId`,
-          'purchaseOptionId 必須以小寫英數開頭，只能包含小寫英數和 -（不可有 _ 或 .）'
+          t('google.import.validation.poIdFormat')
         )
       } else if (po.purchaseOptionId.length > MAX_PURCHASE_OPTION_ID) {
         pushIssue(
@@ -136,7 +173,7 @@ function validateProduct(
           index,
           pid,
           `${prefix}.purchaseOptionId`,
-          `purchaseOptionId 超過 ${MAX_PURCHASE_OPTION_ID} 字元`
+          t('google.import.validation.poIdTooLong', { max: MAX_PURCHASE_OPTION_ID })
         )
       } else {
         if (seenPoIds.has(po.purchaseOptionId)) {
@@ -145,7 +182,7 @@ function validateProduct(
             index,
             pid,
             `${prefix}.purchaseOptionId`,
-            `重複的 purchaseOptionId: ${po.purchaseOptionId}`
+            t('google.import.validation.poIdDup', { id: po.purchaseOptionId })
           )
         }
         seenPoIds.add(po.purchaseOptionId)
@@ -156,7 +193,9 @@ function validateProduct(
           index,
           pid,
           `${prefix}.type`,
-          `type 必須為 ${Array.from(VALID_PO_TYPES).join(' / ')}（目前不支援匯入 RENT）`
+          t('google.import.validation.poTypeInvalid', {
+            types: Array.from(VALID_PO_TYPES).join(' / ')
+          })
         )
       }
       if (!VALID_PO_STATES.has(po?.state)) {
@@ -165,7 +204,9 @@ function validateProduct(
           index,
           pid,
           `${prefix}.state`,
-          `state 必須為 ${Array.from(VALID_PO_STATES).join(' / ')}`
+          t('google.import.validation.poStateInvalid', {
+            states: Array.from(VALID_PO_STATES).join(' / ')
+          })
         )
       }
       if (typeof po?.legacyCompatible !== 'boolean') {
@@ -174,19 +215,31 @@ function validateProduct(
           index,
           pid,
           `${prefix}.legacyCompatible`,
-          'legacyCompatible 必須是 boolean'
+          t('google.import.validation.legacyCompatibleNotBoolean')
         )
       } else if (po.legacyCompatible) {
         legacyCount++
       }
       if (!Array.isArray(po?.regions) || po.regions.length === 0) {
-        pushIssue(issues, index, pid, `${prefix}.regions`, 'regions 必須是非空陣列')
+        pushIssue(
+          issues,
+          index,
+          pid,
+          `${prefix}.regions`,
+          t('google.import.validation.regionsNotArray')
+        )
       } else {
         const seenRegions = new Set<string>()
         po.regions.forEach((r: any, rIdx: number) => {
           const rPrefix = `${prefix}.regions[${rIdx}]`
           if (typeof r?.regionCode !== 'string' || r.regionCode.length === 0) {
-            pushIssue(issues, index, pid, `${rPrefix}.regionCode`, 'regionCode 不可為空')
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${rPrefix}.regionCode`,
+              t('google.import.validation.regionCodeEmpty')
+            )
           } else {
             if (seenRegions.has(r.regionCode)) {
               pushIssue(
@@ -194,7 +247,7 @@ function validateProduct(
                 index,
                 pid,
                 `${rPrefix}.regionCode`,
-                `重複的 regionCode: ${r.regionCode}`
+                t('google.import.validation.regionCodeDup', { code: r.regionCode })
               )
             }
             seenRegions.add(r.regionCode)
@@ -204,7 +257,7 @@ function validateProduct(
                 index,
                 pid,
                 `${rPrefix}.regionCode`,
-                `Google 不支援的地區代碼: ${r.regionCode}`
+                t('google.import.validation.regionUnsupported', { code: r.regionCode })
               )
             }
           }
@@ -214,17 +267,37 @@ function validateProduct(
               index,
               pid,
               `${rPrefix}.availability`,
-              `availability 必須為 ${Array.from(VALID_AVAILABILITY).join(' / ')}`
+              t('google.import.validation.availabilityInvalid', {
+                values: Array.from(VALID_AVAILABILITY).join(' / ')
+              })
             )
           }
           if (typeof r?.currencyCode !== 'string') {
-            pushIssue(issues, index, pid, `${rPrefix}.currencyCode`, 'currencyCode 必須是字串')
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${rPrefix}.currencyCode`,
+              t('google.import.validation.currencyCodeNotString')
+            )
           }
           if (typeof r?.units !== 'string') {
-            pushIssue(issues, index, pid, `${rPrefix}.units`, 'units 必須是字串（整數部分）')
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${rPrefix}.units`,
+              t('google.import.validation.unitsNotString')
+            )
           }
           if (typeof r?.nanos !== 'number' || r.nanos < 0 || r.nanos >= 1_000_000_000) {
-            pushIssue(issues, index, pid, `${rPrefix}.nanos`, 'nanos 必須是 0–999,999,999 的整數')
+            pushIssue(
+              issues,
+              index,
+              pid,
+              `${rPrefix}.nanos`,
+              t('google.import.validation.nanosOutOfRange')
+            )
           }
         })
       }
@@ -235,7 +308,7 @@ function validateProduct(
         index,
         pid,
         'purchaseOptions',
-        `最多只能有一個 legacyCompatible=true 的 PO，目前 ${legacyCount} 個`
+        t('google.import.validation.legacyCompatibleTooMany', { count: legacyCount })
       )
     }
   }
@@ -255,7 +328,13 @@ export async function validateImport(
     return {
       valid: false,
       products: [],
-      issues: [{ index: -1, field: '(file)', message: `JSON 解析失敗: ${e.message}` }]
+      issues: [
+        {
+          index: -1,
+          field: '(file)',
+          message: t('google.import.validation.jsonParseFail', { error: e.message })
+        }
+      ]
     }
   }
 
@@ -263,7 +342,7 @@ export async function validateImport(
     return {
       valid: false,
       products: [],
-      issues: [{ index: -1, field: '(root)', message: '檔案格式無效，必須為物件' }]
+      issues: [{ index: -1, field: '(root)', message: t('google.import.validation.rootNotObject') }]
     }
   }
 
@@ -275,7 +354,10 @@ export async function validateImport(
         {
           index: -1,
           field: 'formatVersion',
-          message: `不相容的 formatVersion: ${parsed.formatVersion}（僅支援 ${GOOGLE_EXPORT_FORMAT_VERSION}）`
+          message: t('google.import.validation.formatVersionMismatch', {
+            got: parsed.formatVersion,
+            expected: GOOGLE_EXPORT_FORMAT_VERSION
+          })
         }
       ]
     }
@@ -288,7 +370,9 @@ export async function validateImport(
       exportedAt: parsed.exportedAt,
       packageName: parsed.packageName,
       products: [],
-      issues: [{ index: -1, field: 'products', message: 'products 必須是非空陣列' }]
+      issues: [
+        { index: -1, field: 'products', message: t('google.import.validation.productsNotArray') }
+      ]
     }
   }
 
@@ -302,7 +386,9 @@ export async function validateImport(
     validRegionCodes = new Set(regions.map((r) => r.regionCode))
   } catch (e) {
     throw new Error(
-      `無法載入 Google 支援地區列表，無法驗證匯入內容：${e instanceof Error ? e.message : String(e)}`,
+      t('google.import.regionListFail', {
+        error: e instanceof Error ? e.message : String(e)
+      }),
       { cause: e }
     )
   }
@@ -368,7 +454,7 @@ async function importSingleProduct(
   // Create the product via PATCH with full listings + POs.
   // Reuse the drop-and-retry pattern used by createOneTimeProduct so a few
   // regions Google rejects don't kill the whole import.
-  reportStep?.(`${product.productId} · 建立商品中`)
+  reportStep?.(t('google.import.step.creating', { productId: product.productId }))
 
   const listings = product.listings.map((l) => ({
     languageCode: l.languageCode,
@@ -380,7 +466,7 @@ async function importSingleProduct(
   if (poPayload.length === 0) {
     result.stepErrors.push({
       step: 'create',
-      error: '商品沒有可匯入的 BUY PO'
+      error: t('google.import.noBuyPo')
     })
     return result
   }
@@ -435,7 +521,7 @@ async function importSingleProduct(
   if (!created) {
     result.stepErrors.push({
       step: 'create',
-      error: `重試超過上限，最後錯誤：${lastError}`
+      error: t('google.import.retryExhausted', { error: String(lastError) })
     })
     return result
   }
@@ -454,16 +540,16 @@ export async function executeImport(
   const results: GoogleImportProductResult[] = []
   let done = 0
 
-  onProgress?.(0, total, `匯入中 0/${total}`)
+  onProgress?.(0, total, t('google.import.starting', { total }))
 
   await runWithConcurrency(products, IMPORT_CONCURRENCY, async (product) => {
     const reportStep = (phase: string): void => {
-      onProgress?.(done, total, `${phase}（${done}/${total} 完成）`)
+      onProgress?.(done, total, t('google.import.progressPhase', { phase, done, total }))
     }
     const res = await importSingleProduct(projectId, product, reportStep)
     results.push(res)
     done++
-    onProgress?.(done, total, `匯入中 ${done}/${total}`)
+    onProgress?.(done, total, t('google.import.progress', { done, total }))
   })
 
   results.sort((a, b) => a.productId.localeCompare(b.productId))
