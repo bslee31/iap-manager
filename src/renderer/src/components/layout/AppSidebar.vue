@@ -2,10 +2,12 @@
 import { useProjectStore } from '../../stores/project.store'
 import { useRouter, useRoute } from 'vue-router'
 import { onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import draggable from 'vuedraggable'
 
 const emit = defineEmits<{ 'create-project': [] }>()
 
+const { t } = useI18n()
 const store = useProjectStore()
 const router = useRouter()
 const route = useRoute()
@@ -49,7 +51,7 @@ function onDragEnd() {
         class="titlebar-no-drag cursor-pointer text-base font-bold text-gray-200 transition-colors hover:text-white"
         @click="router.push('/')"
       >
-        IAP 管理工具
+        {{ t('app.title') }}
       </h1>
     </div>
 
@@ -81,7 +83,7 @@ function onDragEnd() {
         v-if="store.projects.length === 0 && !store.loading"
         class="px-3 py-4 text-center text-xs text-gray-500"
       >
-        尚未建立任何專案
+        {{ t('project.list.empty') }}
       </p>
     </nav>
 
@@ -92,14 +94,14 @@ function onDragEnd() {
         @click="startCreateProject"
       >
         <span class="text-lg leading-none">+</span>
-        新增專案
+        {{ t('sidebar.newProject') }}
       </button>
       <button
         class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
         @click="router.push('/settings')"
       >
         <span class="text-base leading-none">&#9881;</span>
-        設定
+        {{ t('sidebar.settings') }}
       </button>
     </div>
   </aside>

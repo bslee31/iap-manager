@@ -3,8 +3,10 @@ import { useProjectStore } from '../stores/project.store'
 import { useNotificationStore } from '../stores/notification.store'
 import { useRouter } from 'vue-router'
 import { ref, inject, watch, computed, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import draggable from 'vuedraggable'
 
+const { t } = useI18n()
 const store = useProjectStore()
 const notify = useNotificationStore()
 const router = useRouter()
@@ -44,21 +46,21 @@ async function saveProject() {
       name: editingProject.value.name,
       description: editingProject.value.description
     })
-    if (result.success) notify.success('專案已更新')
+    if (result.success) notify.success(t('project.toast.updated'))
   } else {
     const result = await store.createProject({
       name: editingProject.value.name,
       description: editingProject.value.description
     })
-    if (result.success) notify.success('專案已建立')
+    if (result.success) notify.success(t('project.toast.created'))
   }
   showForm.value = false
 }
 
 async function confirmDelete(project: (typeof store.projects)[0]) {
-  if (!confirm(`確定要刪除「${project.name}」嗎？此操作無法復原。`)) return
+  if (!confirm(t('project.deleteConfirm', { name: project.name }))) return
   const result = await store.deleteProject(project.id)
-  if (result.success) notify.success('專案已刪除')
+  if (result.success) notify.success(t('project.toast.deleted'))
 }
 
 function goToProject(project: (typeof store.projects)[0]) {
@@ -84,12 +86,12 @@ function onDragEnd() {
     <div class="titlebar-drag h-8" />
 
     <div class="mb-6 flex items-center justify-between">
-      <h2 class="text-2xl font-bold text-gray-100">專案列表</h2>
+      <h2 class="text-2xl font-bold text-gray-100">{{ t('project.list.title') }}</h2>
       <button
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
         @click="openCreateForm"
       >
-        + 新增專案
+        + {{ t('project.create') }}
       </button>
     </div>
 
@@ -97,26 +99,30 @@ function onDragEnd() {
     <div v-if="showForm" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
       <div class="w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl">
         <h3 class="mb-4 text-lg font-semibold text-gray-100">
-          {{ editingProject.id ? '編輯專案' : '新增專案' }}
+          {{ editingProject.id ? t('project.edit') : t('project.create') }}
         </h3>
         <div class="space-y-4">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">專案名稱</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('project.form.name')
+            }}</label>
             <input
               v-model="editingProject.name"
               type="text"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              placeholder="例：我的 App"
+              :placeholder="t('project.form.namePlaceholder')"
               @keyup.enter="saveProject"
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">專案描述</label>
+            <label class="mb-1 block text-sm font-medium text-gray-400">{{
+              t('project.form.description')
+            }}</label>
             <textarea
               v-model="editingProject.description"
               class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               rows="3"
-              placeholder="選填"
+              :placeholder="t('project.form.descPlaceholder')"
             />
           </div>
         </div>
@@ -125,14 +131,14 @@ function onDragEnd() {
             class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
             @click="showForm = false"
           >
-            取消
+            {{ t('common.cancel') }}
           </button>
           <button
             :disabled="!editingProject.name.trim()"
             class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
             @click="saveProject"
           >
-            儲存
+            {{ t('common.save') }}
           </button>
         </div>
       </div>
@@ -156,7 +162,7 @@ function onDragEnd() {
         >
           <span
             class="drag-handle shrink-0 cursor-grab text-gray-600 select-none hover:text-gray-400 active:cursor-grabbing"
-            title="拖曳排序"
+            :title="t('project.list.dragHandle')"
             @click.stop
             >&#9776;</span
           >
@@ -188,14 +194,14 @@ function onDragEnd() {
           <div class="flex shrink-0 gap-1" @click.stop>
             <button
               class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-blue-600/15 hover:text-blue-400"
-              title="編輯"
+              :title="t('common.edit')"
               @click="openEditForm(project)"
             >
               &#9998;
             </button>
             <button
               class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-red-600/15 hover:text-red-400"
-              title="刪除"
+              :title="t('common.delete')"
               @click="confirmDelete(project)"
             >
               &#10005;
@@ -207,12 +213,12 @@ function onDragEnd() {
 
     <!-- Empty state -->
     <div v-else-if="!store.loading" class="py-20 text-center">
-      <p class="mb-4 text-lg text-gray-500">尚未建立任何專案</p>
+      <p class="mb-4 text-lg text-gray-500">{{ t('project.list.empty') }}</p>
       <button
         class="rounded-lg bg-blue-600 px-6 py-2 text-sm text-white transition-colors hover:bg-blue-700"
         @click="openCreateForm"
       >
-        建立第一個專案
+        {{ t('project.list.firstProject') }}
       </button>
     </div>
   </div>

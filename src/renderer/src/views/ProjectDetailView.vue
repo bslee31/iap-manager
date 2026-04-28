@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProjectStore } from '../stores/project.store'
 import { useRouter } from 'vue-router'
 import CredentialSettings from '../components/project/CredentialSettings.vue'
@@ -7,16 +8,18 @@ import AppleProductTable from '../components/apple/AppleProductTable.vue'
 import GoogleProductTable from '../components/google/GoogleProductTable.vue'
 
 const props = defineProps<{ id: string }>()
+const { t } = useI18n()
 const store = useProjectStore()
 const router = useRouter()
 
 const activeTab = ref<'apple' | 'google' | 'credentials'>('apple')
 
-const tabs = [
-  { key: 'apple' as const, label: 'Apple In-App Purchases' },
-  { key: 'google' as const, label: 'Google One-time products' },
-  { key: 'credentials' as const, label: '憑證設定' }
-]
+// Recompute on locale change so the labels update without a page reload.
+const tabs = computed(() => [
+  { key: 'apple' as const, label: t('project.tabs.apple') },
+  { key: 'google' as const, label: t('project.tabs.google') },
+  { key: 'credentials' as const, label: t('project.tabs.credentials') }
+])
 
 onMounted(async () => {
   if (!store.currentProject || store.currentProject.id !== props.id) {
@@ -38,7 +41,7 @@ onMounted(async () => {
       <div class="h-8" />
       <div class="px-6 pb-0">
         <h2 class="titlebar-no-drag mb-4 text-xl font-bold text-gray-100">
-          {{ store.currentProject?.name || '載入中...' }}
+          {{ store.currentProject?.name || t('common.loading') }}
         </h2>
         <!-- Tabs -->
         <div class="flex gap-0">
