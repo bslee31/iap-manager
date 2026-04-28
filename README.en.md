@@ -66,7 +66,7 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
 ## Tech stack
 
 - Electron + electron-vite
-- Vue 3 + TypeScript
+- Vue 3 + TypeScript + Vue Router + Pinia
 - Tailwind CSS
 - better-sqlite3 (local database)
 - Electron safeStorage (credential encryption, backed by the OS Keychain)
@@ -80,7 +80,20 @@ npm install
 ## Development
 
 ```bash
-npm run dev
+npm run dev          # start dev server (electron-vite watch mode)
+npm run test         # run tests (vitest watch mode)
+```
+
+## CI
+
+Every push / PR runs five quality gates on GitHub Actions:
+
+```bash
+npm run lint         # ESLint
+npm run format:check # Prettier
+npm run typecheck    # vue-tsc
+npm run test:run     # vitest
+npm run build        # electron-vite (main / preload / renderer)
 ```
 
 ## Packaging

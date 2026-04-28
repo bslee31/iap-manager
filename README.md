@@ -24,7 +24,7 @@ Apple & Google 應用程式內購商品批次管理工具。
   - JSON 格式（`formatVersion: 1`），包含 Product ID / Reference Name / Type / Availability / Price Schedule / Localization
   - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目
   - 匯入：兩階段流程 — 先驗證（格式、欄位長度、唯一性、地區代碼）並顯示預覽，確認後才批次建立
-  - 匯入併發 3，單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果
+  - 匯入並行 3，單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果
 
 ### Google One-time Products
 
@@ -45,10 +45,10 @@ Apple & Google 應用程式內購商品批次管理工具。
   - **Pricing** — 檢視 / 修改主 PO（或選定 PO）各地區價格；「套用新價格」表單指定 Base Region 與價格後，以 `convertRegionPrices` 重算並 PATCH 商品，沿用建立流程的 drop-and-retry 邏輯避開失效地區（Base Region 同樣強制採用輸入值）
   - **Listings** — 新增 / 編輯 / 刪除多語言標題與描述
 - **匯出 / 匯入（批次建立商品）**
-  - JSON 格式（`formatVersion: 1`），以 Product ID 排序；每個商品包含完整 listings 與 purchaseOptions（含每個 PO 的 `state` / `type` / `legacyCompatible` 以及所有地區的 `availability` + `currencyCode` + `units` / `nanos`，全保真，匯入能直接套回）
-  - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目；併發 5 個商品、進度顯示，單商品失敗不中斷其他商品
+  - JSON 格式（`formatVersion: 1`），以 Product ID 排序；每個商品包含完整 listings 與 purchaseOptions（含每個 PO 的 `state` / `type` / `legacyCompatible` 以及所有地區的 `availability` + `currencyCode` + `units` / `nanos`，完整保留，匯入能直接套回）
+  - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目；並行 5 個商品、進度顯示，單商品失敗不中斷其他商品
   - 匯入：兩階段流程 — 先驗證（formatVersion、productId 唯一性與格式、listing 欄位長度、PO 狀態 / 型別 / `legacyCompatible` 限制、地區代碼）並顯示預覽，確認後才批次建立
-  - 匯入併發 3，商品以單次 PATCH（`listings,purchaseOptions` + `allowMissing=true`）建立，沿用 create 的 drop-and-retry 邏輯略過 Google 拒絕的地區；所有 PO 一律以 DRAFT 建立，原始 state 不會套用，請至 Detail 頁確認後再手動上架
+  - 匯入並行 3，商品以單次 PATCH（`listings,purchaseOptions` + `allowMissing=true`）建立，沿用 create 的 drop-and-retry 邏輯略過 Google 拒絕的地區；所有 PO 一律以 DRAFT 建立，原始 state 不會套用，請至 Detail 頁確認後再手動上架
   - 單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果，也會列出匯入時被 Google 略過的地區
   - 目前只支援匯入 BUY 型 PO（RENT 尚未實作）
 
@@ -66,7 +66,7 @@ Apple & Google 應用程式內購商品批次管理工具。
 ## 技術棧
 
 - Electron + electron-vite
-- Vue 3 + TypeScript
+- Vue 3 + TypeScript + Vue Router + Pinia
 - Tailwind CSS
 - better-sqlite3（本地資料庫）
 - Electron safeStorage（憑證加密，使用 OS Keychain）
@@ -80,7 +80,20 @@ npm install
 ## 開發
 
 ```bash
-npm run dev
+npm run dev          # 啟動 dev server（electron-vite watch mode）
+npm run test         # 跑測試（vitest watch mode）
+```
+
+## CI
+
+每個 push / PR 在 GitHub Actions 跑 5 關品管：
+
+```bash
+npm run lint         # ESLint
+npm run format:check # Prettier
+npm run typecheck    # vue-tsc
+npm run test:run     # vitest
+npm run build        # electron-vite（main / preload / renderer）
 ```
 
 ## 打包
