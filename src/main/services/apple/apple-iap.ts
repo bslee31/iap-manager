@@ -1,6 +1,7 @@
 import { generateAppleJwt, clearTokenCache } from './apple-auth'
 import { loadCredentials } from '../credential-store'
 import { fetchWithRetry } from '../http-retry'
+import { t } from '../../i18n'
 import type {
   AppleInAppPurchase,
   AppleApiListResponse,
@@ -24,7 +25,7 @@ async function appleRequest(
   options: RequestInit = {}
 ): Promise<any> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple) throw new Error('Apple 憑證未設定')
+  if (!creds.apple) throw new Error(t('credentials.apple.notSet'))
 
   const token = await generateAppleJwt(
     creds.apple.keyId,
@@ -42,10 +43,10 @@ async function appleRequest(
     try {
       parsed = new URL(path)
     } catch {
-      throw new Error(`無效的 URL：${path}`)
+      throw new Error(t('apple.api.invalidUrl', { path }))
     }
     if (!ALLOWED_HOSTS.has(parsed.host)) {
-      throw new Error(`拒絕對非 Apple API 的網址發送請求：${parsed.host}`)
+      throw new Error(t('apple.api.forbiddenHost', { host: parsed.host }))
     }
     url = path
   } else {
@@ -62,7 +63,7 @@ async function appleRequest(
 
   if (!response.ok) {
     const body = await response.text()
-    let errorMsg = `Apple API 錯誤 (${response.status})`
+    let errorMsg = t('apple.api.apiError', { status: response.status })
     try {
       const parsed = JSON.parse(body)
       if (parsed.errors?.[0]?.detail) {
@@ -91,16 +92,16 @@ export async function listInAppPurchases(
   onProgress?: ProgressCallback
 ): Promise<IapWithAvailability[]> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  if (!creds.apple?.appId) throw new Error(t('credentials.apple.missingAppId'))
 
-  onProgress?.(0, 0, '取得商品列表...')
+  onProgress?.(0, 0, t('apple.sync.fetchingList'))
   const allIaps: AppleInAppPurchase[] = []
   let url: string | null = `/v1/apps/${creds.apple.appId}/inAppPurchasesV2?limit=200`
 
   while (url) {
     const resp: AppleApiListResponse<AppleInAppPurchase> = await appleRequest(projectId, url)
     allIaps.push(...resp.data)
-    onProgress?.(allIaps.length, 0, `已取得 ${allIaps.length} 個商品...`)
+    onProgress?.(allIaps.length, 0, t('apple.sync.fetched', { count: allIaps.length }))
     url = resp.links?.next || null
   }
 
@@ -124,7 +125,7 @@ export async function createInAppPurchase(
 ): Promise<AppleInAppPurchase> {
   const creds = loadCredentials(projectId)
   const appId = payload.appId || creds.apple?.appId
-  if (!appId) throw new Error('未設定 App ID')
+  if (!appId) throw new Error(t('credentials.apple.missingAppId'))
 
   const resp: AppleApiResponse<AppleInAppPurchase> = await appleRequest(
     projectId,
@@ -274,7 +275,10 @@ export async function batchUpdateAvailability(
   } catch (e: any) {
     return {
       success: [],
-      failed: iapIds.map((id) => ({ id, error: '無法取得地區列表: ' + e.message }))
+      failed: iapIds.map((id) => ({
+        id,
+        error: t('apple.iap.regionListFail', { error: e.message })
+      }))
     }
   }
 
@@ -611,14 +615,14 @@ export async function setManualTerritoryPrice(
     `/v2/inAppPurchases/${iapId}/iapPriceSchedule?include=manualPrices,baseTerritory`
   )
 
-  if (!scheduleResp.data?.id) throw new Error('尚未設定價格')
+  if (!scheduleResp.data?.id) throw new Error(t('apple.iap.noPriceSet'))
 
   const scheduleId = scheduleResp.data.id
   const allIncluded = scheduleResp.included || []
   const baseTerrObj = allIncluded.find((i: any) => i.type === 'territories')
   const baseTerritory = baseTerrObj?.id || ''
 
-  if (!baseTerritory) throw new Error('找不到基準地區')
+  if (!baseTerritory) throw new Error(t('apple.iap.missingBaseTerritory'))
 
   // 2. Get existing manual prices with their price points and territories
   const existingManual: { territory: string; pricePointId: string }[] = []
@@ -837,7 +841,7 @@ export async function getIapAllTerritoryPrices(
 // Get app primary locale
 export async function getAppPrimaryLocale(projectId: string): Promise<string> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  if (!creds.apple?.appId) throw new Error(t('credentials.apple.missingAppId'))
   const resp = await appleRequest(projectId, `/v1/apps/${creds.apple.appId}`)
   return resp.data?.attributes?.primaryLocale || 'en-US'
 }
@@ -845,7 +849,7 @@ export async function getAppPrimaryLocale(projectId: string): Promise<string> {
 // Test connection by fetching app info
 export async function testConnection(projectId: string): Promise<void> {
   const creds = loadCredentials(projectId)
-  if (!creds.apple?.appId) throw new Error('未設定 App ID')
+  if (!creds.apple?.appId) throw new Error(t('credentials.apple.missingAppId'))
   await appleRequest(projectId, `/v1/apps/${creds.apple.appId}`)
 }
 

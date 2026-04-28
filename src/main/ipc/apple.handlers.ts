@@ -30,6 +30,7 @@ import {
 } from '../services/apple/apple-export'
 import { validateImport, executeImport } from '../services/apple/apple-import'
 import { sanitizeError } from './sanitize-error'
+import { t } from '../i18n'
 
 export function registerAppleHandlers(): void {
   ipcMain.handle('apple:fetch-products', async (event, projectId: string) => {
@@ -399,7 +400,7 @@ export function registerAppleHandlers(): void {
     async (event, projectId: string, products: ExportProductInput[]) => {
       try {
         if (!products || products.length === 0) {
-          return { success: false, error: '沒有可匯出的商品' }
+          return { success: false, error: t('apple.export.noProducts') }
         }
 
         const win = BrowserWindow.fromWebContents(event.sender)
@@ -407,7 +408,7 @@ export function registerAppleHandlers(): void {
         const appId = creds.apple?.appId || 'unknown'
 
         const saveResult = await dialog.showSaveDialog(win!, {
-          title: '匯出 Apple IAP',
+          title: t('apple.export.title'),
           defaultPath: buildExportFileName(appId),
           filters: [{ name: 'JSON', extensions: ['json'] }]
         })
@@ -462,7 +463,7 @@ export function registerAppleHandlers(): void {
     ) => {
       try {
         if (!products || products.length === 0) {
-          return { success: false, error: '沒有可匯入的商品' }
+          return { success: false, error: t('apple.import.noProducts') }
         }
         const win = BrowserWindow.fromWebContents(event.sender)
         const onProgress = (current: number, total: number, phase: string): void => {

@@ -34,6 +34,7 @@ import {
 import { loadCredentials } from '../services/credential-store'
 import { getDatabase } from '../db/database'
 import { sanitizeError } from './sanitize-error'
+import { t } from '../i18n'
 
 export function registerGoogleHandlers(): void {
   ipcMain.handle('google:fetch-products', async (event, projectId: string) => {
@@ -42,7 +43,7 @@ export function registerGoogleHandlers(): void {
       win?.webContents.send('sync:progress', {
         current: 0,
         total: 0,
-        phase: '正在從 Google Play 同步...'
+        phase: t('google.sync.syncing')
       })
       const baseRegion = getGoogleBaseRegion(projectId) || undefined
       const defaultLanguage = getGoogleDefaultLanguage(projectId) || undefined
@@ -50,7 +51,7 @@ export function registerGoogleHandlers(): void {
       win?.webContents.send('sync:progress', {
         current: products.length,
         total: products.length,
-        phase: `已取得 ${products.length} 個商品`
+        phase: t('google.sync.fetched', { count: products.length })
       })
       // Cache to local DB
       const db = getDatabase()
@@ -120,10 +121,11 @@ export function registerGoogleHandlers(): void {
     'google:create-product',
     async (_event, projectId: string, data: CreateOneTimeProductInput) => {
       try {
-        if (!data.languageCode) return { success: false, error: '請選擇語言' }
-        if (!data.baseRegionCode) return { success: false, error: '請選擇基準國家' }
-        if (!data.baseCurrencyCode) return { success: false, error: '請選擇基準幣別' }
-        if (!data.purchaseOptionId) return { success: false, error: '請填寫 Purchase Option ID' }
+        if (!data.languageCode) return { success: false, error: t('google.create.needLanguage') }
+        if (!data.baseRegionCode) return { success: false, error: t('google.create.needRegion') }
+        if (!data.baseCurrencyCode)
+          return { success: false, error: t('google.create.needCurrency') }
+        if (!data.purchaseOptionId) return { success: false, error: t('google.create.needPoId') }
         const { result, skippedRegions } = await createOneTimeProduct(projectId, data)
         // Remember the chosen base region as the project default if none set,
         // so detail views can show it first.
@@ -246,7 +248,7 @@ export function registerGoogleHandlers(): void {
     async (event, projectId: string, products: ExportGoogleProductInput[]) => {
       try {
         if (!products || products.length === 0) {
-          return { success: false, error: '沒有可匯出的商品' }
+          return { success: false, error: t('google.export.noProducts') }
         }
 
         const win = BrowserWindow.fromWebContents(event.sender)
@@ -254,7 +256,7 @@ export function registerGoogleHandlers(): void {
         const packageName = creds.google?.packageName || 'unknown'
 
         const saveResult = await dialog.showSaveDialog(win!, {
-          title: '匯出 Google One-time Products',
+          title: t('google.export.title'),
           defaultPath: buildGoogleExportFileName(packageName),
           filters: [{ name: 'JSON', extensions: ['json'] }]
         })

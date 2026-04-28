@@ -2,6 +2,7 @@ import { safeStorage, dialog } from 'electron'
 import { join } from 'path'
 import { app } from 'electron'
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'fs'
+import { t } from '../i18n'
 
 export interface AppleCredentials {
   keyId: string
@@ -37,7 +38,7 @@ export function loadCredentials(projectId: string): ProjectCredentials {
   if (!existsSync(path)) return {}
 
   if (!safeStorage.isEncryptionAvailable()) {
-    throw new Error('系統加密功能不可用')
+    throw new Error(t('credentials.encryptionUnavailable'))
   }
 
   const encrypted = readFileSync(path)
@@ -47,7 +48,7 @@ export function loadCredentials(projectId: string): ProjectCredentials {
 
 export function saveCredentials(projectId: string, creds: ProjectCredentials): void {
   if (!safeStorage.isEncryptionAvailable()) {
-    throw new Error('系統加密功能不可用')
+    throw new Error(t('credentials.encryptionUnavailable'))
   }
 
   const json = JSON.stringify(creds)

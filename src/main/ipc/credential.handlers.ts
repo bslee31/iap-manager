@@ -13,6 +13,7 @@ import { clearGoogleAuthCache } from '../services/google/google-auth'
 import { testConnection as testAppleConnection } from '../services/apple/apple-iap'
 import { testConnection as testGoogleConnection } from '../services/google/google-product'
 import { sanitizeError } from './sanitize-error'
+import { t } from '../i18n'
 
 export function registerCredentialHandlers(): void {
   ipcMain.handle(
@@ -82,7 +83,7 @@ export function registerCredentialHandlers(): void {
   ipcMain.handle('credential:test-apple', async (_event, projectId: string) => {
     try {
       await testAppleConnection(projectId)
-      return { success: true, message: 'Apple API 連線成功' }
+      return { success: true, message: t('credentials.test.appleSuccess') }
     } catch (e) {
       return { success: false, error: sanitizeError(e) }
     }
@@ -91,7 +92,7 @@ export function registerCredentialHandlers(): void {
   ipcMain.handle('credential:test-google', async (_event, projectId: string) => {
     try {
       await testGoogleConnection(projectId)
-      return { success: true, message: 'Google API 連線成功' }
+      return { success: true, message: t('credentials.test.googleSuccess') }
     } catch (e) {
       return { success: false, error: sanitizeError(e) }
     }

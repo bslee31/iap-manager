@@ -179,18 +179,18 @@ async function saveAvailability() {
           </button>
           <div v-if="!collapsedRegions.has(group.regionName)" class="ml-3">
             <label
-              v-for="t in group.territories"
-              :key="t.code"
+              v-for="terr in group.territories"
+              :key="terr.code"
               class="flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors hover:bg-[#2e3038]"
-              :class="selectedTerritories.has(t.code) ? 'text-gray-200' : 'text-gray-400'"
+              :class="selectedTerritories.has(terr.code) ? 'text-gray-200' : 'text-gray-400'"
             >
               <input
                 type="checkbox"
-                :checked="selectedTerritories.has(t.code)"
+                :checked="selectedTerritories.has(terr.code)"
                 class="h-3.5 w-3.5 rounded"
-                @change="toggleTerritory(t.code)"
+                @change="toggleTerritory(terr.code)"
               />
-              {{ t.name }}
+              {{ terr.name }}
             </label>
           </div>
         </div>

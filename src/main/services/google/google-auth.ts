@@ -1,6 +1,7 @@
 import { GoogleAuth } from 'google-auth-library'
 import { loadCredentials } from '../credential-store'
 import { fetchWithRetry } from '../http-retry'
+import { t } from '../../i18n'
 
 const API_BASE = 'https://androidpublisher.googleapis.com/androidpublisher/v3/applications'
 // Allowlist for absolute URLs — currently only the Android Publisher host.
@@ -19,7 +20,7 @@ export function clearGoogleAuthCache(projectId?: string): void {
 
 function getAuth(projectId: string): { auth: GoogleAuth; packageName: string } {
   const creds = loadCredentials(projectId)
-  if (!creds.google) throw new Error('Google 憑證未設定')
+  if (!creds.google) throw new Error(t('credentials.google.notSet'))
 
   if (!cachedAuth || cachedAuth.projectId !== projectId) {
     const serviceAccount = JSON.parse(creds.google.serviceAccountJson)
@@ -54,10 +55,10 @@ export async function googleRequest(
     try {
       parsed = new URL(path)
     } catch {
-      throw new Error(`無效的 URL：${path}`)
+      throw new Error(t('google.api.invalidUrl', { path }))
     }
     if (!ALLOWED_HOSTS.has(parsed.host)) {
-      throw new Error(`拒絕對非 Google Play API 的網址發送請求：${parsed.host}`)
+      throw new Error(t('google.api.forbiddenHost', { host: parsed.host }))
     }
     url = path
   } else {
@@ -75,7 +76,7 @@ export async function googleRequest(
 
   if (!response.ok) {
     const body = await response.text()
-    let errorMsg = `Google API 錯誤 (${response.status})`
+    let errorMsg = t('google.api.apiError', { status: response.status })
     try {
       const parsed = JSON.parse(body)
       if (parsed.error?.message) {
@@ -93,6 +94,6 @@ export async function googleRequest(
 
 export function getPackageName(projectId: string): string {
   const creds = loadCredentials(projectId)
-  if (!creds.google) throw new Error('Google 憑證未設定')
+  if (!creds.google) throw new Error(t('credentials.google.notSet'))
   return creds.google.packageName
 }

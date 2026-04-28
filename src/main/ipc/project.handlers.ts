@@ -10,6 +10,7 @@ import { deleteCredentials } from '../services/credential-store'
 import { clearTokenCache as clearAppleTokenCache } from '../services/apple/apple-auth'
 import { clearGoogleAuthCache } from '../services/google/google-auth'
 import { sanitizeError } from './sanitize-error'
+import { t } from '../i18n'
 
 export function registerProjectHandlers(): void {
   ipcMain.handle('project:list', async () => {
@@ -40,7 +41,7 @@ export function registerProjectHandlers(): void {
     async (_event, id: string, data: { name?: string; description?: string }) => {
       try {
         const project = updateProject(id, data)
-        if (!project) return { success: false, error: '專案不存在' }
+        if (!project) return { success: false, error: t('project.notFound') }
         return { success: true, data: project }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
@@ -59,7 +60,7 @@ export function registerProjectHandlers(): void {
         clearAppleTokenCache(id)
         clearGoogleAuthCache(id)
       }
-      if (!deleted) return { success: false, error: '專案不存在' }
+      if (!deleted) return { success: false, error: t('project.notFound') }
       return { success: true }
     } catch (e) {
       return { success: false, error: sanitizeError(e) }

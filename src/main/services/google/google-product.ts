@@ -1,4 +1,5 @@
 import { googleRequest, getPackageName } from './google-auth'
+import { t } from '../../i18n'
 
 export interface GoogleProductItem {
   productId: string
@@ -146,7 +147,7 @@ export async function batchUpdateStatus(
   for (const pid of productIds) {
     const product = products.find((p) => p.productId === pid)
     if (!product?.purchaseOptionId) {
-      failed.push({ id: pid, error: '找不到 Purchase Option ID' })
+      failed.push({ id: pid, error: t('google.products.poNotFound') })
       continue
     }
 
@@ -301,7 +302,7 @@ async function withRegionRetry<T extends { regionCode: string }, R>(
       configs = configs.filter((c) => !newBad.includes(c.regionCode))
     }
   }
-  throw new Error(`重試超過上限，Google 仍回報地區錯誤。最後錯誤：${lastError}`)
+  throw new Error(t('google.products.retryExhausted', { error: String(lastError) }))
 }
 
 // Create a DRAFT one-time product with a Buy purchase option and regional
@@ -464,7 +465,7 @@ export async function updatePurchaseOptionPricing(
   const currentResp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
   const currentPOs: any[] = currentResp?.purchaseOptions || []
   if (!currentPOs.some((po) => po.purchaseOptionId === purchaseOptionId)) {
-    throw new Error(`找不到 Purchase Option：${purchaseOptionId}`)
+    throw new Error(t('google.products.poNotFoundColon', { poId: purchaseOptionId }))
   }
 
   // Google auto-rounds to "nice" market prices, which can shift the base
@@ -519,7 +520,7 @@ export async function addPurchaseOption(
   const currentResp = await googleRequest(projectId, `/oneTimeProducts/${productId}`)
   const currentPOs: any[] = currentResp?.purchaseOptions || []
   if (currentPOs.some((po) => po.purchaseOptionId === purchaseOptionId)) {
-    throw new Error(`Purchase Option 已存在：${purchaseOptionId}`)
+    throw new Error(t('google.products.poExists', { poId: purchaseOptionId }))
   }
 
   const regionalPrices = await convertRegionPrices(projectId, basePrice)
@@ -597,10 +598,10 @@ export async function setLegacyCompatiblePurchaseOption(
   const currentPOs: any[] = currentResp?.purchaseOptions || []
   const target = currentPOs.find((po) => po.purchaseOptionId === purchaseOptionId)
   if (!target) {
-    throw new Error(`找不到 Purchase Option：${purchaseOptionId}`)
+    throw new Error(t('google.products.poNotFoundColon', { poId: purchaseOptionId }))
   }
   if (!target.buyOption) {
-    throw new Error('只有 BUY 型方案可以設為主方案')
+    throw new Error(t('google.products.primaryNonBuy'))
   }
 
   const updatedPOs = currentPOs.map((po) => {
