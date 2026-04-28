@@ -52,7 +52,7 @@ const derivedStatusLabel = computed(() => {
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Product ID</label>
       <div
-        class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+        class="border-divider-strong bg-deep rounded-lg border px-3 py-2 font-mono text-sm text-gray-400"
       >
         {{ detail.productId }}
       </div>
@@ -71,13 +71,13 @@ const derivedStatusLabel = computed(() => {
     </div>
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Purchase Options</label>
-      <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
+      <div class="border-divider-strong bg-deep rounded-lg border px-3 py-2 text-sm text-gray-400">
         {{ t('google.detail.info.poCount', { count: detail.purchaseOptions.length }) }}
       </div>
     </div>
     <div>
       <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Listings</label>
-      <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400">
+      <div class="border-divider-strong bg-deep rounded-lg border px-3 py-2 text-sm text-gray-400">
         {{ t('google.detail.info.listingCount', { count: detail.listings.length }) }}
       </div>
     </div>

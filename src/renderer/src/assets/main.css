@@ -1,9 +1,28 @@
 @import 'tailwindcss';
 
+/* Design tokens for the JetBrains-style dark theme. Every hex used in the
+ * UI maps to one of these so future palette tweaks live in one place
+ * instead of being scattered as `[#1e1f22]` arbitrary values across ~250
+ * call sites. Sorted dark → light for the bg-* utilities; the two
+ * border tokens at the bottom are for divider lines (the bigger one is
+ * also reused as a hover fill — intentional, the hover state matches the
+ * divider colour).
+ */
+@theme {
+  --color-deep: #1e1f22; /* form fields, scrollable panel inner */
+  --color-table-head: #22252a;
+  --color-sidebar: #26272b;
+  --color-card: #2b2d30; /* cards, modals */
+  --color-row-hover: #2e3038; /* table row + list item hover */
+  --color-sidebar-hover: #333538; /* sidebar button hover */
+  --color-divider: #393b40; /* main divider lines; also used as hover-bg fill */
+  --color-divider-strong: #43454a; /* form-field borders, scrollbar thumb */
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #1e1f22;
+  background-color: var(--color-deep);
   color: #bcbec4;
   -webkit-font-smoothing: antialiased;
 }
@@ -16,7 +35,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #43454a;
+  background: var(--color-divider-strong);
   border-radius: 3px;
 }
 

@@ -189,16 +189,16 @@ function formatDate(iso?: string): string {
     @click.self="onBackdropClick"
   >
     <div
-      class="titlebar-no-drag flex max-h-[85vh] w-full max-w-3xl flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+      class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-3xl flex-col rounded-xl border shadow-xl"
     >
       <!-- Header -->
-      <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] p-6">
+      <div class="border-divider flex shrink-0 items-center justify-between border-b p-6">
         <h3 class="text-lg font-semibold text-gray-100">
           {{ t(`apple.import.header.${state}`) }}
         </h3>
         <button
           v-if="state !== 'importing'"
-          class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
           @click="close"
         >
           &times;
@@ -241,7 +241,7 @@ function formatDate(iso?: string): string {
             <div
               v-for="group in issuesByProduct"
               :key="group.key"
-              class="rounded-lg border border-red-900/40 bg-[#1e1f22] p-3"
+              class="bg-deep rounded-lg border border-red-900/40 p-3"
             >
               <div class="mb-2 font-mono text-sm text-gray-300">
                 <span class="text-gray-500">#{{ group.index + 1 }}</span>
@@ -271,10 +271,10 @@ function formatDate(iso?: string): string {
           </p>
 
           <!-- Products table -->
-          <div class="overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]">
+          <div class="border-divider bg-deep overflow-hidden rounded-lg border">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-[#393b40] bg-[#22252a]">
+                <tr class="border-divider bg-table-head border-b">
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">
                     Product ID
                   </th>
@@ -299,7 +299,7 @@ function formatDate(iso?: string): string {
                 <tr
                   v-for="p in preview.products"
                   :key="p.productId"
-                  class="border-b border-[#393b40] last:border-0"
+                  class="border-divider border-b last:border-0"
                 >
                   <td class="px-3 py-2 font-mono text-gray-200">{{ p.productId }}</td>
                   <td class="px-3 py-2 text-gray-300">{{ p.referenceName }}</td>
@@ -358,7 +358,7 @@ function formatDate(iso?: string): string {
               <div
                 v-for="r in results.filter((x) => !x.created)"
                 :key="r.productId"
-                class="rounded-lg border border-red-900/40 bg-[#1e1f22] p-3"
+                class="bg-deep rounded-lg border border-red-900/40 p-3"
               >
                 <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
                 <div class="mb-1 text-xs text-gray-500">{{ r.referenceName }}</div>
@@ -383,7 +383,7 @@ function formatDate(iso?: string): string {
               <div
                 v-for="r in results.filter((x) => x.created && x.stepErrors.length > 0)"
                 :key="r.productId"
-                class="rounded-lg border border-yellow-900/40 bg-[#1e1f22] p-3"
+                class="bg-deep rounded-lg border border-yellow-900/40 p-3"
               >
                 <div class="font-mono text-sm text-gray-300">{{ r.productId }}</div>
                 <div class="mb-1 text-xs text-gray-500">{{ r.referenceName }}</div>
@@ -408,11 +408,11 @@ function formatDate(iso?: string): string {
       <!-- Footer -->
       <div
         v-if="state !== 'validating' && state !== 'importing'"
-        class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] p-4"
+        class="border-divider flex shrink-0 justify-end gap-2 border-t p-4"
       >
         <template v-if="state === 'preview'">
           <button
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
             @click="close"
           >
             {{ t('common.cancel') }}
@@ -426,7 +426,7 @@ function formatDate(iso?: string): string {
         </template>
         <template v-else>
           <button
-            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+            class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm text-gray-300 transition-colors"
             @click="close"
           >
             {{ t('common.close') }}

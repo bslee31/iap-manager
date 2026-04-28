@@ -227,7 +227,7 @@ async function applyNewPricing() {
           />
           <div
             v-else-if="selectedPo"
-            class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200"
+            class="border-divider-strong bg-deep rounded-lg border px-3 py-2 text-sm text-gray-200"
           >
             {{ selectedPo.purchaseOptionId }}
             <span class="ml-2 text-xs text-gray-500"
@@ -243,7 +243,7 @@ async function applyNewPricing() {
             v-model="regionSearch"
             type="text"
             :placeholder="t('google.detail.pricing.regionSearchPlaceholder')"
-            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           />
         </div>
       </div>
@@ -256,7 +256,7 @@ async function applyNewPricing() {
       </div>
       <template v-else>
         <!-- Edit form -->
-        <div class="mb-3 rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
+        <div class="border-divider-strong bg-deep mb-3 rounded-lg border p-3">
           <div class="mb-2 text-xs font-medium text-gray-500 uppercase">
             {{ t('google.detail.pricing.adjustBase') }}
           </div>
@@ -279,7 +279,7 @@ async function applyNewPricing() {
                 v-model="editPrice"
                 type="text"
                 inputmode="decimal"
-                class="w-full rounded-lg border border-[#43454a] bg-[#2b2d30] px-3 py-1.5 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                class="border-divider-strong bg-card w-full rounded-lg border px-3 py-1.5 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 placeholder="0"
               />
             </div>
@@ -301,7 +301,7 @@ async function applyNewPricing() {
           <p class="mt-2 text-xs text-gray-500">{{ t('google.detail.pricing.applyHint') }}</p>
         </div>
         <div
-          class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border border-[#43454a] bg-[#1e1f22]"
+          class="border-divider-strong bg-deep flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg border"
         >
           <div class="shrink-0 pr-[6px]">
             <table class="w-full table-fixed text-sm">
@@ -312,7 +312,7 @@ async function applyNewPricing() {
               </colgroup>
               <thead>
                 <tr
-                  class="border-b border-[#393b40] bg-[#22252a] text-left text-xs text-gray-500 uppercase"
+                  class="border-divider bg-table-head border-b text-left text-xs text-gray-500 uppercase"
                 >
                   <th class="px-3 py-2 font-medium">
                     {{ t('google.detail.pricing.regionColumn') }}
@@ -338,7 +338,7 @@ async function applyNewPricing() {
                 <tr
                   v-for="c in filteredConfigs"
                   :key="c.regionCode"
-                  class="border-b border-[#393b40]/50 transition-colors hover:bg-[#2e3038]"
+                  class="border-divider/50 hover:bg-row-hover border-b transition-colors"
                   :class="{ 'bg-green-600/10': c.regionCode === baseRegion }"
                 >
                   <td class="px-3 py-2 text-gray-200">

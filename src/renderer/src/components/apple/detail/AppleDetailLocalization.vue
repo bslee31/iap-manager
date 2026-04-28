@@ -183,7 +183,7 @@ onMounted(() => {
           t('apple.detail.localization.langCount', { count: localizations.length })
         }}</span>
         <button
-          class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-3 py-1.5 text-sm text-gray-300 transition-colors"
           @click="openLocForm()"
         >
           {{ t('apple.detail.localization.addLang') }}
@@ -195,10 +195,10 @@ onMounted(() => {
         <div
           v-for="loc in localizations"
           :key="loc.id"
-          class="flex items-start justify-between gap-3 rounded-lg border border-[#393b40] bg-[#1e1f22] px-4 py-3"
+          class="border-divider bg-deep flex items-start justify-between gap-3 rounded-lg border px-4 py-3"
         >
           <div class="min-w-0 flex-1">
-            <span class="rounded bg-[#393b40] px-1.5 py-0.5 text-xs text-gray-300">{{
+            <span class="bg-divider rounded px-1.5 py-0.5 text-xs text-gray-300">{{
               localeLabel(loc.locale)
             }}</span>
             <div class="mt-1 truncate text-sm font-medium text-gray-200">{{ loc.name }}</div>
@@ -235,7 +235,7 @@ onMounted(() => {
         @click.self="editingLoc = null"
       >
         <div
-          class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+          class="titlebar-no-drag border-divider bg-card w-full max-w-md rounded-xl border p-6 shadow-xl"
         >
           <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
@@ -246,7 +246,7 @@ onMounted(() => {
               }}
             </h4>
             <button
-              class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+              class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
               @click="editingLoc = null"
             >
               &times;
@@ -258,7 +258,7 @@ onMounted(() => {
               <select
                 v-if="!editingLoc.id"
                 v-model="editingLoc.locale"
-                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               >
                 <option value="" disabled>
                   {{ t('apple.detail.localization.localePlaceholder') }}
@@ -282,7 +282,7 @@ onMounted(() => {
                 v-model="editingLoc.name"
                 type="text"
                 maxlength="35"
-                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 :placeholder="t('apple.detail.localization.namePlaceholder')"
               />
             </div>
@@ -301,14 +301,14 @@ onMounted(() => {
                 v-model="editingLoc.description"
                 rows="3"
                 maxlength="55"
-                class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                 :placeholder="t('apple.detail.localization.descPlaceholder')"
               />
             </div>
           </div>
           <div class="mt-5 flex justify-end gap-2">
             <button
-              class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+              class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
               @click="editingLoc = null"
             >
               {{ t('common.cancel') }}

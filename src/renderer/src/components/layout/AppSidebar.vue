@@ -44,7 +44,7 @@ function onDragEnd() {
 </script>
 
 <template>
-  <aside class="flex h-full w-60 flex-col border-r border-[#393b40] bg-[#26272b]/90 backdrop-blur">
+  <aside class="border-divider bg-sidebar/90 flex h-full w-60 flex-col border-r backdrop-blur">
     <!-- Title area with drag region -->
     <div class="titlebar-drag px-4 pt-8 pb-4">
       <h1
@@ -70,7 +70,7 @@ function onDragEnd() {
             :class="
               isActive(project.id)
                 ? 'bg-blue-600/20 font-medium text-blue-400'
-                : 'text-gray-300 hover:bg-[#393b40]'
+                : 'hover:bg-divider text-gray-300'
             "
             @click="selectProject(project)"
           >
@@ -88,7 +88,7 @@ function onDragEnd() {
     </nav>
 
     <!-- Bottom actions -->
-    <div class="space-y-1 border-t border-[#393b40] p-2">
+    <div class="border-divider space-y-1 border-t p-2">
       <button
         class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-blue-400 transition-colors hover:bg-blue-600/15"
         @click="startCreateProject"
@@ -97,7 +97,7 @@ function onDragEnd() {
         {{ t('sidebar.newProject') }}
       </button>
       <button
-        class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+        class="hover:bg-divider flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-gray-400 transition-colors"
         @click="router.push('/settings')"
       >
         <span class="text-base leading-none">&#9881;</span>

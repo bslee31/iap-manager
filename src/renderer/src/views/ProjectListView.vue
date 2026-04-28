@@ -97,7 +97,7 @@ function onDragEnd() {
 
     <!-- Project Form Modal -->
     <div v-if="showForm" class="fixed inset-0 z-40 flex items-center justify-center bg-black/60">
-      <div class="w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl">
+      <div class="border-divider bg-card w-full max-w-md rounded-xl border p-6 shadow-xl">
         <h3 class="mb-4 text-lg font-semibold text-gray-100">
           {{ editingProject.id ? t('project.edit') : t('project.create') }}
         </h3>
@@ -109,7 +109,7 @@ function onDragEnd() {
             <input
               v-model="editingProject.name"
               type="text"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               :placeholder="t('project.form.namePlaceholder')"
               @keyup.enter="saveProject"
             />
@@ -120,7 +120,7 @@ function onDragEnd() {
             }}</label>
             <textarea
               v-model="editingProject.description"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               rows="3"
               :placeholder="t('project.form.descPlaceholder')"
             />
@@ -128,7 +128,7 @@ function onDragEnd() {
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
             @click="showForm = false"
           >
             {{ t('common.cancel') }}
@@ -157,7 +157,7 @@ function onDragEnd() {
     >
       <template #item="{ element: project }">
         <div
-          class="group flex cursor-pointer items-center gap-3 rounded-lg border border-[#393b40] bg-[#2b2d30] px-4 py-3 transition-colors hover:border-[#43454a]"
+          class="group border-divider bg-card hover:border-divider-strong flex cursor-pointer items-center gap-3 rounded-lg border px-4 py-3 transition-colors"
           @click="goToProject(project)"
         >
           <span
@@ -177,7 +177,7 @@ function onDragEnd() {
             <span
               class="rounded-full px-2 py-0.5 text-xs"
               :class="
-                project.has_apple ? 'bg-blue-600/20 text-blue-400' : 'bg-[#393b40] text-gray-500'
+                project.has_apple ? 'bg-blue-600/20 text-blue-400' : 'bg-divider text-gray-500'
               "
             >
               Apple
@@ -185,7 +185,7 @@ function onDragEnd() {
             <span
               class="rounded-full px-2 py-0.5 text-xs"
               :class="
-                project.has_google ? 'bg-green-600/20 text-green-400' : 'bg-[#393b40] text-gray-500'
+                project.has_google ? 'bg-green-600/20 text-green-400' : 'bg-divider text-gray-500'
               "
             >
               Google

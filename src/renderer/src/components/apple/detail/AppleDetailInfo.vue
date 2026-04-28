@@ -65,7 +65,7 @@ async function saveReferenceName(): Promise<void> {
       <div>
         <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Product ID</label>
         <div
-          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+          class="border-divider-strong bg-deep rounded-lg border px-3 py-2 font-mono text-sm text-gray-400"
         >
           {{ productId }}
         </div>
@@ -76,7 +76,7 @@ async function saveReferenceName(): Promise<void> {
       <div>
         <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">Type</label>
         <div
-          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400"
+          class="border-divider-strong bg-deep rounded-lg border px-3 py-2 text-sm text-gray-400"
         >
           {{ type }}
         </div>
@@ -86,7 +86,7 @@ async function saveReferenceName(): Promise<void> {
       <div>
         <label class="mb-1 block text-xs font-medium text-gray-500 uppercase">State</label>
         <div
-          class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-400"
+          class="border-divider-strong bg-deep rounded-lg border px-3 py-2 font-mono text-sm text-gray-400"
         >
           {{ state }}
         </div>
@@ -100,7 +100,7 @@ async function saveReferenceName(): Promise<void> {
           type="text"
           :disabled="!canEditReferenceName || savingReferenceName"
           :maxlength="MAX_REF_NAME"
-          class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Reference Name"
         />
         <div class="mt-1 flex items-center justify-between">

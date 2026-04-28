@@ -293,14 +293,14 @@ function stateLabel(state: string): string {
         </button>
         <button
           :disabled="store.exporting || store.syncing || store.products.length === 0"
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
           @click="exportProducts"
         >
           {{ t('apple.toolbar.export') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing"
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
           @click="importProducts"
         >
           {{ t('apple.toolbar.import') }}
@@ -332,11 +332,11 @@ function stateLabel(state: string): string {
         <input
           v-model="searchQuery"
           type="text"
-          class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          class="border-divider-strong bg-deep w-52 rounded-lg border px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
           :placeholder="t('apple.toolbar.searchPlaceholder')"
         />
         <button
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors"
           @click="showCreateForm = true"
         >
           {{ t('apple.toolbar.create') }}
@@ -349,7 +349,7 @@ function stateLabel(state: string): string {
       <span class="text-sm whitespace-nowrap text-gray-300">
         {{ t('apple.batch.selected', { count: store.selected.size }) }}
       </span>
-      <div class="h-5 w-px bg-[#43454a]" />
+      <div class="bg-divider-strong h-5 w-px" />
       <button
         v-for="action in batchActions"
         :key="action.key"
@@ -378,7 +378,7 @@ function stateLabel(state: string): string {
         :class="
           activeFilter === null
             ? 'bg-blue-600 text-white'
-            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+            : 'bg-card hover:bg-divider text-gray-400'
         "
         @click="setFilter(null)"
       >
@@ -391,7 +391,7 @@ function stateLabel(state: string): string {
         :class="
           activeFilter === group.state
             ? 'bg-blue-600 text-white'
-            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+            : 'bg-card hover:bg-divider text-gray-400'
         "
         @click="setFilter(group.state)"
       >
@@ -406,12 +406,12 @@ function stateLabel(state: string): string {
       @click.self="showCreateForm = false"
     >
       <div
-        class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+        class="titlebar-no-drag border-divider bg-card w-full max-w-md rounded-xl border p-6 shadow-xl"
       >
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-100">{{ t('apple.create.title') }}</h3>
           <button
-            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
             @click="showCreateForm = false"
           >
             &times;
@@ -423,7 +423,7 @@ function stateLabel(state: string): string {
             <input
               v-model="newProduct.productId"
               type="text"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               :placeholder="t('apple.create.productIdPlaceholder')"
             />
           </div>
@@ -432,7 +432,7 @@ function stateLabel(state: string): string {
             <input
               v-model="newProduct.referenceName"
               type="text"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               :placeholder="t('apple.create.refNamePlaceholder')"
             />
           </div>
@@ -442,7 +442,7 @@ function stateLabel(state: string): string {
             }}</label>
             <select
               v-model="newProduct.inAppPurchaseType"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             >
               <option value="CONSUMABLE">{{ t('apple.type.CONSUMABLE') }}</option>
               <option value="NON_CONSUMABLE">{{ t('apple.type.NON_CONSUMABLE') }}</option>
@@ -451,7 +451,7 @@ function stateLabel(state: string): string {
         </div>
         <div class="mt-6 flex justify-end gap-2">
           <button
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
             @click="showCreateForm = false"
           >
             {{ t('common.cancel') }}
@@ -470,7 +470,7 @@ function stateLabel(state: string): string {
     <div class="min-h-0 flex-1 px-6 pb-6">
       <div
         v-if="filteredProducts.length > 0"
-        class="flex h-full flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30]"
+        class="border-divider bg-card flex h-full flex-col overflow-hidden rounded-xl border"
       >
         <!-- Fixed header -->
         <div class="shrink-0 pr-[6px]">
@@ -485,7 +485,7 @@ function stateLabel(state: string): string {
               <col class="w-[12%]" />
             </colgroup>
             <thead>
-              <tr class="border-b border-[#393b40] bg-[#22252a]">
+              <tr class="border-divider bg-table-head border-b">
                 <th class="px-3 py-3">
                   <input
                     type="checkbox"
@@ -532,7 +532,7 @@ function stateLabel(state: string): string {
               <tr
                 v-for="product in filteredProducts"
                 :key="product.id"
-                class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
+                class="border-divider hover:bg-row-hover cursor-pointer border-b transition-colors"
                 :class="{ 'bg-blue-600/10': store.selected.has(product.id) }"
                 @click="store.setSelectedProduct(product)"
               >
@@ -547,7 +547,7 @@ function stateLabel(state: string): string {
                 <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
                 <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
                 <td class="px-3 py-3">
-                  <span class="rounded-full bg-[#393b40] px-2 py-0.5 text-xs text-gray-400">
+                  <span class="bg-divider rounded-full px-2 py-0.5 text-xs text-gray-400">
                     {{
                       te(`apple.type.${product.type}`)
                         ? t(`apple.type.${product.type}`)

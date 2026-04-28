@@ -248,7 +248,7 @@ onMounted(() => {
     <template v-else>
       <!-- Set base price -->
       <div class="shrink-0 px-6 pt-4 pb-3">
-        <div class="rounded-lg border border-[#43454a] bg-[#1e1f22] p-3">
+        <div class="border-divider-strong bg-deep rounded-lg border p-3">
           <div class="mb-2 text-xs font-medium text-gray-500 uppercase">
             {{ t('apple.detail.price.adjustBase') }}
           </div>
@@ -290,7 +290,7 @@ onMounted(() => {
       </div>
 
       <!-- All territory prices -->
-      <div class="shrink-0 border-t border-[#393b40] px-6 pt-4 pb-2">
+      <div class="border-divider shrink-0 border-t px-6 pt-4 pb-2">
         <div class="flex items-center justify-between">
           <h4 class="text-sm font-medium text-gray-300">
             {{ t('apple.detail.price.regionPrices') }}
@@ -299,12 +299,12 @@ onMounted(() => {
             <input
               v-model="priceSearch"
               type="text"
-              class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-40 rounded border px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
               :placeholder="t('apple.detail.price.searchPlaceholder')"
             />
             <button
               v-if="!allPricesLoading"
-              class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40]"
+              class="border-divider-strong hover:bg-divider rounded border px-2 py-1 text-xs text-gray-300 transition-colors"
               @click="loadAllTerritoryPrices"
             >
               {{ t('common.reload') }}
@@ -334,12 +334,12 @@ onMounted(() => {
         </div>
         <div
           v-else-if="filteredPrices.length > 0"
-          class="flex h-full flex-col overflow-hidden rounded-lg border border-[#393b40] bg-[#1e1f22]"
+          class="border-divider bg-deep flex h-full flex-col overflow-hidden rounded-lg border"
         >
           <div class="shrink-0 pr-[6px]">
             <table class="w-full">
               <thead>
-                <tr class="border-b border-[#393b40]">
+                <tr class="border-divider border-b">
                   <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">
                     Country or Region
                   </th>
@@ -360,7 +360,7 @@ onMounted(() => {
                 <tr
                   v-for="tp in filteredPrices"
                   :key="tp.territory"
-                  class="border-b border-[#393b40] last:border-0"
+                  class="border-divider border-b last:border-0"
                   :class="
                     tp.territory === allPricesData?.baseTerritory
                       ? 'bg-blue-600/10'
@@ -408,7 +408,7 @@ onMounted(() => {
         @click.self="editingTerrPrice = null"
       >
         <div
-          class="titlebar-no-drag w-full max-w-md rounded-xl border border-[#393b40] bg-[#2b2d30] p-6 shadow-xl"
+          class="titlebar-no-drag border-divider bg-card w-full max-w-md rounded-xl border p-6 shadow-xl"
         >
           <div class="mb-4 flex items-center justify-between">
             <h4 class="text-base font-semibold text-gray-100">
@@ -420,7 +420,7 @@ onMounted(() => {
               }}
             </h4>
             <button
-              class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+              class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
               @click="editingTerrPrice = null"
             >
               &times;
@@ -439,7 +439,7 @@ onMounted(() => {
             </div>
             <div class="flex justify-end gap-2">
               <button
-                class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+                class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
                 @click="editingTerrPrice = null"
               >
                 {{ t('common.cancel') }}

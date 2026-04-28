@@ -166,11 +166,11 @@ async function deleteListing(languageCode: string) {
         <div
           v-for="l in detail.listings"
           :key="l.languageCode"
-          class="flex items-start justify-between gap-3 rounded-lg border border-[#43454a] bg-[#1e1f22] px-4 py-3"
+          class="border-divider-strong bg-deep flex items-start justify-between gap-3 rounded-lg border px-4 py-3"
         >
           <div class="min-w-0 flex-1">
             <div>
-              <span class="rounded bg-[#393b40] px-1.5 py-0.5 text-xs text-gray-300">{{
+              <span class="bg-divider rounded px-1.5 py-0.5 text-xs text-gray-300">{{
                 getLanguageLabel(l.languageCode)
               }}</span>
               <span class="ml-2 font-mono text-xs text-gray-500">{{ l.languageCode }}</span>
@@ -207,7 +207,7 @@ async function deleteListing(languageCode: string) {
       @click.self="cancelEditListing"
     >
       <div
-        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+        class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border shadow-xl"
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">
@@ -218,7 +218,7 @@ async function deleteListing(languageCode: string) {
             }}
           </h3>
           <button
-            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
             @click="cancelEditListing"
           >
             &times;
@@ -237,7 +237,7 @@ async function deleteListing(languageCode: string) {
             />
             <div
               v-else
-              class="rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-400"
+              class="border-divider-strong bg-deep rounded-lg border px-3 py-2 text-sm text-gray-400"
             >
               {{ getLanguageLabel(editingListing.languageCode) }}
               <span class="ml-2 font-mono text-xs text-gray-500">{{
@@ -253,7 +253,7 @@ async function deleteListing(languageCode: string) {
               v-model="editingListing.title"
               type="text"
               maxlength="55"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
             <p class="mt-1 text-right text-xs text-gray-500">
               {{ editingListing.title.length }} / 55
@@ -267,16 +267,16 @@ async function deleteListing(languageCode: string) {
               v-model="editingListing.description"
               rows="4"
               maxlength="200"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
             <p class="mt-1 text-right text-xs text-gray-500">
               {{ editingListing.description.length }} / 200
             </p>
           </div>
         </div>
-        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
+        <div class="border-divider flex shrink-0 justify-end gap-2 border-t px-6 py-4">
           <button
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
             @click="cancelEditListing"
           >
             {{ t('common.cancel') }}

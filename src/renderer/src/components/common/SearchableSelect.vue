@@ -56,7 +56,7 @@ function onBlur() {
     <!-- Display / trigger -->
     <button
       type="button"
-      class="flex w-full items-center justify-between rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-left text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+      class="border-divider-strong bg-deep flex w-full items-center justify-between rounded-lg border px-3 py-1.5 text-left text-sm transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
       :class="selectedLabel ? 'text-gray-200' : 'text-gray-500'"
       @click="toggle"
     >
@@ -70,15 +70,15 @@ function onBlur() {
     <div
       v-if="open"
       ref="listRef"
-      class="absolute z-50 mt-1 w-full overflow-hidden rounded-lg border border-[#43454a] bg-[#2b2d30] shadow-xl"
+      class="border-divider-strong bg-card absolute z-50 mt-1 w-full overflow-hidden rounded-lg border shadow-xl"
     >
       <!-- Search input -->
-      <div class="border-b border-[#393b40] p-2">
+      <div class="border-divider border-b p-2">
         <input
           ref="inputRef"
           v-model="search"
           type="text"
-          class="w-full rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+          class="border-divider-strong bg-deep w-full rounded border px-2 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           :placeholder="t('common.searchPlaceholder')"
           @blur="onBlur"
         />
@@ -93,7 +93,7 @@ function onBlur() {
           :class="
             opt.value === modelValue
               ? 'bg-blue-600/20 text-blue-400'
-              : 'text-gray-300 hover:bg-[#393b40]'
+              : 'hover:bg-divider text-gray-300'
           "
           @mousedown.prevent="select(opt.value)"
         >

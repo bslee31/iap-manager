@@ -400,7 +400,7 @@ function statusColor(status: string): string {
     case 'DRAFT':
       return 'bg-yellow-600/20 text-yellow-400'
     default:
-      return 'bg-[#393b40] text-gray-400'
+      return 'bg-divider text-gray-400'
   }
 }
 </script>
@@ -419,14 +419,14 @@ function statusColor(status: string): string {
         </button>
         <button
           :disabled="store.exporting || store.syncing || store.products.length === 0"
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
           @click="exportProducts"
         >
           {{ t('google.toolbar.export') }}
         </button>
         <button
           :disabled="store.exporting || store.syncing"
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
           @click="importProducts"
         >
           {{ t('google.toolbar.import') }}
@@ -458,11 +458,11 @@ function statusColor(status: string): string {
         <input
           v-model="searchQuery"
           type="text"
-          class="w-52 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+          class="border-divider-strong bg-deep w-52 rounded-lg border px-3 py-1.5 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
           :placeholder="t('google.toolbar.searchPlaceholder')"
         />
         <button
-          class="rounded-lg border border-[#43454a] px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40]"
+          class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm whitespace-nowrap text-gray-300 transition-colors"
           @click="openCreateForm"
         >
           {{ t('google.toolbar.create') }}
@@ -475,7 +475,7 @@ function statusColor(status: string): string {
       <span class="text-sm whitespace-nowrap text-gray-300">
         {{ t('google.batch.selected', { count: store.selected.size }) }}
       </span>
-      <div class="h-5 w-px bg-[#43454a]" />
+      <div class="bg-divider-strong h-5 w-px" />
       <button
         v-for="action in batchActions"
         :key="action.key"
@@ -504,7 +504,7 @@ function statusColor(status: string): string {
         :class="
           activeFilter === null
             ? 'bg-green-600 text-white'
-            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+            : 'bg-card hover:bg-divider text-gray-400'
         "
         @click="setFilter(null)"
       >
@@ -517,7 +517,7 @@ function statusColor(status: string): string {
         :class="
           activeFilter === group.status
             ? 'bg-green-600 text-white'
-            : 'bg-[#2b2d30] text-gray-400 hover:bg-[#393b40]'
+            : 'bg-card hover:bg-divider text-gray-400'
         "
         @click="setFilter(group.status)"
       >
@@ -532,12 +532,12 @@ function statusColor(status: string): string {
       @click.self="showCreateForm = false"
     >
       <div
-        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+        class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border shadow-xl"
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">{{ t('google.create.title') }}</h3>
           <button
-            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
             @click="showCreateForm = false"
           >
             &times;
@@ -550,7 +550,7 @@ function statusColor(status: string): string {
               v-model="newProduct.productId"
               type="text"
               maxlength="139"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               :placeholder="t('google.create.productIdPlaceholder')"
             />
             <p class="mt-1 text-xs text-gray-500">{{ t('google.create.productIdHint') }}</p>
@@ -569,7 +569,7 @@ function statusColor(status: string): string {
               </div>
               <button
                 :disabled="detectingLanguage"
-                class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+                class="border-divider-strong hover:bg-divider rounded-lg border px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
                 @click="detectLanguageInModal"
               >
                 {{ detectingLanguage ? t('google.create.detecting') : t('google.create.detect') }}
@@ -585,7 +585,7 @@ function statusColor(status: string): string {
               v-model="newProduct.name"
               type="text"
               maxlength="55"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               :placeholder="t('google.create.namePlaceholder')"
             />
             <p class="mt-1 text-right text-xs text-gray-500">{{ newProduct.name.length }} / 55</p>
@@ -597,7 +597,7 @@ function statusColor(status: string): string {
             <textarea
               v-model="newProduct.description"
               maxlength="200"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               rows="3"
               :placeholder="t('google.create.descriptionPlaceholder')"
             />
@@ -606,7 +606,7 @@ function statusColor(status: string): string {
             </p>
           </div>
 
-          <div class="border-t border-[#393b40] pt-4">
+          <div class="border-divider border-t pt-4">
             <div class="mb-3 text-xs text-gray-500">{{ t('google.create.poSection') }}</div>
             <div class="space-y-4">
               <div>
@@ -617,7 +617,7 @@ function statusColor(status: string): string {
                   v-model="newProduct.purchaseOptionId"
                   type="text"
                   maxlength="63"
-                  class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
                   :placeholder="t('google.create.poIdPlaceholder')"
                 />
                 <p class="mt-1 text-xs text-gray-500">{{ t('google.create.poIdHint') }}</p>
@@ -627,7 +627,7 @@ function statusColor(status: string): string {
                   t('google.create.purchaseTypeLabel')
                 }}</label>
                 <select
-                  class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                  class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 >
                   <option value="BUY" selected>Buy</option>
                   <option value="RENT" disabled>{{ t('google.create.rentNotSupported') }}</option>
@@ -655,11 +655,11 @@ function statusColor(status: string): string {
                     v-model="newProduct.basePrice"
                     type="text"
                     inputmode="decimal"
-                    class="flex-1 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                    class="border-divider-strong bg-deep flex-1 rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
                     :placeholder="t('google.create.basePricePlaceholder')"
                   />
                   <span
-                    class="min-w-[4rem] rounded-lg border border-[#43454a] bg-[#22252a] px-3 py-2 text-center text-sm text-gray-300"
+                    class="border-divider-strong bg-table-head min-w-[4rem] rounded-lg border px-3 py-2 text-center text-sm text-gray-300"
                   >
                     {{ currencyForRegion(newProduct.baseRegionCode) || '---' }}
                   </span>
@@ -669,10 +669,10 @@ function statusColor(status: string): string {
             </div>
           </div>
         </div>
-        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
+        <div class="border-divider flex shrink-0 justify-end gap-2 border-t px-6 py-4">
           <button
             :disabled="creating"
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors disabled:opacity-50"
             @click="showCreateForm = false"
           >
             {{ t('common.cancel') }}
@@ -692,7 +692,7 @@ function statusColor(status: string): string {
     <div class="min-h-0 flex-1 px-6 pb-6">
       <div
         v-if="filteredProducts.length > 0"
-        class="flex h-full flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30]"
+        class="border-divider bg-card flex h-full flex-col overflow-hidden rounded-xl border"
       >
         <!-- Fixed header -->
         <div class="shrink-0" style="scrollbar-gutter: stable">
@@ -705,7 +705,7 @@ function statusColor(status: string): string {
               <col class="w-[18%]" />
             </colgroup>
             <thead>
-              <tr class="border-b border-[#393b40] bg-[#22252a]">
+              <tr class="border-divider bg-table-head border-b">
                 <th class="px-3 py-3">
                   <input
                     type="checkbox"
@@ -744,7 +744,7 @@ function statusColor(status: string): string {
               <tr
                 v-for="product in filteredProducts"
                 :key="product.productId"
-                class="cursor-pointer border-b border-[#393b40] transition-colors hover:bg-[#2e3038]"
+                class="border-divider hover:bg-row-hover cursor-pointer border-b transition-colors"
                 :class="{ 'bg-green-600/10': store.selected.has(product.productId) }"
                 @click="store.setSelectedProduct(product)"
               >

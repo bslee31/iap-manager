@@ -245,7 +245,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
         <div
           v-for="po in detail.purchaseOptions"
           :key="po.purchaseOptionId"
-          class="flex items-center justify-between gap-3 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-3"
+          class="border-divider-strong bg-deep flex items-center justify-between gap-3 rounded-lg border px-3 py-3"
         >
           <div class="flex min-w-0 flex-wrap items-center gap-2">
             <span class="font-mono text-sm text-gray-200">{{ po.purchaseOptionId }}</span>
@@ -275,7 +275,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             <button
               v-if="!po.legacyCompatible && po.type === 'BUY'"
               :disabled="settingLegacyPoId === po.purchaseOptionId"
-              class="rounded border border-[#43454a] px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+              class="border-divider-strong hover:bg-divider rounded border px-2 py-1 text-xs text-gray-300 transition-colors disabled:opacity-50"
               @click="setAsBackwardsCompatible(po)"
             >
               {{
@@ -312,14 +312,14 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
       @click.self="cancelAddPoForm"
     >
       <div
-        class="titlebar-no-drag flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+        class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-md flex-col rounded-xl border shadow-xl"
       >
         <div class="flex shrink-0 items-center justify-between px-6 pt-6 pb-4">
           <h3 class="text-lg font-semibold text-gray-100">
             {{ t('google.detail.purchaseOptions.addDialogTitle') }}
           </h3>
           <button
-            class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+            class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
             @click="cancelAddPoForm"
           >
             &times;
@@ -333,7 +333,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
               type="text"
               maxlength="63"
               :placeholder="t('google.detail.purchaseOptions.addPoIdPlaceholder')"
-              class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 font-mono text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
             />
             <p class="mt-1 text-xs text-gray-500">
               {{ t('google.detail.purchaseOptions.addPoIdHint') }}
@@ -359,7 +359,7 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
                 type="text"
                 inputmode="decimal"
                 placeholder="0"
-                class="flex-1 rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
+                class="border-divider-strong bg-deep flex-1 rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-green-500 focus:outline-none"
               />
               <span class="min-w-[3.5rem] text-center text-sm text-gray-400">
                 {{ currencyForRegion(newPo.baseRegionCode) || '---' }}
@@ -370,9 +370,9 @@ async function togglePurchaseOptionState(po: PurchaseOption) {
             </p>
           </div>
         </div>
-        <div class="flex shrink-0 justify-end gap-2 border-t border-[#393b40] px-6 py-4">
+        <div class="border-divider flex shrink-0 justify-end gap-2 border-t px-6 py-4">
           <button
-            class="rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors hover:bg-[#393b40]"
+            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
             @click="cancelAddPoForm"
           >
             {{ t('common.cancel') }}

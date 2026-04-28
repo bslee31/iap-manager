@@ -8,7 +8,7 @@ const { t } = useI18n()
     <div class="titlebar-drag h-8" />
     <h2 class="mb-6 text-2xl font-bold text-gray-100">{{ t('settings.title') }}</h2>
 
-    <div class="space-y-4 rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
+    <div class="border-divider bg-card space-y-4 rounded-xl border p-6">
       <div>
         <h3 class="text-sm font-medium text-gray-400">{{ t('settings.version') }}</h3>
         <p class="text-gray-200">1.0.0</p>

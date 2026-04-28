@@ -229,7 +229,7 @@ async function testGoogle() {
 <template>
   <div class="space-y-8">
     <!-- Apple Section -->
-    <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
+    <section class="border-divider bg-card rounded-xl border p-6">
       <h3 class="mb-4 text-lg font-semibold text-gray-100">
         {{ t('credentials.apple.sectionTitle') }}
       </h3>
@@ -241,7 +241,7 @@ async function testGoogle() {
           <input
             v-model="appleKeyId"
             type="text"
-            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             :placeholder="t('credentials.apple.keyIdPlaceholder')"
           />
         </div>
@@ -252,7 +252,7 @@ async function testGoogle() {
           <input
             v-model="appleIssuerId"
             type="text"
-            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             :placeholder="t('credentials.apple.issuerIdPlaceholder')"
           />
         </div>
@@ -263,7 +263,7 @@ async function testGoogle() {
           <input
             v-model="appleAppId"
             type="text"
-            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             :placeholder="t('credentials.apple.appIdPlaceholder')"
           />
         </div>
@@ -273,7 +273,7 @@ async function testGoogle() {
           }}</label>
           <div class="flex items-center gap-3">
             <button
-              class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+              class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm text-gray-300 transition-colors"
               @click="importP8"
             >
               {{ t('credentials.apple.importP8') }}
@@ -295,7 +295,7 @@ async function testGoogle() {
           </button>
           <button
             :disabled="appleTesting"
-            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm text-gray-300 transition-colors disabled:opacity-50"
             @click="testApple"
           >
             {{ appleTesting ? t('credentials.apple.testing') : t('credentials.apple.testButton') }}
@@ -305,7 +305,7 @@ async function testGoogle() {
     </section>
 
     <!-- Google Section -->
-    <section class="rounded-xl border border-[#393b40] bg-[#2b2d30] p-6">
+    <section class="border-divider bg-card rounded-xl border p-6">
       <h3 class="mb-4 text-lg font-semibold text-gray-100">
         {{ t('credentials.google.sectionTitle') }}
       </h3>
@@ -317,7 +317,7 @@ async function testGoogle() {
           <input
             v-model="googlePackageName"
             type="text"
-            class="w-full rounded-lg border border-[#43454a] bg-[#1e1f22] px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
             :placeholder="t('credentials.google.packageNamePlaceholder')"
           />
         </div>
@@ -327,7 +327,7 @@ async function testGoogle() {
           }}</label>
           <div class="flex items-center gap-3">
             <button
-              class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40]"
+              class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm text-gray-300 transition-colors"
               @click="importGoogleJson"
             >
               {{ t('credentials.google.importJson') }}
@@ -358,7 +358,7 @@ async function testGoogle() {
             </div>
             <button
               :disabled="googleDetectingLanguage || !googleSavedAccount"
-              class="rounded-lg border border-[#43454a] px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+              class="border-divider-strong hover:bg-divider rounded-lg border px-3 py-1.5 text-sm whitespace-nowrap text-gray-300 transition-colors disabled:opacity-50"
               @click="detectGoogleLanguage"
             >
               {{
@@ -396,7 +396,7 @@ async function testGoogle() {
           </button>
           <button
             :disabled="googleTesting"
-            class="rounded-lg border border-[#43454a] px-4 py-2 text-sm text-gray-300 transition-colors hover:bg-[#393b40] disabled:opacity-50"
+            class="border-divider-strong hover:bg-divider rounded-lg border px-4 py-2 text-sm text-gray-300 transition-colors disabled:opacity-50"
             @click="testGoogle"
           >
             {{

@@ -110,7 +110,7 @@ async function saveAvailability() {
           <input
             v-model="territorySearch"
             type="text"
-            class="w-40 rounded border border-[#43454a] bg-[#1e1f22] px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            class="border-divider-strong bg-deep w-40 rounded border px-2 py-1 text-xs text-gray-200 placeholder-gray-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             :placeholder="t('apple.detail.availability.searchPlaceholder')"
           />
         </div>
@@ -155,7 +155,7 @@ async function saveAvailability() {
       <div class="min-h-0 flex-1 space-y-1 overflow-y-auto px-6 py-2">
         <div v-for="group in groupedTerritories" :key="group.regionName">
           <button
-            class="flex w-full items-center gap-2 rounded-lg bg-[#1e1f22] px-3 py-2 text-sm font-medium text-gray-200 transition-colors hover:bg-[#333538]"
+            class="bg-deep hover:bg-sidebar-hover flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-200 transition-colors"
             @click="toggleRegion(group.regionName)"
           >
             <span
@@ -181,7 +181,7 @@ async function saveAvailability() {
             <label
               v-for="terr in group.territories"
               :key="terr.code"
-              class="flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors hover:bg-[#2e3038]"
+              class="hover:bg-row-hover flex cursor-pointer items-center gap-2 rounded px-3 py-1.5 text-sm transition-colors"
               :class="selectedTerritories.has(terr.code) ? 'text-gray-200' : 'text-gray-400'"
             >
               <input
@@ -197,7 +197,7 @@ async function saveAvailability() {
       </div>
 
       <!-- Footer (pinned at bottom) -->
-      <div class="shrink-0 border-t border-[#393b40] px-6 py-4">
+      <div class="border-divider shrink-0 border-t px-6 py-4">
         <label class="mb-3 flex cursor-pointer items-center gap-2">
           <input v-model="availableInNewTerritories" type="checkbox" class="rounded" />
           <span class="text-sm text-gray-300">{{

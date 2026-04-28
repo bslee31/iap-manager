@@ -16,6 +16,6 @@ export function statusColor(status: string): string {
     case 'DRAFT':
       return 'bg-yellow-600/20 text-yellow-400'
     default:
-      return 'bg-[#393b40] text-gray-400'
+      return 'bg-divider text-gray-400'
   }
 }

@@ -70,16 +70,16 @@ onMounted(loadAvailability)
     @click.self="$emit('close')"
   >
     <div
-      class="titlebar-no-drag flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border border-[#393b40] bg-[#2b2d30] shadow-xl"
+      class="titlebar-no-drag border-divider bg-card flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border shadow-xl"
     >
       <!-- Header -->
-      <div class="flex shrink-0 items-center justify-between border-b border-[#393b40] px-6 py-4">
+      <div class="border-divider flex shrink-0 items-center justify-between border-b px-6 py-4">
         <div>
           <h3 class="text-lg font-semibold text-gray-100">{{ product.referenceName }}</h3>
           <p class="font-mono text-sm text-gray-400">{{ product.productId }}</p>
         </div>
         <button
-          class="rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:bg-[#393b40] hover:text-gray-300"
+          class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
           @click="$emit('close')"
         >
           &times;
@@ -87,7 +87,7 @@ onMounted(loadAvailability)
       </div>
 
       <!-- Tabs -->
-      <div class="flex shrink-0 border-b border-[#393b40] px-6">
+      <div class="border-divider flex shrink-0 border-b px-6">
         <button
           v-for="tab in ['info', 'availability', 'price', 'localization'] as Tab[]"
           :key="tab"

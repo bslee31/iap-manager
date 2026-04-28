@@ -37,7 +37,7 @@ onMounted(async () => {
 <template>
   <div class="flex h-full flex-col">
     <!-- Header with drag region -->
-    <div class="titlebar-drag border-b border-[#393b40] bg-[#26272b]">
+    <div class="titlebar-drag border-divider bg-sidebar border-b">
       <div class="h-8" />
       <div class="px-6 pb-0">
         <h2 class="titlebar-no-drag mb-4 text-xl font-bold text-gray-100">
