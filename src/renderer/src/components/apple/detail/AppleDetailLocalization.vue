@@ -183,7 +183,7 @@ onMounted(() => {
           t('apple.detail.localization.langCount', { count: localizations.length })
         }}</span>
         <button
-          class="border-divider-strong hover:bg-divider rounded-lg border px-3 py-1.5 text-sm text-gray-300 transition-colors"
+          class="rounded-lg bg-blue-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-700"
           @click="openLocForm()"
         >
           {{ t('apple.detail.localization.addLang') }}
