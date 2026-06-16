@@ -51,6 +51,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "overrides": {
+    "esbuild": "^0.28.1"
+  },
   "dependencies": {
     "@electron-toolkit/utils": "^4.0.0",
     "better-sqlite3": "^12.9.0",
