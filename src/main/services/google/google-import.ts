@@ -1,10 +1,19 @@
 import { googleRequest } from './google-auth'
-import { REGIONS_VERSION, parseProblematicRegions, fetchSupportedRegions } from './google-product'
+import {
+  REGIONS_VERSION,
+  parseProblematicRegions,
+  fetchSupportedRegions,
+  convertRegionPrices,
+  type ConvertedPrice
+} from './google-product'
 import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import { t } from '../../i18n'
 import {
   GOOGLE_EXPORT_FORMAT_VERSION,
   type ExportedGoogleProduct,
+  type ExportedGooglePurchaseOption,
+  type ExportedGoogleRegionPrice,
+  type GoogleImportOptions,
   type GoogleImportPreview,
   type GoogleImportProductResult,
   type GoogleImportValidationIssue
@@ -410,14 +419,88 @@ export async function validateImport(
   }
 }
 
+// Conversion results are keyed by base price, not by product: an export
+// typically reuses a handful of price points across many products, and
+// convertRegionPrices is a network round-trip. Promises (not values) are
+// cached so concurrent products sharing a price point issue one call; a
+// rejection evicts its entry so a transient failure doesn't poison the rest.
+type ConversionCache = Map<string, Promise<ConvertedPrice[]>>
+
+function getConvertedPrices(
+  projectId: string,
+  base: { currencyCode: string; units: string; nanos: number },
+  cache: ConversionCache
+): Promise<ConvertedPrice[]> {
+  const key = `${base.currencyCode}:${base.units}:${base.nanos}`
+  let pending = cache.get(key)
+  if (!pending) {
+    pending = convertRegionPrices(projectId, base).catch((e) => {
+      cache.delete(key)
+      throw e
+    })
+    cache.set(key, pending)
+  }
+  return pending
+}
+
+// Expand a PO's regions to every region Google supports, converting from its
+// price at baseRegionCode. Regions present in the file always win — a
+// deliberate per-region price, or a region exported as NO_LONGER_AVAILABLE,
+// must not be overwritten by a converted price. The base region itself comes
+// from the file, so Google's price rounding never shifts it.
+async function expandRegions(
+  projectId: string,
+  po: ExportedGooglePurchaseOption,
+  baseRegionCode: string,
+  cache: ConversionCache
+): Promise<ExportedGoogleRegionPrice[]> {
+  const base = po.regions.find((r) => r.regionCode === baseRegionCode)
+  if (!base) {
+    throw new Error(
+      t('google.import.baseRegionMissing', {
+        poId: po.purchaseOptionId,
+        region: baseRegionCode
+      })
+    )
+  }
+
+  const converted = await getConvertedPrices(
+    projectId,
+    { currencyCode: base.currencyCode, units: base.units, nanos: base.nanos },
+    cache
+  )
+
+  const fromFile = new Set(po.regions.map((r) => r.regionCode))
+  const filled = converted
+    .filter((c) => !fromFile.has(c.regionCode))
+    .map((c) => ({
+      regionCode: c.regionCode,
+      availability: 'AVAILABLE',
+      currencyCode: c.currencyCode,
+      units: c.units,
+      nanos: c.nanos
+    }))
+
+  return [...po.regions, ...filled]
+}
+
 // Build the Google Play API purchaseOptions payload from an ExportedGoogleProduct.
 // All POs are created as DRAFT regardless of the exported state — the user
 // can review the import and then activate explicitly via the Detail page.
 // This avoids publishing something broken by accident on import.
-function buildPurchaseOptionsPayload(product: ExportedGoogleProduct): any[] {
+async function buildPurchaseOptionsPayload(
+  projectId: string,
+  product: ExportedGoogleProduct,
+  options: GoogleImportOptions,
+  cache: ConversionCache
+): Promise<any[]> {
   const payload: any[] = []
   for (const po of product.purchaseOptions) {
     if (po.type !== 'BUY') continue
+    const regions =
+      options.autoConvertRegions && options.baseRegionCode
+        ? await expandRegions(projectId, po, options.baseRegionCode, cache)
+        : po.regions
     payload.push({
       purchaseOptionId: po.purchaseOptionId,
       state: 'DRAFT',
@@ -425,7 +508,7 @@ function buildPurchaseOptionsPayload(product: ExportedGoogleProduct): any[] {
         legacyCompatible: po.legacyCompatible,
         multiQuantityEnabled: false
       },
-      regionalPricingAndAvailabilityConfigs: po.regions.map((r) => ({
+      regionalPricingAndAvailabilityConfigs: regions.map((r) => ({
         regionCode: r.regionCode,
         availability: r.availability,
         price: {
@@ -442,6 +525,8 @@ function buildPurchaseOptionsPayload(product: ExportedGoogleProduct): any[] {
 async function importSingleProduct(
   projectId: string,
   product: ExportedGoogleProduct,
+  options: GoogleImportOptions,
+  cache: ConversionCache,
   reportStep?: (phase: string) => void
 ): Promise<GoogleImportProductResult> {
   const result: GoogleImportProductResult = {
@@ -451,18 +536,28 @@ async function importSingleProduct(
     skippedRegions: []
   }
 
-  // Create the product via PATCH with full listings + POs.
-  // Reuse the drop-and-retry pattern used by createOneTimeProduct so a few
-  // regions Google rejects don't kill the whole import.
-  reportStep?.(t('google.import.step.creating', { productId: product.productId }))
-
   const listings = product.listings.map((l) => ({
     languageCode: l.languageCode,
     title: l.title,
     description: l.description
   }))
 
-  const poPayload = buildPurchaseOptionsPayload(product)
+  let poPayload: any[]
+  try {
+    if (options.autoConvertRegions) {
+      reportStep?.(t('google.import.step.converting', { productId: product.productId }))
+    }
+    poPayload = await buildPurchaseOptionsPayload(projectId, product, options, cache)
+  } catch (e: any) {
+    result.stepErrors.push({ step: 'convert', error: e?.message || String(e) })
+    return result
+  }
+
+  // Create the product via PATCH with full listings + POs.
+  // Reuse the drop-and-retry pattern used by createOneTimeProduct so a few
+  // regions Google rejects don't kill the whole import.
+  reportStep?.(t('google.import.step.creating', { productId: product.productId }))
+
   if (poPayload.length === 0) {
     result.stepErrors.push({
       step: 'create',
@@ -534,10 +629,18 @@ async function importSingleProduct(
 export async function executeImport(
   projectId: string,
   products: ExportedGoogleProduct[],
+  options: GoogleImportOptions,
   onProgress?: GoogleImportProgressCallback
 ): Promise<{ results: GoogleImportProductResult[] }> {
+  // Converting without a base region would mean guessing which of the file's
+  // regions to convert from — fail loudly instead.
+  if (options.autoConvertRegions && !options.baseRegionCode) {
+    throw new Error(t('google.import.baseRegionNotSet'))
+  }
+
   const total = products.length
   const results: GoogleImportProductResult[] = []
+  const cache: ConversionCache = new Map()
   let done = 0
 
   onProgress?.(0, total, t('google.import.starting', { total }))
@@ -546,7 +649,7 @@ export async function executeImport(
     const reportStep = (phase: string): void => {
       onProgress?.(done, total, t('google.import.progressPhase', { phase, done, total }))
     }
-    const res = await importSingleProduct(projectId, product, reportStep)
+    const res = await importSingleProduct(projectId, product, options, cache, reportStep)
     results.push(res)
     done++
     onProgress?.(done, total, t('google.import.progress', { done, total }))

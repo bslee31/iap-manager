@@ -84,6 +84,9 @@ const fatalError = ref('')
 let cleanupProgress: (() => void) | null = null
 const baseRegion = ref('')
 const defaultLanguage = ref('')
+// Off by default: importing exactly what the file says is the least
+// surprising behaviour. Requires a base region to convert from.
+const autoConvertRegions = ref(false)
 
 onMounted(async () => {
   cleanupProgress = progressApi.onImport((data) => {
@@ -132,6 +135,20 @@ const issuesByProduct = computed(() => {
   }))
 })
 
+// Products with a BUY PO that has no price at the base region. Auto-convert
+// has nothing to convert from for those, so flag them before the user commits
+// rather than letting them fail one by one during the import.
+const missingBaseRegion = computed(() => {
+  if (!baseRegion.value || !preview.value) return []
+  return preview.value.products
+    .filter((p) =>
+      p.purchaseOptions.some(
+        (po) => po.type === 'BUY' && !po.regions.some((r) => r.regionCode === baseRegion.value)
+      )
+    )
+    .map((p) => p.productId)
+})
+
 const stats = computed(() => {
   const r = results.value
   const fullSuccess = r.filter((x) => x.created && x.stepErrors.length === 0).length
@@ -148,7 +165,9 @@ async function confirmImport(): Promise<void> {
     // Deep-clone to strip Vue reactive proxies — Electron IPC cannot
     // structured-clone a reactive wrapper.
     const rawProducts = JSON.parse(JSON.stringify(preview.value.products))
-    const res = await googleApi.executeImport(props.projectId, rawProducts)
+    const res = await googleApi.executeImport(props.projectId, rawProducts, {
+      autoConvertRegions: autoConvertRegions.value
+    })
     if (!res.success) {
       fatalError.value = res.error || t('google.import.toast.importFail')
       state.value = 'done'
@@ -352,6 +371,42 @@ function formatDate(iso?: string): string {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="border-divider bg-deep mt-4 rounded-lg border p-3">
+            <label
+              class="flex items-start gap-2"
+              :class="baseRegion ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'"
+            >
+              <input
+                v-model="autoConvertRegions"
+                type="checkbox"
+                :disabled="!baseRegion"
+                class="mt-0.5 accent-green-600"
+              />
+              <span class="text-sm text-gray-300">
+                {{ t('google.import.autoConvert.label') }}
+                <span class="mt-1 block text-xs text-gray-500">
+                  {{
+                    baseRegion
+                      ? t('google.import.autoConvert.hint', { region: baseRegion })
+                      : t('google.import.autoConvert.noBaseRegion')
+                  }}
+                </span>
+              </span>
+            </label>
+            <p
+              v-if="autoConvertRegions && missingBaseRegion.length > 0"
+              class="mt-2 text-xs text-yellow-400"
+            >
+              {{
+                t('google.import.autoConvert.missingBaseRegion', {
+                  region: baseRegion,
+                  count: missingBaseRegion.length,
+                  products: missingBaseRegion.join(', ')
+                })
+              }}
+            </p>
           </div>
 
           <p class="mt-3 text-xs text-gray-500">{{ t('google.import.draftHint') }}</p>

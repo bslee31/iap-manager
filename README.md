@@ -49,6 +49,7 @@ Apple & Google 應用程式內購商品批次管理工具。
   - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目；並行 5 個商品、進度顯示，單商品失敗不中斷其他商品
   - 匯入：兩階段流程 — 先驗證（formatVersion、productId 唯一性與格式、listing 欄位長度、PO 狀態 / 型別 / `legacyCompatible` 限制、地區代碼）並顯示預覽，確認後才批次建立
   - 匯入並行 3，商品以單次 PATCH（`listings,purchaseOptions` + `allowMissing=true`）建立，沿用 create 的 drop-and-retry 邏輯略過 Google 拒絕的地區；所有 PO 一律以 DRAFT 建立，原始 state 不會套用，請至 Detail 頁確認後再手動上架
+  - 匯入預覽頁可勾選「自動換算其他國家價格」（預設關閉，需先設定專案基準國家）：以各 PO 在基準國家的價格呼叫 `convertRegionPrices`，補齊其餘所有支援國家；檔案中已列出的地區一律不覆蓋（含刻意設定的特價與 `NO_LONGER_AVAILABLE`），基準國家也維持檔案原值不受 Google 取整影響。換算結果以價格為 key 快取，共用同一價位的商品只換算一次；PO 缺基準國家價格時該商品不會被建立，並回報 `換算地區價格` 步驟錯誤
   - 單商品失敗不中斷其他商品；完成後顯示完全成功 / 部分成功 / 建立失敗分組結果，也會列出匯入時被 Google 略過的地區
   - 目前只支援匯入 BUY 型 PO（RENT 尚未實作）
 

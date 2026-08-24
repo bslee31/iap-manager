@@ -548,6 +548,12 @@ const zhTW = {
       productsIntro: '將匯入 {count} 個商品：',
       draftHint: '匯入的商品一律以 DRAFT 狀態建立。請自行在 Detail 頁確認後再手動上架。',
       importingHint: '匯入過程請勿關閉視窗',
+      autoConvert: {
+        label: '自動換算其他國家價格',
+        hint: '以基準國家 {region} 的價格透過 Google 換算並補上其餘所有支援國家；檔案中已列出的國家維持原值不覆蓋。',
+        noBaseRegion: '需要先在專案設定中指定基準國家才能換算。',
+        missingBaseRegion: '有 {count} 個商品的 BUY PO 沒有 {region} 的價格，換算會失敗：{products}'
+      },
       stats: {
         fullSuccess: '完全成功',
         partial: '部分成功',
@@ -570,7 +576,8 @@ const zhTW = {
         listingsColumn: '語言'
       },
       step: {
-        create: '建立商品'
+        create: '建立商品',
+        convert: '換算地區價格'
       },
       toast: {
         validationFail: '驗證失敗',

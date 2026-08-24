@@ -180,8 +180,11 @@ const api = {
     ipcRenderer.invoke('google:export-products', projectId, products),
   validateGoogleImport: (projectId: string, fileContent: string, existingProductIds: string[]) =>
     ipcRenderer.invoke('google:import-validate', projectId, fileContent, existingProductIds),
-  executeGoogleImport: (projectId: string, products: unknown[]) =>
-    ipcRenderer.invoke('google:import-execute', projectId, products),
+  executeGoogleImport: (
+    projectId: string,
+    products: unknown[],
+    options: { autoConvertRegions: boolean }
+  ) => ipcRenderer.invoke('google:import-execute', projectId, products, options),
 
   // Progress events
   onSyncProgress: (callback: (data: { current: number; total: number; phase: string }) => void) => {

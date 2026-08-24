@@ -93,6 +93,16 @@ export interface GoogleImportPreview {
   issues: GoogleImportValidationIssue[]
 }
 
+export interface GoogleImportOptions {
+  // Fill every region Google supports with a price converted from the PO's
+  // price at baseRegionCode. Regions present in the file always win.
+  autoConvertRegions: boolean
+  // Resolved in the main process from the project's Google settings — never
+  // defaulted, so a missing setting fails the import instead of silently
+  // picking some other region as the conversion base.
+  baseRegionCode?: string
+}
+
 export interface GoogleImportStepError {
   step: string
   target?: string

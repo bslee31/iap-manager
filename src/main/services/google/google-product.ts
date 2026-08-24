@@ -223,7 +223,7 @@ export async function fetchSupportedRegions(projectId: string): Promise<RegionIn
 }
 
 // Convert a base price to every supported region's local price via Google.
-async function convertRegionPrices(
+export async function convertRegionPrices(
   projectId: string,
   basePrice: { currencyCode: string; units: string; nanos: number }
 ): Promise<ConvertedPrice[]> {

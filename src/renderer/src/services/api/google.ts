@@ -124,6 +124,10 @@ export function validateImport(
   return window.api.validateGoogleImport(projectId, fileContent, existingProductIds)
 }
 
-export function executeImport(projectId: string, products: unknown[]) {
-  return window.api.executeGoogleImport(projectId, products)
+export function executeImport(
+  projectId: string,
+  products: unknown[],
+  options: { autoConvertRegions: boolean }
+) {
+  return window.api.executeGoogleImport(projectId, products, options)
 }

@@ -138,10 +138,13 @@ const zhTW = {
       progress: '匯入中 {done}/{total}',
       progressPhase: '{phase}（{done}/{total} 完成）',
       step: {
-        creating: '{productId} · 建立商品中'
+        creating: '{productId} · 建立商品中',
+        converting: '{productId} · 換算地區價格中'
       },
       retryExhausted: '重試超過上限，最後錯誤：{error}',
       noBuyPo: '商品沒有可匯入的 BUY PO',
+      baseRegionNotSet: '已開啟自動換算，但專案未設定基準國家，無法決定換算來源價格',
+      baseRegionMissing: 'PO「{poId}」沒有基準國家 {region} 的價格，無法換算其他地區',
       regionListFail: '無法載入 Google 支援地區列表，無法驗證匯入內容：{error}',
       validation: {
         notObject: '商品必須是物件',

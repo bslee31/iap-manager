@@ -303,13 +303,29 @@ export function registerGoogleHandlers(): void {
 
   ipcMain.handle(
     'google:import-execute',
-    async (event, projectId: string, products: ExportedGoogleProduct[]) => {
+    async (
+      event,
+      projectId: string,
+      products: ExportedGoogleProduct[],
+      options?: { autoConvertRegions?: boolean }
+    ) => {
       try {
         const win = BrowserWindow.fromWebContents(event.sender)
         const onProgress = (current: number, total: number, phase: string): void => {
           win?.webContents.send('import:progress', { current, total, phase })
         }
-        const { results } = await executeGoogleImport(projectId, products, onProgress)
+        // The conversion base is the project's own setting, not whatever the
+        // renderer sends — one source of truth, and executeImport rejects the
+        // import if auto-convert is on while it's unset.
+        const { results } = await executeGoogleImport(
+          projectId,
+          products,
+          {
+            autoConvertRegions: options?.autoConvertRegions === true,
+            baseRegionCode: getGoogleBaseRegion(projectId) || undefined
+          },
+          onProgress
+        )
         return { success: true, data: { results } }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
