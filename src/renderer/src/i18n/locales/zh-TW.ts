@@ -54,6 +54,7 @@ const zhTW = {
       '確定要永久刪除「{name}」嗎？已儲存的 Apple / Google 憑證會一併刪除，此操作無法復原。',
     archive: {
       title: '已封存',
+      action: '封存',
       restore: '還原',
       delete: '永久刪除',
       archivedAt: '封存於 {date}',

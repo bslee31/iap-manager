@@ -227,7 +227,7 @@ function onDragEnd() {
             </button>
             <button
               class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-amber-600/15 hover:text-amber-400"
-              :title="t('project.archive.title')"
+              :title="t('project.archive.action')"
               @click="confirmArchive(project)"
             >
               &#8681;
@@ -258,7 +258,7 @@ function onDragEnd() {
         class="flex w-full items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-300"
         @click="showArchived = !showArchived"
       >
-        <span class="text-xs">{{ showArchived ? '&#9662;' : '&#9656;' }}</span>
+        <span class="text-xs">{{ showArchived ? '▾' : '▸' }}</span>
         {{ t('project.archive.title') }} ({{ store.archivedProjects.length }})
       </button>
 
