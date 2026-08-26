@@ -254,7 +254,23 @@ function onDragEnd() {
               :title="t('project.archive.action')"
               @click="confirmArchive(project)"
             >
-              &#8681;
+              <!-- Archive box. Inline rather than a glyph because the box-shaped
+                   Unicode characters are colour emoji, which clash with the
+                   monochrome buttons next to it. -->
+              <svg
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="3" y="4" width="18" height="4" rx="1" />
+                <path d="M5 8v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8" />
+                <path d="M10 12h4" />
+              </svg>
             </button>
           </div>
         </div>
