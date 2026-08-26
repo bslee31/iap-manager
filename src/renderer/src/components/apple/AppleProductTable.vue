@@ -5,6 +5,7 @@ import { useNotificationStore } from '../../stores/notification.store'
 import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleProductDetail from './AppleProductDetail.vue'
 import AppleImportDialog from './AppleImportDialog.vue'
+import AppleBatchAvailabilityDialog from './AppleBatchAvailabilityDialog.vue'
 import * as appleApi from '../../services/api/apple'
 import * as dialogApi from '../../services/api/dialog'
 
@@ -85,9 +86,20 @@ const allSelected = computed(() => {
 const batchActions = computed(() => [
   { key: 'sync-price', label: t('apple.batch.syncPrice') },
   { key: 'sync-availability', label: t('apple.batch.syncAvailability') },
+  { key: 'set-availability', label: t('apple.batch.setAvailability.action') },
   { key: 'activate', label: t('apple.batch.activate') },
   { key: 'deactivate', label: t('apple.batch.deactivate'), variant: 'danger' as const }
 ])
+
+const showBatchAvailability = ref(false)
+const selectedProducts = computed(() => store.products.filter((p) => store.selected.has(p.id)))
+
+async function onBatchAvailabilityDone() {
+  showBatchAvailability.value = false
+  store.clearSelection()
+  // The main process already wrote the new counts to the local DB.
+  await store.loadCached(props.projectId)
+}
 
 async function syncAll() {
   // Set the initial phase string here (not in the store) so the i18n call
@@ -152,6 +164,11 @@ async function handleBatchAction(key: string) {
     store.syncing = false
     store.syncProgress = ''
     notify.success(t('apple.toast.syncedAvail', { count: success }))
+    return
+  }
+
+  if (key === 'set-availability') {
+    showBatchAvailability.value = true
     return
   }
 
@@ -623,6 +640,15 @@ function stateLabel(state: string): string {
       v-if="store.selectedProduct"
       :project-id="props.projectId"
       @close="store.setSelectedProduct(null)"
+    />
+
+    <!-- Batch availability -->
+    <AppleBatchAvailabilityDialog
+      v-if="showBatchAvailability"
+      :project-id="props.projectId"
+      :products="selectedProducts"
+      @close="showBatchAvailability = false"
+      @done="onBatchAvailabilityDone"
     />
 
     <!-- Import Dialog -->

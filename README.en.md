@@ -11,7 +11,11 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
 ### Apple In-App Purchases
 
 - Sync product list
-- Batch activate / deactivate
+- Batch activate / deactivate (activate = every territory, deactivate = none)
+- **Batch change of territories** — select products, then pick territories in the same picker the single-product Availability tab uses, and apply that one set to all of them
+  - The impact is shown before applying, from the locally cached territory counts, and flags selections whose products currently differ
+  - Each product's own territory set is replaced wholesale (Apple's API only offers a full replace — there is no add/remove endpoint for a single territory)
+  - Prices for newly added territories are left to Apple's equalisation; products Apple rejects land in the failed list
 - Batch refresh of Price / Availability
 - Filter by status (Approved, Removed, Missing Metadata, etc.)
 - Create products (consumable / non-consumable)

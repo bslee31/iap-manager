@@ -171,6 +171,18 @@ const zhTW = {
       processingDeactivate: '正在批次下架...',
       activateSuccess: '成功上架 {count} 項',
       deactivateSuccess: '成功下架 {count} 項',
+      setAvailability: {
+        action: '更改國家',
+        title: '批次更改上架地區',
+        summary: '將 {count} 個商品的上架地區設為選取的 {territories} 個地區',
+        mixedWarning: '選取的商品目前地區數不一致（{counts}），套用後會全部變成相同設定',
+        emptyWarning: '未選取任何地區，套用後這些商品會全部下架',
+        confirm:
+          '確定要將 {count} 個商品的上架地區設為 {territories} 個地區嗎？各商品原本的地區設定會被取代。',
+        apply: '套用',
+        applying: '套用中...',
+        success: '成功更新 {count} 項'
+      },
       failedItems: '失敗 {count} 項\n{details}',
       opFailed: '操作失敗'
     },
