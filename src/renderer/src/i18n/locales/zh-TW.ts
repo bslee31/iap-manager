@@ -241,7 +241,25 @@ const zhTW = {
       title: '新增 Apple IAP',
       typeLabel: '類型',
       productIdPlaceholder: '例：com.example.coins100',
-      refNamePlaceholder: '例：100 金幣'
+      refNamePlaceholder: '例：100 金幣',
+      createsNowHint: '送出後商品會立即建立在 App Store Connect，接著才能設定名稱與價格',
+      createAndContinue: '建立並繼續',
+      creating: '建立中...',
+      detailsTitle: '設定名稱與價格',
+      detailsHint: '{productId} 已建立。以下都可以留空，稍後在商品詳情頁補上。',
+      localeLabel: '語言',
+      displayNameLabel: '顯示名稱',
+      descriptionLabel: '描述',
+      baseTerritoryLabel: '基準地區',
+      basePriceLabel: '基準價格',
+      pricePlaceholder: '請選擇價格...',
+      priceHint: 'Apple 只接受它自己的價格階梯，其他地區會依此自動換算',
+      pricePointsFail: '無法取得可用價格',
+      stepLocalization: '本地化',
+      stepPrice: '價格',
+      partialFail: '商品已建立，但部分設定失敗：\n{details}',
+      configured: '商品設定完成',
+      skip: '稍後再設定'
     },
     detail: {
       tabs: {

@@ -6,6 +6,7 @@ import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleProductDetail from './AppleProductDetail.vue'
 import AppleImportDialog from './AppleImportDialog.vue'
 import AppleBatchAvailabilityDialog from './AppleBatchAvailabilityDialog.vue'
+import AppleCreateProductDialog from './AppleCreateProductDialog.vue'
 import { formatPrice } from '../../utils/format-price'
 import * as appleApi from '../../services/api/apple'
 import * as dialogApi from '../../services/api/dialog'
@@ -269,25 +270,9 @@ async function exportProducts() {
   }
 }
 
-async function createProduct() {
-  if (!newProduct.value.productId || !newProduct.value.referenceName) {
-    notify.error(t('apple.toast.createFillRequired'))
-    return
-  }
-
-  const result = await appleApi.createProduct(props.projectId, {
-    ...newProduct.value,
-    appId: '' // Filled from credentials in the main process
-  })
-
-  if (result.success) {
-    notify.success(t('apple.toast.createSuccess'))
-    showCreateForm.value = false
-    newProduct.value = { productId: '', referenceName: '', inAppPurchaseType: 'CONSUMABLE' }
-    await syncAll()
-  } else {
-    notify.error(result.error || t('apple.toast.createFail'))
-  }
+async function onProductCreated() {
+  showCreateForm.value = false
+  await syncAll()
 }
 
 // Translates an Apple product state enum value, falling back to the raw
@@ -419,222 +404,12 @@ function stateLabel(state: string): string {
       </button>
     </div>
 
-    <!-- Create Form Modal -->
-    <div
+    <AppleCreateProductDialog
       v-if="showCreateForm"
-      class="fixed inset-0 z-40 flex items-center justify-center bg-black/60"
-      @click.self="showCreateForm = false"
-    >
-      <div
-        class="titlebar-no-drag border-divider bg-card w-full max-w-md rounded-xl border p-6 shadow-xl"
-      >
-        <div class="mb-4 flex items-center justify-between">
-          <h3 class="text-lg font-semibold text-gray-100">{{ t('apple.create.title') }}</h3>
-          <button
-            class="hover:bg-divider rounded p-2 text-xl leading-none text-gray-500 transition-colors hover:text-gray-300"
-            @click="showCreateForm = false"
-          >
-            &times;
-          </button>
-        </div>
-        <div class="space-y-4">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">Product ID</label>
-            <input
-              v-model="newProduct.productId"
-              type="text"
-              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              :placeholder="t('apple.create.productIdPlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">Reference Name</label>
-            <input
-              v-model="newProduct.referenceName"
-              type="text"
-              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              :placeholder="t('apple.create.refNamePlaceholder')"
-            />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-gray-400">{{
-              t('apple.create.typeLabel')
-            }}</label>
-            <select
-              v-model="newProduct.inAppPurchaseType"
-              class="border-divider-strong bg-deep w-full rounded-lg border px-3 py-2 text-sm text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            >
-              <option value="CONSUMABLE">{{ t('apple.type.CONSUMABLE') }}</option>
-              <option value="NON_CONSUMABLE">{{ t('apple.type.NON_CONSUMABLE') }}</option>
-            </select>
-          </div>
-        </div>
-        <div class="mt-6 flex justify-end gap-2">
-          <button
-            class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
-            @click="showCreateForm = false"
-          >
-            {{ t('common.cancel') }}
-          </button>
-          <button
-            class="rounded-lg bg-blue-600 px-4 py-2 text-sm text-white transition-colors hover:bg-blue-700"
-            @click="createProduct"
-          >
-            {{ t('common.create') }}
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Product Table -->
-    <div class="min-h-0 flex-1 px-6 pb-6">
-      <div
-        v-if="filteredProducts.length > 0"
-        class="border-divider bg-card flex h-full flex-col overflow-hidden rounded-xl border"
-      >
-        <!-- Fixed header -->
-        <div class="shrink-0 pr-[6px]">
-          <table class="w-full table-fixed">
-            <colgroup>
-              <col class="w-10" />
-              <col class="w-[19%]" />
-              <col class="w-[20%]" />
-              <col class="w-[15%]" />
-              <col class="w-[15%]" />
-              <col class="w-[16%]" />
-              <col class="w-[12%]" />
-            </colgroup>
-            <thead>
-              <tr class="border-divider bg-table-head border-b">
-                <th class="px-3 py-3">
-                  <input
-                    type="checkbox"
-                    :checked="allSelected"
-                    class="rounded"
-                    @change="toggleAll"
-                  />
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Product ID
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Reference Name
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Type
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Price
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Availability
-                </th>
-                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-              </tr>
-            </thead>
-          </table>
-        </div>
-        <!-- Scrollable body -->
-        <div class="min-h-0 flex-1 overflow-y-auto">
-          <table class="w-full table-fixed">
-            <colgroup>
-              <col class="w-10" />
-              <col class="w-[19%]" />
-              <col class="w-[20%]" />
-              <col class="w-[15%]" />
-              <col class="w-[15%]" />
-              <col class="w-[16%]" />
-              <col class="w-[12%]" />
-            </colgroup>
-            <tbody>
-              <tr
-                v-for="product in filteredProducts"
-                :key="product.id"
-                class="border-divider hover:bg-row-hover cursor-pointer border-b transition-colors"
-                :class="{ 'bg-blue-600/10': store.selected.has(product.id) }"
-                @click="store.setSelectedProduct(product)"
-              >
-                <td class="px-3 py-3" @click.stop>
-                  <input
-                    type="checkbox"
-                    :checked="store.selected.has(product.id)"
-                    class="rounded"
-                    @change="store.toggleSelection(product.id)"
-                  />
-                </td>
-                <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
-                <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
-                <td class="px-3 py-3">
-                  <span class="bg-divider rounded-full px-2 py-0.5 text-xs text-gray-400">
-                    {{
-                      te(`apple.type.${product.type}`)
-                        ? t(`apple.type.${product.type}`)
-                        : product.type
-                    }}
-                  </span>
-                </td>
-                <td class="px-3 py-3 font-mono text-sm text-gray-300">
-                  {{ formatPrice(product.basePrice, product.baseCurrency, locale) }}
-                </td>
-                <td class="px-3 py-3">
-                  <span
-                    class="rounded-full px-2 py-0.5 text-xs"
-                    :class="
-                      product.territoryCount > 0
-                        ? 'bg-blue-600/20 text-blue-400'
-                        : 'bg-red-600/20 text-red-400'
-                    "
-                  >
-                    {{
-                      product.territoryCount > 0
-                        ? t('apple.table.territoryCount', { count: product.territoryCount })
-                        : t('apple.table.noTerritory')
-                    }}
-                  </span>
-                </td>
-                <td class="px-3 py-3">
-                  <span
-                    class="rounded-full px-2 py-0.5 text-xs"
-                    :class="
-                      product.state === 'APPROVED'
-                        ? 'bg-green-600/20 text-green-400'
-                        : product.state === 'DEVELOPER_REMOVED_FROM_SALE' ||
-                            product.state === 'REMOVED_FROM_SALE'
-                          ? 'bg-red-600/20 text-red-400'
-                          : 'bg-yellow-600/20 text-yellow-400'
-                    "
-                  >
-                    {{ stateLabel(product.state) }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-else-if="!store.loading && !store.syncing && store.products.length === 0"
-        class="py-20 text-center"
-      >
-        <p class="mb-2 text-lg text-gray-500">{{ t('apple.empty.noProducts') }}</p>
-        <p class="text-sm text-gray-500">{{ t('apple.empty.noProductsHint') }}</p>
-      </div>
-      <div
-        v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
-        class="py-10 text-center"
-      >
-        <p class="text-sm text-gray-500">{{ t('apple.empty.filteredEmpty') }}</p>
-      </div>
-
-      <!-- Loading -->
-      <div v-if="store.loading" class="py-20 text-center text-gray-500">
-        {{ t('common.loading') }}
-      </div>
-    </div>
+      :project-id="props.projectId"
+      @close="showCreateForm = false"
+      @created="onProductCreated"
+    />
 
     <!-- Product Detail Modal -->
     <AppleProductDetail

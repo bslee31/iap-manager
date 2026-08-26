@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { APPLE_LOCALES, appleLocaleLabel } from '../../../utils/apple-locales'
 import { useNotificationStore } from '../../../stores/notification.store'
 import * as appleApi from '../../../services/api/apple'
 
@@ -50,7 +51,7 @@ async function loadLocalizations() {
 
 const availableLocales = computed(() => {
   const existing = new Set(localizations.value.map((l) => l.locale))
-  return LOCALES.filter((l) => !existing.has(l.value))
+  return APPLE_LOCALES.filter((l) => !existing.has(l.value))
 })
 
 function openLocForm(loc?: Localization) {
@@ -123,61 +124,8 @@ async function deleteLoc(loc: Localization) {
 }
 
 function localeLabel(code: string): string {
-  return LOCALES.find((l) => l.value === code)?.label || code
+  return appleLocaleLabel(code)
 }
-
-const LOCALES = [
-  { value: 'ar-SA', label: 'Arabic' },
-  { value: 'bn-BD', label: 'Bangla' },
-  { value: 'ca', label: 'Catalan' },
-  { value: 'zh-Hans', label: 'Chinese (Simplified)' },
-  { value: 'zh-Hant', label: 'Chinese (Traditional)' },
-  { value: 'hr', label: 'Croatian' },
-  { value: 'cs', label: 'Czech' },
-  { value: 'da', label: 'Danish' },
-  { value: 'nl-NL', label: 'Dutch' },
-  { value: 'en-AU', label: 'English (Australia)' },
-  { value: 'en-CA', label: 'English (Canada)' },
-  { value: 'en-GB', label: 'English (U.K.)' },
-  { value: 'en-US', label: 'English (U.S.)' },
-  { value: 'fi', label: 'Finnish' },
-  { value: 'fr-FR', label: 'French' },
-  { value: 'fr-CA', label: 'French (Canada)' },
-  { value: 'de-DE', label: 'German' },
-  { value: 'el', label: 'Greek' },
-  { value: 'gu-IN', label: 'Gujarati' },
-  { value: 'he', label: 'Hebrew' },
-  { value: 'hi', label: 'Hindi' },
-  { value: 'hu', label: 'Hungarian' },
-  { value: 'id', label: 'Indonesian' },
-  { value: 'it', label: 'Italian' },
-  { value: 'ja', label: 'Japanese' },
-  { value: 'kn-IN', label: 'Kannada' },
-  { value: 'ko', label: 'Korean' },
-  { value: 'ms', label: 'Malay' },
-  { value: 'ml-IN', label: 'Malayalam' },
-  { value: 'mr-IN', label: 'Marathi' },
-  { value: 'no', label: 'Norwegian' },
-  { value: 'or-IN', label: 'Odia' },
-  { value: 'pl', label: 'Polish' },
-  { value: 'pt-BR', label: 'Portuguese (Brazil)' },
-  { value: 'pt-PT', label: 'Portuguese (Portugal)' },
-  { value: 'pa-IN', label: 'Punjabi' },
-  { value: 'ro', label: 'Romanian' },
-  { value: 'ru', label: 'Russian' },
-  { value: 'sk', label: 'Slovak' },
-  { value: 'sl-SI', label: 'Slovenian' },
-  { value: 'es-MX', label: 'Spanish (Mexico)' },
-  { value: 'es-ES', label: 'Spanish (Spain)' },
-  { value: 'sv', label: 'Swedish' },
-  { value: 'ta-IN', label: 'Tamil' },
-  { value: 'te-IN', label: 'Telugu' },
-  { value: 'th', label: 'Thai' },
-  { value: 'tr', label: 'Turkish' },
-  { value: 'uk', label: 'Ukrainian' },
-  { value: 'ur-PK', label: 'Urdu' },
-  { value: 'vi', label: 'Vietnamese' }
-]
 
 onMounted(() => {
   loadLocalizations()
