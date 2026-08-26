@@ -32,6 +32,22 @@ export function batchUpdateAvailability(projectId: string, ids: string[], availa
   return window.api.batchUpdateAppleAvailability(projectId, ids, available)
 }
 
+// Replace the territory list on many products at once. Prices for territories a
+// product didn't have are left to Apple's equalisation.
+export function batchSetAvailability(
+  projectId: string,
+  ids: string[],
+  territoryIds: string[],
+  availableInNewTerritories: boolean
+) {
+  return window.api.batchSetAppleAvailability(
+    projectId,
+    ids,
+    territoryIds,
+    availableInNewTerritories
+  )
+}
+
 export function syncBasePrice(projectId: string, iapId: string) {
   return window.api.syncAppleBasePrice(projectId, iapId)
 }

@@ -5,6 +5,7 @@ import {
   createInAppPurchase,
   updateInAppPurchase,
   batchUpdateAvailability,
+  batchSetAvailability,
   getExistingAvailability,
   getAppPrimaryLocale,
   getIapAllTerritoryPrices,
@@ -189,6 +190,29 @@ export function registerAppleHandlers(): void {
     async (_event, projectId: string, iapIds: string[], activate: boolean) => {
       try {
         const result = await batchUpdateAvailability(projectId, iapIds, activate)
+        return { success: true, data: result }
+      } catch (e) {
+        return { success: false, error: sanitizeError(e) }
+      }
+    }
+  )
+
+  ipcMain.handle(
+    'apple:batch-set-availability',
+    async (
+      _event,
+      projectId: string,
+      iapIds: string[],
+      territoryIds: string[],
+      availableInNewTerritories: boolean
+    ) => {
+      try {
+        const result = await batchSetAvailability(
+          projectId,
+          iapIds,
+          territoryIds,
+          availableInNewTerritories
+        )
         return { success: true, data: result }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }

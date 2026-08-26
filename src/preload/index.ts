@@ -72,6 +72,19 @@ const api = {
   ) => ipcRenderer.invoke('apple:update-localization', projectId, iapId, locale, data),
   deleteAppleLocalization: (projectId: string, iapId: string, locale: string) =>
     ipcRenderer.invoke('apple:delete-localization', projectId, iapId, locale),
+  batchSetAppleAvailability: (
+    projectId: string,
+    iapIds: string[],
+    territoryIds: string[],
+    availableInNewTerritories: boolean
+  ) =>
+    ipcRenderer.invoke(
+      'apple:batch-set-availability',
+      projectId,
+      iapIds,
+      territoryIds,
+      availableInNewTerritories
+    ),
   getApplePriceSchedule: (projectId: string, iapId: string) =>
     ipcRenderer.invoke('apple:get-price-schedule', projectId, iapId),
   getApplePricePoints: (projectId: string, iapId: string, territory: string) =>

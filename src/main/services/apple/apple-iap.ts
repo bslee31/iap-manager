@@ -1,6 +1,7 @@
 import { generateAppleJwt, clearTokenCache } from './apple-auth'
 import { loadCredentials } from '../credential-store'
 import { fetchWithRetry } from '../http-retry'
+import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
 import { t } from '../../i18n'
 import type {
   AppleInAppPurchase,
@@ -300,6 +301,36 @@ export async function batchUpdateAvailability(
   }
 
   return { success, failed }
+}
+
+// Apply one territory set to many in-app purchases.
+//
+// Availability has no PATCH and no per-territory relationship endpoint — the
+// only write is a full replace of the list — so "set these countries on these
+// products" is the shape the API actually supports. Each product's previous
+// territories are discarded, which is the point of the operation, and prices
+// for newly added territories are left to Apple's own equalisation.
+export async function batchSetAvailability(
+  projectId: string,
+  iapIds: string[],
+  territoryIds: string[],
+  availableInNewTerritories: boolean
+): Promise<{ success: string[]; failed: { id: string; error: string }[] }> {
+  const outcomes = await runWithConcurrency(iapIds, IMPORT_CONCURRENCY, async (iapId) => {
+    try {
+      await setIapAvailability(projectId, iapId, territoryIds, availableInNewTerritories)
+      return { id: iapId, error: null as string | null }
+    } catch (e: any) {
+      return { id: iapId, error: e.message || String(e) }
+    }
+  })
+
+  // runWithConcurrency keeps results aligned with the input, so the report
+  // follows the order the user selected rather than the order Apple answered.
+  return {
+    success: outcomes.filter((o) => !o.error).map((o) => o.id),
+    failed: outcomes.filter((o) => o.error).map((o) => ({ id: o.id, error: o.error as string }))
+  }
 }
 
 // ── Availability Detail ──
