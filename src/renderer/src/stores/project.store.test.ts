@@ -98,6 +98,20 @@ describe('useProjectStore', () => {
     expect(store.loadError).toBeNull()
   })
 
+  it('keeps an archived-list failure when the active fetch succeeds alongside it', async () => {
+    projectApi.archive.mockResolvedValueOnce({ success: true })
+    projectApi.listArchived.mockResolvedValueOnce({ success: false, error: 'archived read failed' })
+    // Resolves after the archived call, so a shared error slot would be cleared.
+    projectApi.list.mockImplementationOnce(
+      () => new Promise((resolve) => setTimeout(() => resolve(ok([])), 10))
+    )
+
+    const store = useProjectStore()
+    await store.archiveProject('p1')
+
+    expect(store.loadError).toBe('archived read failed')
+  })
+
   it('fetchArchivedProjects reports its own failure', async () => {
     projectApi.listArchived.mockResolvedValueOnce({ success: false, error: 'nope' })
 

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import * as projectApi from '../services/api/project'
 
 export interface Project {
@@ -19,8 +19,14 @@ export const useProjectStore = defineStore('project', () => {
   const currentProject = ref<Project | null>(null)
   const loading = ref(false)
   // Surfaced by the project list so a failed load reads as a failure rather
-  // than as an empty account. Cleared by the next successful fetch.
-  const loadError = ref<string | null>(null)
+  // than as an empty account. Tracked per list: the two fetches run
+  // concurrently after every mutation, so a shared slot would let whichever
+  // succeeds last wipe the other one's error.
+  const loadErrors = ref<{ active: string | null; archived: string | null }>({
+    active: null,
+    archived: null
+  })
+  const loadError = computed(() => loadErrors.value.active ?? loadErrors.value.archived)
 
   async function fetchProjects() {
     loading.value = true
@@ -28,14 +34,14 @@ export const useProjectStore = defineStore('project', () => {
       const result = await projectApi.list()
       if (result.success) {
         projects.value = result.data
-        loadError.value = null
+        loadErrors.value.active = null
       } else {
         // Keep whatever is on screen — replacing it with [] would hide the
         // projects the user still has.
-        loadError.value = result.error
+        loadErrors.value.active = result.error
       }
     } catch (e: any) {
-      loadError.value = e?.message || String(e)
+      loadErrors.value.active = e?.message || String(e)
     } finally {
       loading.value = false
     }
@@ -46,12 +52,12 @@ export const useProjectStore = defineStore('project', () => {
       const result = await projectApi.listArchived()
       if (result.success) {
         archivedProjects.value = result.data
-        loadError.value = null
+        loadErrors.value.archived = null
       } else {
-        loadError.value = result.error
+        loadErrors.value.archived = result.error
       }
     } catch (e: any) {
-      loadError.value = e?.message || String(e)
+      loadErrors.value.archived = e?.message || String(e)
     }
   }
 
