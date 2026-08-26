@@ -1,8 +1,11 @@
 import { ipcMain } from 'electron'
 import {
   findAllProjects,
+  findArchivedProjects,
   createProject,
   updateProject,
+  archiveProject,
+  restoreProject,
   deleteProject,
   reorderProjects
 } from '../db/repositories/project.repo'
@@ -49,18 +52,55 @@ export function registerProjectHandlers(): void {
     }
   )
 
+  ipcMain.handle('project:list-archived', async () => {
+    try {
+      const projects = findArchivedProjects()
+      return projects.map((p) => ({
+        ...p,
+        has_apple: !!p.has_apple,
+        has_google: !!p.has_google
+      }))
+    } catch (e) {
+      console.error('project:list-archived error', e)
+      return []
+    }
+  })
+
+  // Archiving keeps everything on disk, credentials included, so restoring is
+  // lossless. Only the cached auth is dropped, since nothing should be talking
+  // to Apple or Google on behalf of an archived project.
+  ipcMain.handle('project:archive', async (_event, id: string) => {
+    try {
+      if (!archiveProject(id)) return { success: false, error: t('project.archiveFailed') }
+      clearAppleTokenCache(id)
+      clearGoogleAuthCache(id)
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: sanitizeError(e) }
+    }
+  })
+
+  ipcMain.handle('project:restore', async (_event, id: string) => {
+    try {
+      if (!restoreProject(id)) return { success: false, error: t('project.restoreFailed') }
+      return { success: true }
+    } catch (e) {
+      return { success: false, error: sanitizeError(e) }
+    }
+  })
+
+  // Permanent, and the only path that destroys the stored credentials.
   ipcMain.handle('project:delete', async (_event, id: string) => {
     try {
       const deleted = deleteProject(id)
-      if (deleted) {
-        deleteCredentials(id)
-        // Drop any cached auth tied to the deleted project so the next time
-        // the same projectId is reused (or just to avoid stale state) we
-        // don't leak credentials forward.
-        clearAppleTokenCache(id)
-        clearGoogleAuthCache(id)
-      }
       if (!deleted) return { success: false, error: t('project.notFound') }
+
+      deleteCredentials(id)
+      // Drop any cached auth tied to the deleted project so the next time
+      // the same projectId is reused (or just to avoid stale state) we
+      // don't leak credentials forward.
+      clearAppleTokenCache(id)
+      clearGoogleAuthCache(id)
       return { success: true }
     } catch (e) {
       return { success: false, error: sanitizeError(e) }

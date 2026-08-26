@@ -2,7 +2,7 @@
 import { useProjectStore } from '../stores/project.store'
 import { useNotificationStore } from '../stores/notification.store'
 import { useRouter } from 'vue-router'
-import { ref, inject, watch, computed, type Ref } from 'vue'
+import { ref, inject, watch, computed, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import draggable from 'vuedraggable'
 
@@ -12,6 +12,11 @@ const notify = useNotificationStore()
 const router = useRouter()
 
 const showForm = ref(false)
+const showArchived = ref(false)
+
+onMounted(() => {
+  store.fetchArchivedProjects()
+})
 
 const createProjectTrigger = inject<Ref<number>>('createProjectTrigger')
 if (createProjectTrigger) {
@@ -57,10 +62,31 @@ async function saveProject() {
   showForm.value = false
 }
 
-async function confirmDelete(project: (typeof store.projects)[0]) {
+async function confirmArchive(project: (typeof store.projects)[0]) {
+  if (!confirm(t('project.archiveConfirm', { name: project.name }))) return
+  const result = await store.archiveProject(project.id)
+  if (result.success) notify.success(t('project.toast.archived'))
+  else notify.error(result.error || t('common.error'))
+}
+
+async function restore(project: (typeof store.archivedProjects)[0]) {
+  const result = await store.restoreProject(project.id)
+  if (result.success) notify.success(t('project.toast.restored'))
+  else notify.error(result.error || t('common.error'))
+}
+
+// The only destructive path in the UI — it takes the credentials with it.
+async function confirmDelete(project: (typeof store.archivedProjects)[0]) {
   if (!confirm(t('project.deleteConfirm', { name: project.name }))) return
   const result = await store.deleteProject(project.id)
   if (result.success) notify.success(t('project.toast.deleted'))
+  else notify.error(result.error || t('common.error'))
+}
+
+function formatArchivedAt(value?: string | null): string {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString()
 }
 
 function goToProject(project: (typeof store.projects)[0]) {
@@ -200,11 +226,11 @@ function onDragEnd() {
               &#9998;
             </button>
             <button
-              class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-red-600/15 hover:text-red-400"
-              :title="t('common.delete')"
-              @click="confirmDelete(project)"
+              class="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-amber-600/15 hover:text-amber-400"
+              :title="t('project.archive.title')"
+              @click="confirmArchive(project)"
             >
-              &#10005;
+              &#8681;
             </button>
           </div>
         </div>
@@ -214,12 +240,54 @@ function onDragEnd() {
     <!-- Empty state -->
     <div v-else-if="!store.loading" class="py-20 text-center">
       <p class="mb-4 text-lg text-gray-500">{{ t('project.list.empty') }}</p>
+      <!-- Without this the list looks like the data is gone rather than filed away. -->
+      <p v-if="store.archivedProjects.length > 0" class="mb-4 text-sm text-gray-500">
+        {{ t('project.archive.emptyHint', { count: store.archivedProjects.length }) }}
+      </p>
       <button
         class="rounded-lg bg-blue-600 px-6 py-2 text-sm text-white transition-colors hover:bg-blue-700"
         @click="openCreateForm"
       >
         {{ t('project.list.firstProject') }}
       </button>
+    </div>
+
+    <!-- Archived -->
+    <div v-if="store.archivedProjects.length > 0" class="border-divider mt-8 border-t pt-4">
+      <button
+        class="flex w-full items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-300"
+        @click="showArchived = !showArchived"
+      >
+        <span class="text-xs">{{ showArchived ? '&#9662;' : '&#9656;' }}</span>
+        {{ t('project.archive.title') }} ({{ store.archivedProjects.length }})
+      </button>
+
+      <div v-if="showArchived" class="mt-3 flex flex-col gap-2">
+        <div
+          v-for="project in store.archivedProjects"
+          :key="project.id"
+          class="border-divider bg-card/50 flex items-center gap-3 rounded-lg border px-4 py-2.5"
+        >
+          <h3 class="min-w-0 flex-1 truncate text-gray-400">{{ project.name }}</h3>
+          <p class="shrink-0 text-xs text-gray-600">
+            {{ t('project.archive.archivedAt', { date: formatArchivedAt(project.archived_at) }) }}
+          </p>
+          <div class="flex shrink-0 gap-1">
+            <button
+              class="rounded-md px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-blue-600/15 hover:text-blue-400"
+              @click="restore(project)"
+            >
+              {{ t('project.archive.restore') }}
+            </button>
+            <button
+              class="rounded-md px-2 py-1 text-xs text-gray-500 transition-colors hover:bg-red-600/15 hover:text-red-400"
+              @click="confirmDelete(project)"
+            >
+              {{ t('project.archive.delete') }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

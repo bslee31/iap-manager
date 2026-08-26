@@ -49,11 +49,22 @@ const zhTW = {
       description: '專案描述',
       descPlaceholder: '選填'
     },
-    deleteConfirm: '確定要刪除「{name}」嗎？此操作無法復原。',
+    archiveConfirm: '確定要封存「{name}」嗎？資料與憑證都會保留，可以隨時還原。',
+    deleteConfirm:
+      '確定要永久刪除「{name}」嗎？已儲存的 Apple / Google 憑證會一併刪除，此操作無法復原。',
+    archive: {
+      title: '已封存',
+      restore: '還原',
+      delete: '永久刪除',
+      archivedAt: '封存於 {date}',
+      emptyHint: '另有 {count} 個已封存的專案'
+    },
     toast: {
       created: '專案已建立',
       updated: '專案已更新',
-      deleted: '專案已刪除'
+      archived: '專案已封存',
+      restored: '專案已還原',
+      deleted: '專案已永久刪除'
     },
     tabs: {
       apple: 'Apple In-App Purchases',

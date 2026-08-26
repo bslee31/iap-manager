@@ -22,7 +22,9 @@ const zhTW = {
   },
 
   project: {
-    notFound: '專案不存在'
+    notFound: '專案不存在',
+    archiveFailed: '無法封存專案（可能已經封存或不存在）',
+    restoreFailed: '無法還原專案（可能已經還原或不存在）'
   },
 
   apple: {

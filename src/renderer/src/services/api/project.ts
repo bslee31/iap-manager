@@ -16,6 +16,19 @@ export function update(id: string, data: { name?: string; description?: string }
   return window.api.updateProject(id, data)
 }
 
+export function listArchived() {
+  return window.api.listArchivedProjects()
+}
+
+export function archive(id: string) {
+  return window.api.archiveProject(id)
+}
+
+export function restore(id: string) {
+  return window.api.restoreProject(id)
+}
+
+// Permanent — archive() is what the list view's own action maps to.
 export function remove(id: string) {
   return window.api.deleteProject(id)
 }

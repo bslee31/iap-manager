@@ -6,6 +6,7 @@ export interface Project {
   id: string
   name: string
   description?: string
+  archived_at?: string | null
   created_at: string
   updated_at: string
   has_apple?: boolean
@@ -14,6 +15,7 @@ export interface Project {
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([])
+  const archivedProjects = ref<Project[]>([])
   const currentProject = ref<Project | null>(null)
   const loading = ref(false)
 
@@ -24,6 +26,10 @@ export const useProjectStore = defineStore('project', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function fetchArchivedProjects() {
+    archivedProjects.value = await projectApi.listArchived()
   }
 
   async function createProject(data: { name: string; description?: string }) {
@@ -45,10 +51,32 @@ export const useProjectStore = defineStore('project', () => {
     return result
   }
 
+  // Archiving only hides the project — nothing is destroyed, so restoring it
+  // brings back the credentials and cached products untouched.
+  async function archiveProject(id: string) {
+    const result = await projectApi.archive(id)
+    if (result.success) {
+      await Promise.all([fetchProjects(), fetchArchivedProjects()])
+      if (currentProject.value?.id === id) {
+        currentProject.value = null
+      }
+    }
+    return result
+  }
+
+  async function restoreProject(id: string) {
+    const result = await projectApi.restore(id)
+    if (result.success) {
+      await Promise.all([fetchProjects(), fetchArchivedProjects()])
+    }
+    return result
+  }
+
+  // Permanent: also destroys the stored credentials in the main process.
   async function deleteProject(id: string) {
     const result = await projectApi.remove(id)
     if (result.success) {
-      await fetchProjects()
+      await Promise.all([fetchProjects(), fetchArchivedProjects()])
       if (currentProject.value?.id === id) {
         currentProject.value = null
       }
@@ -72,11 +100,15 @@ export const useProjectStore = defineStore('project', () => {
 
   return {
     projects,
+    archivedProjects,
     currentProject,
     loading,
     fetchProjects,
+    fetchArchivedProjects,
     createProject,
     updateProject,
+    archiveProject,
+    restoreProject,
     deleteProject,
     reorderProjects,
     setCurrentProject

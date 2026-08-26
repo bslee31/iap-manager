@@ -7,6 +7,9 @@ const api = {
     ipcRenderer.invoke('project:create', data),
   updateProject: (id: string, data: { name?: string; description?: string }) =>
     ipcRenderer.invoke('project:update', id, data),
+  listArchivedProjects: () => ipcRenderer.invoke('project:list-archived'),
+  archiveProject: (id: string) => ipcRenderer.invoke('project:archive', id),
+  restoreProject: (id: string) => ipcRenderer.invoke('project:restore', id),
   deleteProject: (id: string) => ipcRenderer.invoke('project:delete', id),
   reorderProjects: (orderedIds: string[]) => ipcRenderer.invoke('project:reorder', orderedIds),
 

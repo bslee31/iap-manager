@@ -6,8 +6,11 @@ import { setActivePinia, createPinia } from 'pinia'
 // declared inside vi.hoisted to survive that hoist.
 const projectApi = vi.hoisted(() => ({
   list: vi.fn(),
+  listArchived: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
+  archive: vi.fn(),
+  restore: vi.fn(),
   remove: vi.fn(),
   reorder: vi.fn()
 }))
@@ -30,6 +33,9 @@ describe('useProjectStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     Object.values(projectApi).forEach((fn) => fn.mockReset())
+    // Every mutation refreshes the archive list too; individual tests override
+    // this when they care about what comes back.
+    projectApi.listArchived.mockResolvedValue([])
   })
 
   it('initial state is empty', () => {
@@ -128,6 +134,94 @@ describe('useProjectStore', () => {
     await store.deleteProject('other')
 
     expect(store.currentProject).toEqual(current)
+  })
+
+  it('fetchArchivedProjects populates the archived list', async () => {
+    const archived = [makeProject({ id: 'old', archived_at: '2026-08-01T00:00:00Z' })]
+    projectApi.listArchived.mockResolvedValueOnce(archived)
+
+    const store = useProjectStore()
+    await store.fetchArchivedProjects()
+
+    expect(store.archivedProjects).toEqual(archived)
+    expect(store.projects).toEqual([])
+  })
+
+  it('archiveProject moves the project between the two lists', async () => {
+    const archived = makeProject({ id: 'p1', archived_at: '2026-08-26T00:00:00Z' })
+    projectApi.archive.mockResolvedValueOnce({ success: true })
+    projectApi.list.mockResolvedValueOnce([])
+    projectApi.listArchived.mockResolvedValueOnce([archived])
+
+    const store = useProjectStore()
+    await store.archiveProject('p1')
+
+    expect(store.projects).toEqual([])
+    expect(store.archivedProjects).toEqual([archived])
+  })
+
+  it('archiveProject clears currentProject when it matches', async () => {
+    projectApi.archive.mockResolvedValueOnce({ success: true })
+    projectApi.list.mockResolvedValueOnce([])
+
+    const store = useProjectStore()
+    store.setCurrentProject(makeProject({ id: 'p1' }))
+    await store.archiveProject('p1')
+
+    expect(store.currentProject).toBeNull()
+  })
+
+  it('archiveProject leaves currentProject when a different project is archived', async () => {
+    const current = makeProject({ id: 'keep' })
+    projectApi.archive.mockResolvedValueOnce({ success: true })
+    projectApi.list.mockResolvedValueOnce([current])
+
+    const store = useProjectStore()
+    store.setCurrentProject(current)
+    await store.archiveProject('other')
+
+    expect(store.currentProject).toEqual(current)
+  })
+
+  it('archiveProject leaves both lists alone when the call fails', async () => {
+    const current = makeProject({ id: 'p1' })
+    projectApi.archive.mockResolvedValueOnce({ success: false, error: 'nope' })
+
+    const store = useProjectStore()
+    store.setCurrentProject(current)
+    const result = await store.archiveProject('p1')
+
+    expect(result.success).toBe(false)
+    expect(projectApi.list).not.toHaveBeenCalled()
+    expect(projectApi.listArchived).not.toHaveBeenCalled()
+    expect(store.currentProject).toEqual(current)
+  })
+
+  it('restoreProject moves the project back into the active list', async () => {
+    const restored = makeProject({ id: 'p1', archived_at: null })
+    projectApi.restore.mockResolvedValueOnce({ success: true })
+    projectApi.list.mockResolvedValueOnce([restored])
+    projectApi.listArchived.mockResolvedValueOnce([])
+
+    const store = useProjectStore()
+    // Seeded, so the assertion below fails if the archive list isn't refetched.
+    store.archivedProjects = [makeProject({ id: 'p1', archived_at: '2026-08-26T00:00:00Z' })]
+    await store.restoreProject('p1')
+
+    expect(store.projects).toEqual([restored])
+    expect(store.archivedProjects).toEqual([])
+  })
+
+  it('deleteProject drops the project from the archived list too', async () => {
+    projectApi.remove.mockResolvedValueOnce({ success: true })
+    projectApi.list.mockResolvedValueOnce([])
+    projectApi.listArchived.mockResolvedValueOnce([])
+
+    const store = useProjectStore()
+    store.archivedProjects = [makeProject({ id: 'p1', archived_at: '2026-08-26T00:00:00Z' })]
+    await store.deleteProject('p1')
+
+    expect(store.archivedProjects).toEqual([])
   })
 
   it('reorderProjects rearranges the local array on success without refetching', async () => {
