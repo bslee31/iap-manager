@@ -18,6 +18,11 @@ onMounted(() => {
   store.fetchArchivedProjects()
 })
 
+function reload() {
+  store.fetchProjects()
+  store.fetchArchivedProjects()
+}
+
 const createProjectTrigger = inject<Ref<number>>('createProjectTrigger')
 if (createProjectTrigger) {
   watch(createProjectTrigger, () => {
@@ -118,6 +123,23 @@ function onDragEnd() {
         @click="openCreateForm"
       >
         + {{ t('project.create') }}
+      </button>
+    </div>
+
+    <!-- Load failure: shown instead of letting an empty list imply "no projects" -->
+    <div
+      v-if="store.loadError"
+      class="mb-4 flex items-center gap-3 rounded-lg border border-red-900/50 bg-red-950/30 px-4 py-3"
+    >
+      <p class="min-w-0 flex-1 text-sm text-red-300">
+        {{ t('project.list.loadFail') }}
+        <span class="text-red-400/70">{{ store.loadError }}</span>
+      </p>
+      <button
+        class="shrink-0 rounded-md border border-red-800 px-3 py-1 text-xs text-red-200 transition-colors hover:bg-red-900/40"
+        @click="reload"
+      >
+        {{ t('common.reload') }}
       </button>
     </div>
 

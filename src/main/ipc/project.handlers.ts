@@ -7,7 +7,8 @@ import {
   archiveProject,
   restoreProject,
   deleteProject,
-  reorderProjects
+  reorderProjects,
+  type ProjectRow
 } from '../db/repositories/project.repo'
 import { deleteCredentials } from '../services/credential-store'
 import { clearTokenCache as clearAppleTokenCache } from '../services/apple/apple-auth'
@@ -15,18 +16,20 @@ import { clearGoogleAuthCache } from '../services/google/google-auth'
 import { sanitizeError } from './sanitize-error'
 import { t } from '../i18n'
 
+// SQLite has no booleans; the renderer wants them.
+function toProjectDto(p: ProjectRow): Record<string, unknown> {
+  return { ...p, has_apple: !!p.has_apple, has_google: !!p.has_google }
+}
+
 export function registerProjectHandlers(): void {
+  // Both list channels use the same { success, data } envelope as the mutating
+  // ones: swallowing a failure into an empty array reads as "you have no
+  // projects", which is indistinguishable from real data loss.
   ipcMain.handle('project:list', async () => {
     try {
-      const projects = findAllProjects()
-      return projects.map((p) => ({
-        ...p,
-        has_apple: !!p.has_apple,
-        has_google: !!p.has_google
-      }))
+      return { success: true, data: findAllProjects().map(toProjectDto) }
     } catch (e) {
-      console.error('project:list error', e)
-      return []
+      return { success: false, error: sanitizeError(e) }
     }
   })
 
@@ -54,15 +57,9 @@ export function registerProjectHandlers(): void {
 
   ipcMain.handle('project:list-archived', async () => {
     try {
-      const projects = findArchivedProjects()
-      return projects.map((p) => ({
-        ...p,
-        has_apple: !!p.has_apple,
-        has_google: !!p.has_google
-      }))
+      return { success: true, data: findArchivedProjects().map(toProjectDto) }
     } catch (e) {
-      console.error('project:list-archived error', e)
-      return []
+      return { success: false, error: sanitizeError(e) }
     }
   })
 

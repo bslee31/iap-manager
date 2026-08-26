@@ -18,18 +18,41 @@ export const useProjectStore = defineStore('project', () => {
   const archivedProjects = ref<Project[]>([])
   const currentProject = ref<Project | null>(null)
   const loading = ref(false)
+  // Surfaced by the project list so a failed load reads as a failure rather
+  // than as an empty account. Cleared by the next successful fetch.
+  const loadError = ref<string | null>(null)
 
   async function fetchProjects() {
     loading.value = true
     try {
-      projects.value = await projectApi.list()
+      const result = await projectApi.list()
+      if (result.success) {
+        projects.value = result.data
+        loadError.value = null
+      } else {
+        // Keep whatever is on screen — replacing it with [] would hide the
+        // projects the user still has.
+        loadError.value = result.error
+      }
+    } catch (e: any) {
+      loadError.value = e?.message || String(e)
     } finally {
       loading.value = false
     }
   }
 
   async function fetchArchivedProjects() {
-    archivedProjects.value = await projectApi.listArchived()
+    try {
+      const result = await projectApi.listArchived()
+      if (result.success) {
+        archivedProjects.value = result.data
+        loadError.value = null
+      } else {
+        loadError.value = result.error
+      }
+    } catch (e: any) {
+      loadError.value = e?.message || String(e)
+    }
   }
 
   async function createProject(data: { name: string; description?: string }) {
@@ -103,6 +126,7 @@ export const useProjectStore = defineStore('project', () => {
     archivedProjects,
     currentProject,
     loading,
+    loadError,
     fetchProjects,
     fetchArchivedProjects,
     createProject,

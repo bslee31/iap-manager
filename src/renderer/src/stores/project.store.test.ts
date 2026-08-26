@@ -18,6 +18,10 @@ vi.mock('../services/api/project', () => projectApi)
 
 import { useProjectStore, type Project } from './project.store'
 
+// The list channels answer with the same { success, data } envelope as the
+// mutating ones.
+const ok = (data: Project[]) => ({ success: true, data })
+
 function makeProject(overrides: Partial<Project> = {}): Project {
   return {
     id: 'p1',
@@ -35,7 +39,7 @@ describe('useProjectStore', () => {
     Object.values(projectApi).forEach((fn) => fn.mockReset())
     // Every mutation refreshes the archive list too; individual tests override
     // this when they care about what comes back.
-    projectApi.listArchived.mockResolvedValue([])
+    projectApi.listArchived.mockResolvedValue(ok([]))
   })
 
   it('initial state is empty', () => {
@@ -43,11 +47,12 @@ describe('useProjectStore', () => {
     expect(store.projects).toEqual([])
     expect(store.currentProject).toBeNull()
     expect(store.loading).toBe(false)
+    expect(store.loadError).toBeNull()
   })
 
   it('fetchProjects populates the list and toggles loading', async () => {
     const list = [makeProject({ id: 'a' }), makeProject({ id: 'b' })]
-    projectApi.list.mockResolvedValueOnce(list)
+    projectApi.list.mockResolvedValueOnce(ok(list))
 
     const store = useProjectStore()
     const promise = store.fetchProjects()
@@ -57,16 +62,55 @@ describe('useProjectStore', () => {
     expect(store.loading).toBe(false)
   })
 
-  it('fetchProjects clears the loading flag even on rejection', async () => {
+  it('fetchProjects surfaces a rejected call as a load error', async () => {
     projectApi.list.mockRejectedValueOnce(new Error('boom'))
+
     const store = useProjectStore()
-    await expect(store.fetchProjects()).rejects.toThrow('boom')
+    await store.fetchProjects()
+
+    expect(store.loadError).toBe('boom')
     expect(store.loading).toBe(false)
+  })
+
+  it('fetchProjects keeps the current list when the call reports failure', async () => {
+    const existing = makeProject({ id: 'a' })
+    projectApi.list.mockResolvedValueOnce(ok([existing]))
+    const store = useProjectStore()
+    await store.fetchProjects()
+
+    projectApi.list.mockResolvedValueOnce({ success: false, error: 'db is gone' })
+    await store.fetchProjects()
+
+    // Replacing the list with [] here would read as "you have no projects".
+    expect(store.projects).toEqual([existing])
+    expect(store.loadError).toBe('db is gone')
+  })
+
+  it('fetchProjects clears a previous load error on success', async () => {
+    projectApi.list.mockResolvedValueOnce({ success: false, error: 'db is gone' })
+    const store = useProjectStore()
+    await store.fetchProjects()
+    expect(store.loadError).toBe('db is gone')
+
+    projectApi.list.mockResolvedValueOnce(ok([]))
+    await store.fetchProjects()
+
+    expect(store.loadError).toBeNull()
+  })
+
+  it('fetchArchivedProjects reports its own failure', async () => {
+    projectApi.listArchived.mockResolvedValueOnce({ success: false, error: 'nope' })
+
+    const store = useProjectStore()
+    await store.fetchArchivedProjects()
+
+    expect(store.loadError).toBe('nope')
+    expect(store.archivedProjects).toEqual([])
   })
 
   it('createProject refetches on success and returns the api result', async () => {
     projectApi.create.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([makeProject({ id: 'new' })])
+    projectApi.list.mockResolvedValueOnce(ok([makeProject({ id: 'new' })]))
 
     const store = useProjectStore()
     const result = await store.createProject({ name: 'New' })
@@ -88,7 +132,7 @@ describe('useProjectStore', () => {
     const after = makeProject({ id: 'p1', name: 'New' })
 
     projectApi.update.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([after])
+    projectApi.list.mockResolvedValueOnce(ok([after]))
 
     const store = useProjectStore()
     store.setCurrentProject(before)
@@ -103,7 +147,7 @@ describe('useProjectStore', () => {
     const updated = makeProject({ id: 'p1', name: 'New' })
 
     projectApi.update.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([current, updated])
+    projectApi.list.mockResolvedValueOnce(ok([current, updated]))
 
     const store = useProjectStore()
     store.setCurrentProject(current)
@@ -114,7 +158,7 @@ describe('useProjectStore', () => {
 
   it('deleteProject clears currentProject when it matches', async () => {
     projectApi.remove.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([])
+    projectApi.list.mockResolvedValueOnce(ok([]))
 
     const store = useProjectStore()
     store.setCurrentProject(makeProject({ id: 'p1' }))
@@ -127,7 +171,7 @@ describe('useProjectStore', () => {
   it('deleteProject leaves currentProject when a different project is deleted', async () => {
     const current = makeProject({ id: 'keep' })
     projectApi.remove.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([current])
+    projectApi.list.mockResolvedValueOnce(ok([current]))
 
     const store = useProjectStore()
     store.setCurrentProject(current)
@@ -138,7 +182,7 @@ describe('useProjectStore', () => {
 
   it('fetchArchivedProjects populates the archived list', async () => {
     const archived = [makeProject({ id: 'old', archived_at: '2026-08-01T00:00:00Z' })]
-    projectApi.listArchived.mockResolvedValueOnce(archived)
+    projectApi.listArchived.mockResolvedValueOnce(ok(archived))
 
     const store = useProjectStore()
     await store.fetchArchivedProjects()
@@ -150,8 +194,8 @@ describe('useProjectStore', () => {
   it('archiveProject moves the project between the two lists', async () => {
     const archived = makeProject({ id: 'p1', archived_at: '2026-08-26T00:00:00Z' })
     projectApi.archive.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([])
-    projectApi.listArchived.mockResolvedValueOnce([archived])
+    projectApi.list.mockResolvedValueOnce(ok([]))
+    projectApi.listArchived.mockResolvedValueOnce(ok([archived]))
 
     const store = useProjectStore()
     await store.archiveProject('p1')
@@ -162,7 +206,7 @@ describe('useProjectStore', () => {
 
   it('archiveProject clears currentProject when it matches', async () => {
     projectApi.archive.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([])
+    projectApi.list.mockResolvedValueOnce(ok([]))
 
     const store = useProjectStore()
     store.setCurrentProject(makeProject({ id: 'p1' }))
@@ -174,7 +218,7 @@ describe('useProjectStore', () => {
   it('archiveProject leaves currentProject when a different project is archived', async () => {
     const current = makeProject({ id: 'keep' })
     projectApi.archive.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([current])
+    projectApi.list.mockResolvedValueOnce(ok([current]))
 
     const store = useProjectStore()
     store.setCurrentProject(current)
@@ -200,8 +244,8 @@ describe('useProjectStore', () => {
   it('restoreProject moves the project back into the active list', async () => {
     const restored = makeProject({ id: 'p1', archived_at: null })
     projectApi.restore.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([restored])
-    projectApi.listArchived.mockResolvedValueOnce([])
+    projectApi.list.mockResolvedValueOnce(ok([restored]))
+    projectApi.listArchived.mockResolvedValueOnce(ok([]))
 
     const store = useProjectStore()
     // Seeded, so the assertion below fails if the archive list isn't refetched.
@@ -214,8 +258,8 @@ describe('useProjectStore', () => {
 
   it('deleteProject drops the project from the archived list too', async () => {
     projectApi.remove.mockResolvedValueOnce({ success: true })
-    projectApi.list.mockResolvedValueOnce([])
-    projectApi.listArchived.mockResolvedValueOnce([])
+    projectApi.list.mockResolvedValueOnce(ok([]))
+    projectApi.listArchived.mockResolvedValueOnce(ok([]))
 
     const store = useProjectStore()
     store.archivedProjects = [makeProject({ id: 'p1', archived_at: '2026-08-26T00:00:00Z' })]
@@ -228,7 +272,7 @@ describe('useProjectStore', () => {
     const a = makeProject({ id: 'a' })
     const b = makeProject({ id: 'b' })
     const c = makeProject({ id: 'c' })
-    projectApi.list.mockResolvedValueOnce([a, b, c])
+    projectApi.list.mockResolvedValueOnce(ok([a, b, c]))
     projectApi.reorder.mockResolvedValueOnce({ success: true })
 
     const store = useProjectStore()
@@ -244,7 +288,7 @@ describe('useProjectStore', () => {
   it('reorderProjects ignores ids that no longer exist locally', async () => {
     const a = makeProject({ id: 'a' })
     const b = makeProject({ id: 'b' })
-    projectApi.list.mockResolvedValueOnce([a, b])
+    projectApi.list.mockResolvedValueOnce(ok([a, b]))
     projectApi.reorder.mockResolvedValueOnce({ success: true })
 
     const store = useProjectStore()
@@ -257,7 +301,7 @@ describe('useProjectStore', () => {
   it('reorderProjects skips local mutation on api failure', async () => {
     const a = makeProject({ id: 'a' })
     const b = makeProject({ id: 'b' })
-    projectApi.list.mockResolvedValueOnce([a, b])
+    projectApi.list.mockResolvedValueOnce(ok([a, b]))
     projectApi.reorder.mockResolvedValueOnce({ success: false, error: 'no' })
 
     const store = useProjectStore()

@@ -38,6 +38,7 @@ const zhTW = {
     list: {
       title: '專案列表',
       empty: '尚未建立任何專案',
+      loadFail: '載入專案清單失敗：',
       firstProject: '建立第一個專案',
       dragHandle: '拖曳排序'
     },

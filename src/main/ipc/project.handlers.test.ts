@@ -118,6 +118,46 @@ describe('project:list-archived', () => {
 
     const result = await invoke('project:list-archived')
 
-    expect(result).toEqual([{ id: 'p1', name: 'Old', has_apple: true, has_google: false }])
+    expect(result).toEqual({
+      success: true,
+      data: [{ id: 'p1', name: 'Old', has_apple: true, has_google: false }]
+    })
+  })
+
+  it('reports the failure instead of answering with an empty list', async () => {
+    repo.findArchivedProjects.mockImplementationOnce(() => {
+      throw new Error('db is gone')
+    })
+
+    const result = await invoke('project:list-archived')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('db is gone')
+  })
+})
+
+describe('project:list', () => {
+  it('normalises the credential flags', async () => {
+    repo.findAllProjects.mockReturnValueOnce([
+      { id: 'p1', name: 'Live', has_apple: 0, has_google: 1 }
+    ] as never)
+
+    const result = await invoke('project:list')
+
+    expect(result).toEqual({
+      success: true,
+      data: [{ id: 'p1', name: 'Live', has_apple: false, has_google: true }]
+    })
+  })
+
+  it('reports the failure instead of answering with an empty list', async () => {
+    repo.findAllProjects.mockImplementationOnce(() => {
+      throw new Error('db is gone')
+    })
+
+    const result = await invoke('project:list')
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('db is gone')
   })
 })
