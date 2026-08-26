@@ -173,6 +173,7 @@ const zhTW = {
       deactivateSuccess: '成功下架 {count} 項',
       setAvailability: {
         action: '更改國家',
+        territoriesFail: '載入地區列表失敗',
         title: '批次更改上架地區',
         summary: '將 {count} 個商品的上架地區設為選取的 {territories} 個地區',
         mixedWarning: '選取的商品目前地區數不一致（{counts}），套用後會全部變成相同設定',

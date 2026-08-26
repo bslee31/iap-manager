@@ -27,7 +27,7 @@ onMounted(async () => {
   if (result.success) {
     allTerritories.value = result.data
   } else {
-    notify.error(result.error || t('apple.iap.regionListFail', { error: '' }))
+    notify.error(result.error || t('apple.batch.setAvailability.territoriesFail'))
     emit('close')
     return
   }
@@ -42,6 +42,13 @@ const currentCounts = computed(() => {
 })
 
 const countsDiffer = computed(() => currentCounts.value.length > 1)
+
+// Closing mid-apply would drop the result toast and skip the parent's cache
+// reload, leaving the list showing counts that are already wrong.
+function requestClose() {
+  if (applying.value) return
+  emit('close')
+}
 
 async function apply() {
   const count = props.products.length
@@ -83,7 +90,7 @@ async function apply() {
 <template>
   <div
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-    @click.self="emit('close')"
+    @click.self="requestClose"
   >
     <div
       class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl border shadow-xl"
@@ -92,7 +99,13 @@ async function apply() {
         <h3 class="text-lg font-semibold text-gray-100">
           {{ t('apple.batch.setAvailability.title') }}
         </h3>
-        <button class="text-gray-500 hover:text-gray-300" @click="emit('close')">&times;</button>
+        <button
+          :disabled="applying"
+          class="text-gray-500 hover:text-gray-300 disabled:opacity-40"
+          @click="requestClose"
+        >
+          &times;
+        </button>
       </div>
 
       <!-- Impact summary: what the selected products look like now, and what
@@ -123,8 +136,9 @@ async function apply() {
         <template #actions>
           <div class="flex justify-end gap-2">
             <button
-              class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors"
-              @click="emit('close')"
+              :disabled="applying"
+              class="hover:bg-divider rounded-lg px-4 py-2 text-sm text-gray-400 transition-colors disabled:opacity-40"
+              @click="requestClose"
             >
               {{ t('common.cancel') }}
             </button>
