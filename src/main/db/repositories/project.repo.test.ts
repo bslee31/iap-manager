@@ -8,15 +8,19 @@ import { join } from 'node:path'
 
 // better-sqlite3 ships a native binding built against Electron's ABI, so it
 // can't load in the test runner's Node process. node:sqlite is the same engine
-// with a near-identical API; this shim covers the surface database.ts uses so
-// the real migrations and the real repository SQL are what get exercised.
+// with a near-identical API (Node >= 22.5); this shim covers the surface
+// database.ts uses so the real migrations and the real repository SQL are what
+// get exercised.
 vi.mock('better-sqlite3', async () => {
   const { DatabaseSync } = await import('node:sqlite')
 
   class SqliteShim {
     private db: InstanceType<typeof DatabaseSync>
     constructor(path: string) {
-      this.db = new DatabaseSync(path)
+      // node:sqlite enforces foreign keys by default and better-sqlite3 does
+      // not, so start them off: that keeps database.ts's explicit PRAGMA the
+      // thing under test rather than something the harness papers over.
+      this.db = new DatabaseSync(path, { enableForeignKeyConstraints: false })
     }
     pragma(statement: string): void {
       this.db.exec(`PRAGMA ${statement}`)
