@@ -411,6 +411,156 @@ function stateLabel(state: string): string {
       @created="onProductCreated"
     />
 
+    <!-- Product Table -->
+    <div class="min-h-0 flex-1 px-6 pb-6">
+      <div
+        v-if="filteredProducts.length > 0"
+        class="border-divider bg-card flex h-full flex-col overflow-hidden rounded-xl border"
+      >
+        <!-- Fixed header -->
+        <div class="shrink-0 pr-[6px]">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[19%]" />
+              <col class="w-[20%]" />
+              <col class="w-[15%]" />
+              <col class="w-[15%]" />
+              <col class="w-[16%]" />
+              <col class="w-[12%]" />
+            </colgroup>
+            <thead>
+              <tr class="border-divider bg-table-head border-b">
+                <th class="px-3 py-3">
+                  <input
+                    type="checkbox"
+                    :checked="allSelected"
+                    class="rounded"
+                    @change="toggleAll"
+                  />
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product ID
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Reference Name
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Type
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Price
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Availability
+                </th>
+                <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <!-- Scrollable body -->
+        <div class="min-h-0 flex-1 overflow-y-auto">
+          <table class="w-full table-fixed">
+            <colgroup>
+              <col class="w-10" />
+              <col class="w-[19%]" />
+              <col class="w-[20%]" />
+              <col class="w-[15%]" />
+              <col class="w-[15%]" />
+              <col class="w-[16%]" />
+              <col class="w-[12%]" />
+            </colgroup>
+            <tbody>
+              <tr
+                v-for="product in filteredProducts"
+                :key="product.id"
+                class="border-divider hover:bg-row-hover cursor-pointer border-b transition-colors"
+                :class="{ 'bg-blue-600/10': store.selected.has(product.id) }"
+                @click="store.setSelectedProduct(product)"
+              >
+                <td class="px-3 py-3" @click.stop>
+                  <input
+                    type="checkbox"
+                    :checked="store.selected.has(product.id)"
+                    class="rounded"
+                    @change="store.toggleSelection(product.id)"
+                  />
+                </td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-200">{{ product.productId }}</td>
+                <td class="px-3 py-3 text-sm text-gray-300">{{ product.referenceName }}</td>
+                <td class="px-3 py-3">
+                  <span class="bg-divider rounded-full px-2 py-0.5 text-xs text-gray-400">
+                    {{
+                      te(`apple.type.${product.type}`)
+                        ? t(`apple.type.${product.type}`)
+                        : product.type
+                    }}
+                  </span>
+                </td>
+                <td class="px-3 py-3 font-mono text-sm text-gray-300">
+                  {{ formatPrice(product.basePrice, product.baseCurrency, locale) }}
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      product.territoryCount > 0
+                        ? 'bg-blue-600/20 text-blue-400'
+                        : 'bg-red-600/20 text-red-400'
+                    "
+                  >
+                    {{
+                      product.territoryCount > 0
+                        ? t('apple.table.territoryCount', { count: product.territoryCount })
+                        : t('apple.table.noTerritory')
+                    }}
+                  </span>
+                </td>
+                <td class="px-3 py-3">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs"
+                    :class="
+                      product.state === 'APPROVED'
+                        ? 'bg-green-600/20 text-green-400'
+                        : product.state === 'DEVELOPER_REMOVED_FROM_SALE' ||
+                            product.state === 'REMOVED_FROM_SALE'
+                          ? 'bg-red-600/20 text-red-400'
+                          : 'bg-yellow-600/20 text-yellow-400'
+                    "
+                  >
+                    {{ stateLabel(product.state) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div
+        v-else-if="!store.loading && !store.syncing && store.products.length === 0"
+        class="py-20 text-center"
+      >
+        <p class="mb-2 text-lg text-gray-500">{{ t('apple.empty.noProducts') }}</p>
+        <p class="text-sm text-gray-500">{{ t('apple.empty.noProductsHint') }}</p>
+      </div>
+      <div
+        v-else-if="!store.loading && !store.syncing && filteredProducts.length === 0"
+        class="py-10 text-center"
+      >
+        <p class="text-sm text-gray-500">{{ t('apple.empty.filteredEmpty') }}</p>
+      </div>
+
+      <!-- Loading -->
+      <div v-if="store.loading" class="py-20 text-center text-gray-500">
+        {{ t('common.loading') }}
+      </div>
+    </div>
+
     <!-- Product Detail Modal -->
     <AppleProductDetail
       v-if="store.selectedProduct"
