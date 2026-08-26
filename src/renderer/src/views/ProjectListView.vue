@@ -282,7 +282,9 @@ function onDragEnd() {
         class="flex w-full items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-300"
         @click="showArchived = !showArchived"
       >
-        <span>{{ showArchived ? '▾' : '▸' }}</span>
+        <!-- Full-size triangles: the ▾/▸ variants are Unicode's "small" forms and
+             stay tiny no matter the font size. -->
+        <span class="text-[10px]">{{ showArchived ? '▼' : '▶' }}</span>
         {{ t('project.archive.title') }} ({{ store.archivedProjects.length }})
       </button>
 
