@@ -92,8 +92,10 @@ async function apply() {
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
     @click.self="requestClose"
   >
+    <!-- Fixed height, like the detail modal: with max-h the panel would shrink as
+         the search filters the territory list, making the dialog jump while typing. -->
     <div
-      class="titlebar-no-drag border-divider bg-card flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl border shadow-xl"
+      class="titlebar-no-drag border-divider bg-card flex h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border shadow-xl"
     >
       <div class="border-divider flex shrink-0 items-center justify-between border-b p-6">
         <h3 class="text-lg font-semibold text-gray-100">
