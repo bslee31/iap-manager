@@ -6,11 +6,12 @@ import { useAppleProductsStore } from '../../stores/apple-products.store'
 import AppleProductDetail from './AppleProductDetail.vue'
 import AppleImportDialog from './AppleImportDialog.vue'
 import AppleBatchAvailabilityDialog from './AppleBatchAvailabilityDialog.vue'
+import { formatPrice } from '../../utils/format-price'
 import * as appleApi from '../../services/api/apple'
 import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
-const { t, te } = useI18n()
+const { t, te, locale } = useI18n()
 const notify = useNotificationStore()
 const store = useAppleProductsStore()
 
@@ -575,7 +576,7 @@ function stateLabel(state: string): string {
                   </span>
                 </td>
                 <td class="px-3 py-3 font-mono text-sm text-gray-300">
-                  {{ product.basePrice ? `${product.basePrice} ${product.baseCurrency}` : '-' }}
+                  {{ formatPrice(product.basePrice, product.baseCurrency, locale) }}
                 </td>
                 <td class="px-3 py-3">
                   <span

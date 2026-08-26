@@ -5,13 +5,14 @@ import { useNotificationStore } from '../../stores/notification.store'
 import { useGoogleProductsStore, type GoogleProduct } from '../../stores/google-products.store'
 import SearchableSelect from '../common/SearchableSelect.vue'
 import { GOOGLE_LANGUAGES } from '../../utils/google-languages'
+import { formatPrice } from '../../utils/format-price'
 import GoogleProductDetail from './GoogleProductDetail.vue'
 import GoogleImportDialog from './GoogleImportDialog.vue'
 import * as googleApi from '../../services/api/google'
 import * as dialogApi from '../../services/api/dialog'
 
 const props = defineProps<{ projectId: string }>()
-const { t, te } = useI18n()
+const { t, te, locale } = useI18n()
 const notify = useNotificationStore()
 const store = useGoogleProductsStore()
 
@@ -386,8 +387,7 @@ function productStatusLabel(product: GoogleProduct): string {
 }
 
 function productPriceLabel(product: GoogleProduct): string {
-  if (!product.basePrice || !product.baseCurrency) return '-'
-  return `${product.basePrice} ${product.baseCurrency}`
+  return formatPrice(product.basePrice, product.baseCurrency, locale.value)
 }
 
 function statusColor(status: string): string {
