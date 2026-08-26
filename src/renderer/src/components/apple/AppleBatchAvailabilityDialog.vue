@@ -97,7 +97,9 @@ async function apply() {
     <div
       class="titlebar-no-drag border-divider bg-card flex h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl border shadow-xl"
     >
-      <div class="border-divider flex shrink-0 items-center justify-between border-b p-6">
+      <!-- px-6 py-4 to match the detail modal's header; the import dialog's p-6
+           would sit 8px taller and push the picker down. -->
+      <div class="border-divider flex shrink-0 items-center justify-between border-b px-6 py-4">
         <h3 class="text-lg font-semibold text-gray-100">
           {{ t('apple.batch.setAvailability.title') }}
         </h3>
