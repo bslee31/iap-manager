@@ -6,7 +6,7 @@ import { ref, inject, watch, computed, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import draggable from 'vuedraggable'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const store = useProjectStore()
 const notify = useNotificationStore()
 const router = useRouter()
@@ -91,7 +91,9 @@ async function confirmDelete(project: (typeof store.archivedProjects)[0]) {
 function formatArchivedAt(value?: string | null): string {
   if (!value) return ''
   const date = new Date(value)
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString()
+  // Follow the app's locale, not the OS's — a zh-TW UI showing 8/26/2026 reads
+  // like it came from somewhere else.
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(locale.value)
 }
 
 function goToProject(project: (typeof store.projects)[0]) {
@@ -280,7 +282,7 @@ function onDragEnd() {
         class="flex w-full items-center gap-2 text-sm text-gray-500 transition-colors hover:text-gray-300"
         @click="showArchived = !showArchived"
       >
-        <span class="text-xs">{{ showArchived ? '▾' : '▸' }}</span>
+        <span>{{ showArchived ? '▾' : '▸' }}</span>
         {{ t('project.archive.title') }} ({{ store.archivedProjects.length }})
       </button>
 
