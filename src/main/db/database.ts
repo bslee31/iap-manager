@@ -146,6 +146,12 @@ function runMigrations(db: Database.Database): void {
         ALTER TABLE google_products ADD COLUMN base_price TEXT;
         ALTER TABLE google_products ADD COLUMN base_currency TEXT;
       `
+    },
+    {
+      name: '012-project-archive',
+      sql: `
+        ALTER TABLE projects ADD COLUMN archived_at TEXT;
+      `
     }
   ]
 
