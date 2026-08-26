@@ -63,6 +63,8 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
 
 - Independent Apple / Google credentials per project
 - Project list and sidebar support drag-and-drop reordering
+- **Archive / restore** — the list's action archives rather than deletes, keeping cached products and credentials; a restored project lands at the end of the list
+- Permanent deletion is only reachable from the "archived" section under the list, and it removes the project's stored Apple / Google credentials along with it
 - Tab state preserved when switching projects
 
 ## Tech Stack
