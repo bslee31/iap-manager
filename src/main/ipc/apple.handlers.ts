@@ -4,8 +4,8 @@ import {
   listInAppPurchases,
   createInAppPurchase,
   updateInAppPurchase,
-  batchUpdateAvailability,
   batchSetAvailability,
+  fetchAllTerritoryIds,
   getExistingAvailability,
   getAppPrimaryLocale,
   getIapAllTerritoryPrices,
@@ -32,6 +32,23 @@ import {
 import { validateImport, executeImport } from '../services/apple/apple-import'
 import { sanitizeError } from './sanitize-error'
 import { t } from '../i18n'
+
+// The cached count drives the list's Availability column and its filters, and a
+// full sync doesn't refresh it — so every path that changes availability has to
+// write it back. The count is known exactly, so this costs no Apple calls.
+function persistTerritoryCount(iapIds: string[], territoryCount: number): void {
+  if (iapIds.length === 0) return
+  const db = getDatabase()
+  const stmt = db.prepare(
+    'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
+  )
+  const persist = db.transaction((ids: string[]) => {
+    for (const id of ids) {
+      stmt.run(territoryCount, territoryCount > 0 ? 1 : 0, id)
+    }
+  })
+  persist(iapIds)
+}
 
 export function registerAppleHandlers(): void {
   ipcMain.handle('apple:fetch-products', async (event, projectId: string) => {
@@ -185,11 +202,16 @@ export function registerAppleHandlers(): void {
     }
   )
 
+  // The one-click shortcut: "上架" means every territory Apple offers and
+  // "下架" means none. Both are the same write as the batch dialog, so they go
+  // through the same service call and the same cache update.
   ipcMain.handle(
     'apple:batch-availability',
     async (_event, projectId: string, iapIds: string[], activate: boolean) => {
       try {
-        const result = await batchUpdateAvailability(projectId, iapIds, activate)
+        const territoryIds = activate ? await fetchAllTerritoryIds(projectId) : []
+        const result = await batchSetAvailability(projectId, iapIds, territoryIds, activate)
+        persistTerritoryCount(result.success, territoryIds.length)
         return { success: true, data: result }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
@@ -214,22 +236,7 @@ export function registerAppleHandlers(): void {
           availableInNewTerritories
         )
 
-        // Mirror what the single-product handler does: the cached count drives
-        // the list's Availability column and its filters, so leaving it stale
-        // would show the old numbers until the next full sync. We know the new
-        // count exactly — no extra Apple calls needed. Only the products Apple
-        // accepted are touched.
-        const db = getDatabase()
-        const stmt = db.prepare(
-          'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
-        )
-        const persist = db.transaction((ids: string[]) => {
-          for (const id of ids) {
-            stmt.run(territoryIds.length, territoryIds.length > 0 ? 1 : 0, id)
-          }
-        })
-        persist(result.success)
-
+        persistTerritoryCount(result.success, territoryIds.length)
         return { success: true, data: result }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }

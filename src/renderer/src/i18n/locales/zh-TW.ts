@@ -164,7 +164,8 @@ const zhTW = {
       syncAvailability: '重整 Availability',
       activate: '批次上架',
       deactivate: '批次下架',
-      confirmActivate: '確定要上架選取的 {count} 個商品嗎？',
+      confirmActivate:
+        '確定要上架選取的 {count} 個商品嗎？\n上架地區會被設為 Apple 支援的全部地區，各商品原本的地區設定會被取代。',
       confirmDeactivate: '確定要下架選取的 {count} 個商品嗎？',
       processingActivate: '正在批次上架...',
       processingDeactivate: '正在批次下架...',

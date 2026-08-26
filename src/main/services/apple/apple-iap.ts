@@ -185,7 +185,7 @@ export async function updateInAppPurchase(
 }
 
 // Fetch all available territory IDs from Apple
-async function fetchAllTerritoryIds(projectId: string): Promise<string[]> {
+export async function fetchAllTerritoryIds(projectId: string): Promise<string[]> {
   const allIds: string[] = []
   let url: string | null = '/v1/territories?limit=200'
 
@@ -258,49 +258,6 @@ async function setIapAvailability(
       }
     })
   })
-}
-
-// Batch update availability for multiple IAPs
-export async function batchUpdateAvailability(
-  projectId: string,
-  iapIds: string[],
-  activate: boolean
-): Promise<{ success: string[]; failed: { id: string; error: string }[] }> {
-  const success: string[] = []
-  const failed: { id: string; error: string }[] = []
-
-  // Pre-fetch all territory IDs once
-  let allTerritories: string[]
-  try {
-    allTerritories = await fetchAllTerritoryIds(projectId)
-  } catch (e: any) {
-    return {
-      success: [],
-      failed: iapIds.map((id) => ({
-        id,
-        error: t('apple.iap.regionListFail', { error: e.message })
-      }))
-    }
-  }
-
-  for (const iapId of iapIds) {
-    try {
-      if (activate) {
-        // 上架: set all territories
-        await setIapAvailability(projectId, iapId, allTerritories, true)
-      } else {
-        // 下架: set empty territories
-        // Apple requires at least the base territory, so we keep one and set availableInNewTerritories=false
-        // Actually, to fully remove: pass empty array
-        await setIapAvailability(projectId, iapId, [], false)
-      }
-      success.push(iapId)
-    } catch (e: any) {
-      failed.push({ id: iapId, error: e.message })
-    }
-  }
-
-  return { success, failed }
 }
 
 // Apply one territory set to many in-app purchases.

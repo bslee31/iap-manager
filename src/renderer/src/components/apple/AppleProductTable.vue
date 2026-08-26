@@ -179,7 +179,9 @@ async function handleBatchAction(key: string) {
         notify.success(t(successKey, { count: data.success.length }))
       }
       store.clearSelection()
-      await syncAll()
+      // The main process already wrote the new territory counts to the local
+      // DB, and a full sync wouldn't refresh them anyway — just reload the cache.
+      await store.loadCached(props.projectId)
     } else {
       notify.error(result.error || t('apple.batch.opFailed'))
     }
