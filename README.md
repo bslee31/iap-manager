@@ -20,6 +20,7 @@ Apple & Google 應用程式內購商品批次管理工具。
   - **Availability** — 依區域分組勾選上架地區（匹配 App Store Connect 佈局）
   - **Price Schedule** — 設定基準價格、查看所有地區等價、修改個別地區價格
   - **Localization** — 新增/編輯/刪除多語言名稱與描述
+    - ASC API 4.4.1 起本地化掛在商品版本（InAppPurchaseVersion）底下：讀取顯示可編輯的草稿版本，沒有草稿時顯示最新的已上架版本；修改時若所有版本都已凍結（APPROVED / REPLACED_WITH_NEW_VERSION），會先建立新的草稿版本（Apple 會複製現有 metadata），再套用變更
 - **匯出 / 匯入（批次建立商品）**
   - JSON 格式（`formatVersion: 1`），包含 Product ID / Reference Name / Type / Availability / Price Schedule / Localization
   - 匯出：預設匯出全部商品，有勾選時只匯出勾選項目
@@ -147,8 +148,10 @@ npm run dist:linux    # Linux
 - Price Schedule：`GET /v2/inAppPurchases/{id}/iapPriceSchedule`
 - Price Points：`GET /v2/inAppPurchases/{id}/pricePoints`
 - 設定價格：`POST /v1/inAppPurchasePriceSchedules`
-- Localization：`GET /v2/inAppPurchases/{id}/inAppPurchaseLocalizations`
-- 建立 Localization：`POST /v1/inAppPurchaseLocalizations`
+- 版本列表：`GET /v2/inAppPurchases/{id}/versions`
+- 建立版本：`POST /v1/inAppPurchaseVersions`
+- Localization：`GET /v1/inAppPurchaseVersions/{versionId}/localizations`
+- 建立 / 修改 / 刪除 Localization：`POST|PATCH|DELETE /v2/inAppPurchaseLocalizations`（ASC API 4.4.1 起，v1 端點已 deprecated）
 - 地區列表：`GET /v1/territories`
 
 ### Google

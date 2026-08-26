@@ -20,6 +20,7 @@ Avoids repetitive operations in the consoles (e.g. deactivating products one by 
   - **Availability** — toggle availability per region, grouped to match the App Store Connect layout
   - **Price Schedule** — set base price, view equivalent prices in every territory, edit individual territory prices
   - **Localization** — add / edit / delete multi-locale names and descriptions
+    - As of ASC API 4.4.1 localizations hang off an in-app purchase version: reads show the editable draft, or the newest shipped version when there is no draft; writes create a fresh draft version (Apple copies the existing metadata into it) when every version is frozen (APPROVED / REPLACED_WITH_NEW_VERSION)
 - **Export / Import (batch create products)**
   - JSON format (`formatVersion: 1`), includes Product ID / Reference Name / Type / Availability / Price Schedule / Localization
   - Export: defaults to all products; exports only the selection when checkboxes are used
@@ -147,8 +148,10 @@ Credentials are encrypted with Electron safeStorage, which is backed by macOS Ke
 - Price Schedule: `GET /v2/inAppPurchases/{id}/iapPriceSchedule`
 - Price Points: `GET /v2/inAppPurchases/{id}/pricePoints`
 - Set price: `POST /v1/inAppPurchasePriceSchedules`
-- Localization: `GET /v2/inAppPurchases/{id}/inAppPurchaseLocalizations`
-- Create Localization: `POST /v1/inAppPurchaseLocalizations`
+- Versions: `GET /v2/inAppPurchases/{id}/versions`
+- Create version: `POST /v1/inAppPurchaseVersions`
+- Localization: `GET /v1/inAppPurchaseVersions/{versionId}/localizations`
+- Create / update / delete Localization: `POST|PATCH|DELETE /v2/inAppPurchaseLocalizations` (the v1 endpoints are deprecated as of ASC API 4.4.1)
 - Territories: `GET /v1/territories`
 
 ### Google

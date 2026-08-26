@@ -4,7 +4,8 @@ import {
   getAllTerritories,
   getIapPricePoints,
   setIapPriceScheduleBatch,
-  createIapLocalization
+  ensureIapEditableVersion,
+  createIapLocalizationInVersion
 } from './apple-iap'
 import { loadCredentials } from '../credential-store'
 import { runWithConcurrency, IMPORT_CONCURRENCY } from '../concurrency'
@@ -558,23 +559,34 @@ async function importSingleProduct(
   }
 
   // Step 4: Localizations
-  if (product.localizations) {
-    for (const loc of product.localizations) {
-      reportStep?.(
-        t('apple.import.step.localization', { productId: product.productId, locale: loc.locale })
-      )
-      try {
-        await createIapLocalization(projectId, iapId, {
-          locale: loc.locale,
-          name: loc.name,
-          description: loc.description
-        })
-      } catch (e: any) {
-        stepErrors.push({
-          step: 'localization',
-          target: loc.locale,
-          error: e.message || String(e)
-        })
+  // Localizations belong to a version since ASC API 4.4.1, so resolve it once
+  // per product rather than paying that lookup for every locale.
+  if (product.localizations?.length) {
+    let versionId: string | null = null
+    try {
+      versionId = await ensureIapEditableVersion(projectId, iapId)
+    } catch (e: any) {
+      stepErrors.push({ step: 'localization', error: e.message || String(e) })
+    }
+
+    if (versionId) {
+      for (const loc of product.localizations) {
+        reportStep?.(
+          t('apple.import.step.localization', { productId: product.productId, locale: loc.locale })
+        )
+        try {
+          await createIapLocalizationInVersion(projectId, versionId, {
+            locale: loc.locale,
+            name: loc.name,
+            description: loc.description
+          })
+        } catch (e: any) {
+          stepErrors.push({
+            step: 'localization',
+            target: loc.locale,
+            error: e.message || String(e)
+          })
+        }
       }
     }
   }

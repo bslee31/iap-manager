@@ -76,14 +76,15 @@ export function createLocalization(
 
 export function updateLocalization(
   projectId: string,
-  localizationId: string,
+  iapId: string,
+  locale: string,
   data: { name?: string; description?: string }
 ) {
-  return window.api.updateAppleLocalization(projectId, localizationId, data)
+  return window.api.updateAppleLocalization(projectId, iapId, locale, data)
 }
 
-export function deleteLocalization(projectId: string, localizationId: string) {
-  return window.api.deleteAppleLocalization(projectId, localizationId)
+export function deleteLocalization(projectId: string, iapId: string, locale: string) {
+  return window.api.deleteAppleLocalization(projectId, iapId, locale)
 }
 
 // ── Detail: Price Schedule ──

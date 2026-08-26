@@ -9,7 +9,8 @@ vi.mock('./apple-iap', () => ({
   getAllTerritories: (projectId: string) => getAllTerritories(projectId),
   getIapPricePoints: vi.fn(),
   setIapPriceScheduleBatch: vi.fn(),
-  createIapLocalization: vi.fn()
+  ensureIapEditableVersion: vi.fn(),
+  createIapLocalizationInVersion: vi.fn()
 }))
 vi.mock('../credential-store', () => ({ loadCredentials: vi.fn() }))
 

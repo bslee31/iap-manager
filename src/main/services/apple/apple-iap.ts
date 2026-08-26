@@ -360,13 +360,62 @@ export async function getAllTerritories(projectId: string): Promise<TerritoryInf
 }
 
 // ── Localizations ──
+//
+// Since ASC API 4.4.1 localized metadata hangs off an InAppPurchaseVersion
+// instead of the in-app purchase itself, and the v1 localization endpoints are
+// deprecated. A version that hasn't shipped yet is still editable; APPROVED and
+// REPLACED_WITH_NEW_VERSION ones are frozen, so editing those means asking
+// Apple for a fresh draft — that draft copies the current localized metadata.
 
-export async function getIapLocalizations(
+const FROZEN_VERSION_STATES = new Set(['APPROVED', 'REPLACED_WITH_NEW_VERSION'])
+
+export interface IapVersion {
+  id: string
+  version: number
+  state: string
+}
+
+function latestOf(versions: IapVersion[]): IapVersion | null {
+  if (versions.length === 0) return null
+  return versions.reduce((a, b) => (b.version > a.version ? b : a))
+}
+
+// Where writes go: the newest version Apple still lets us edit. Null means every
+// version is frozen (or there are none), so a new draft has to be created.
+export function pickEditableVersion(versions: IapVersion[]): IapVersion | null {
+  return latestOf(versions.filter((v) => !FROZEN_VERSION_STATES.has(v.state)))
+}
+
+// What reads display: the editable draft when there is one, otherwise the newest
+// shipped version — matching what App Store Connect shows on the page.
+export function pickDisplayVersion(versions: IapVersion[]): IapVersion | null {
+  return pickEditableVersion(versions) || latestOf(versions)
+}
+
+async function listIapVersions(projectId: string, iapId: string): Promise<IapVersion[]> {
+  const versions: IapVersion[] = []
+  let url: string | null =
+    `/v2/inAppPurchases/${iapId}/versions?fields[inAppPurchaseVersions]=version,state&limit=200`
+  while (url) {
+    const resp = await appleRequest(projectId, url)
+    for (const v of resp.data || []) {
+      versions.push({
+        id: v.id,
+        version: Number(v.attributes?.version) || 0,
+        state: v.attributes?.state || ''
+      })
+    }
+    url = resp.links?.next || null
+  }
+  return versions
+}
+
+async function listVersionLocalizations(
   projectId: string,
-  iapId: string
+  versionId: string
 ): Promise<IapLocalization[]> {
   const localizations: IapLocalization[] = []
-  let url: string | null = `/v2/inAppPurchases/${iapId}/inAppPurchaseLocalizations?limit=200`
+  let url: string | null = `/v1/inAppPurchaseVersions/${versionId}/localizations?limit=200`
   while (url) {
     const resp = await appleRequest(projectId, url)
     for (const loc of resp.data || []) {
@@ -382,12 +431,62 @@ export async function getIapLocalizations(
   return localizations
 }
 
-export async function createIapLocalization(
+// Resolve the version to write into, creating a draft when every existing
+// version is frozen. Only called from the write paths — reading never creates
+// a version, so opening the detail modal stays free of side effects. Exported so
+// batch callers (import) can resolve once instead of per localization.
+export async function ensureIapEditableVersion(projectId: string, iapId: string): Promise<string> {
+  const editable = pickEditableVersion(await listIapVersions(projectId, iapId))
+  if (editable) return editable.id
+
+  let resp: AppleApiResponse<{ id: string }>
+  try {
+    resp = await appleRequest(projectId, '/v1/inAppPurchaseVersions', {
+      method: 'POST',
+      body: JSON.stringify({
+        data: {
+          type: 'inAppPurchaseVersions',
+          relationships: {
+            inAppPurchase: {
+              data: { type: 'inAppPurchases', id: iapId }
+            }
+          }
+        }
+      })
+    })
+  } catch (e) {
+    // The POST isn't idempotent and fetchWithRetry replays on timeouts and 429s,
+    // so a create Apple actually applied can come back as a 409. Only treat that
+    // as success if a draft really is there now.
+    const created = pickEditableVersion(await listIapVersions(projectId, iapId))
+    if (created) return created.id
+    throw e
+  }
+
+  const versionId = resp?.data?.id
+  if (!versionId) throw new Error(t('apple.iap.versionCreateFailed'))
+  return versionId
+}
+
+export async function getIapLocalizations(
   projectId: string,
-  iapId: string,
+  iapId: string
+): Promise<IapLocalization[]> {
+  const target = pickDisplayVersion(await listIapVersions(projectId, iapId))
+  // Under the 4.4.1 model an in-app purchase always carries at least one
+  // version. An empty list means we're reading something we don't understand,
+  // so say so — returning [] here would read as "no locales configured" and
+  // export would quietly write a product with its localizations missing.
+  if (!target) throw new Error(t('apple.iap.noVersions'))
+  return listVersionLocalizations(projectId, target.id)
+}
+
+export async function createIapLocalizationInVersion(
+  projectId: string,
+  versionId: string,
   data: { locale: string; name: string; description?: string }
 ): Promise<IapLocalization> {
-  const resp = await appleRequest(projectId, '/v1/inAppPurchaseLocalizations', {
+  const resp = await appleRequest(projectId, '/v2/inAppPurchaseLocalizations', {
     method: 'POST',
     body: JSON.stringify({
       data: {
@@ -398,8 +497,8 @@ export async function createIapLocalization(
           description: data.description || ''
         },
         relationships: {
-          inAppPurchaseV2: {
-            data: { type: 'inAppPurchases', id: iapId }
+          version: {
+            data: { type: 'inAppPurchaseVersions', id: versionId }
           }
         }
       }
@@ -413,17 +512,46 @@ export async function createIapLocalization(
   }
 }
 
+export async function createIapLocalization(
+  projectId: string,
+  iapId: string,
+  data: { locale: string; name: string; description?: string }
+): Promise<IapLocalization> {
+  const versionId = await ensureIapEditableVersion(projectId, iapId)
+  return createIapLocalizationInVersion(projectId, versionId, data)
+}
+
+// Localizations are addressed by locale rather than by ID: the ID the caller is
+// looking at may belong to a frozen version, and the draft we edit carries its
+// own IDs for the same locales.
 export async function updateIapLocalization(
   projectId: string,
-  localizationId: string,
+  iapId: string,
+  locale: string,
   data: { name?: string; description?: string }
 ): Promise<IapLocalization> {
-  const resp = await appleRequest(projectId, `/v1/inAppPurchaseLocalizations/${localizationId}`, {
+  const versionId = await ensureIapEditableVersion(projectId, iapId)
+  const existing = (await listVersionLocalizations(projectId, versionId)).find(
+    (l) => l.locale === locale
+  )
+
+  // A brand-new draft copies the live metadata, so a missing locale means it was
+  // never configured — create it instead of failing the edit.
+  if (!existing) {
+    if (!data.name) throw new Error(t('apple.iap.localizationNameRequired', { locale }))
+    return createIapLocalizationInVersion(projectId, versionId, {
+      locale,
+      name: data.name,
+      description: data.description
+    })
+  }
+
+  const resp = await appleRequest(projectId, `/v2/inAppPurchaseLocalizations/${existing.id}`, {
     method: 'PATCH',
     body: JSON.stringify({
       data: {
         type: 'inAppPurchaseLocalizations',
-        id: localizationId,
+        id: existing.id,
         attributes: data
       }
     })
@@ -438,9 +566,16 @@ export async function updateIapLocalization(
 
 export async function deleteIapLocalization(
   projectId: string,
-  localizationId: string
+  iapId: string,
+  locale: string
 ): Promise<void> {
-  await appleRequest(projectId, `/v1/inAppPurchaseLocalizations/${localizationId}`, {
+  const versionId = await ensureIapEditableVersion(projectId, iapId)
+  const existing = (await listVersionLocalizations(projectId, versionId)).find(
+    (l) => l.locale === locale
+  )
+  if (!existing) throw new Error(t('apple.iap.localizationNotFound', { locale }))
+
+  await appleRequest(projectId, `/v2/inAppPurchaseLocalizations/${existing.id}`, {
     method: 'DELETE'
   })
 }

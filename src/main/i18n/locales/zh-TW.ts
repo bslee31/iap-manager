@@ -34,7 +34,11 @@ const zhTW = {
     iap: {
       regionListFail: '無法取得地區列表: {error}',
       noPriceSet: '尚未設定價格',
-      missingBaseTerritory: '找不到基準地區'
+      missingBaseTerritory: '找不到基準地區',
+      noVersions: 'App Store Connect 沒有回傳這個商品的任何版本，無法讀取本地化資料',
+      versionCreateFailed: '無法建立商品版本，App Store Connect 未回傳版本 ID',
+      localizationNameRequired: '{locale} 尚未建立本地化，請一併填寫顯示名稱',
+      localizationNotFound: '可編輯的版本中找不到 {locale} 的本地化資料'
     },
     sync: {
       fetchingList: '取得商品列表...',

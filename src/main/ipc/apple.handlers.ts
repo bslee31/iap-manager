@@ -275,11 +275,12 @@ export function registerAppleHandlers(): void {
     async (
       _event,
       projectId: string,
-      localizationId: string,
+      iapId: string,
+      locale: string,
       data: { name?: string; description?: string }
     ) => {
       try {
-        const loc = await updateIapLocalization(projectId, localizationId, data)
+        const loc = await updateIapLocalization(projectId, iapId, locale, data)
         return { success: true, data: loc }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
@@ -289,9 +290,9 @@ export function registerAppleHandlers(): void {
 
   ipcMain.handle(
     'apple:delete-localization',
-    async (_event, projectId: string, localizationId: string) => {
+    async (_event, projectId: string, iapId: string, locale: string) => {
       try {
-        await deleteIapLocalization(projectId, localizationId)
+        await deleteIapLocalization(projectId, iapId, locale)
         return { success: true }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }

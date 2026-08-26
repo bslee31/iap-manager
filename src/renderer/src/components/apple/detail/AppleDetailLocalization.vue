@@ -35,6 +35,12 @@ async function loadLocalizations() {
   ])
   if (locResult.success) {
     localizations.value = locResult.data
+  } else {
+    // Reading now resolves an in-app purchase version, so a failure here means
+    // something real (no version, API error) — don't leave an empty list that
+    // looks like "no locales configured".
+    localizations.value = []
+    notify.error(locResult.error || t('apple.detail.localization.loadFail'))
   }
   if (localeResult?.success) {
     primaryLocale.value = localeResult.data
@@ -67,10 +73,15 @@ async function saveLoc() {
   locSaving.value = true
 
   if (editingLoc.value.id) {
-    const result = await appleApi.updateLocalization(props.projectId, editingLoc.value.id, {
-      name: editingLoc.value.name,
-      description: editingLoc.value.description
-    })
+    const result = await appleApi.updateLocalization(
+      props.projectId,
+      props.iapId,
+      editingLoc.value.locale,
+      {
+        name: editingLoc.value.name,
+        description: editingLoc.value.description
+      }
+    )
     if (result.success) {
       notify.success(t('apple.detail.localization.toast.updateSuccess'))
       await loadLocalizations()
@@ -102,7 +113,7 @@ async function saveLoc() {
 
 async function deleteLoc(loc: Localization) {
   if (!confirm(t('apple.detail.localization.deleteConfirm', { locale: loc.locale }))) return
-  const result = await appleApi.deleteLocalization(props.projectId, loc.id)
+  const result = await appleApi.deleteLocalization(props.projectId, props.iapId, loc.locale)
   if (result.success) {
     notify.success(t('apple.detail.localization.toast.deleteSuccess'))
     await loadLocalizations()

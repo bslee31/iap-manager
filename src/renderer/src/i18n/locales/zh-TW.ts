@@ -274,6 +274,7 @@ const zhTW = {
         }
       },
       localization: {
+        loadFail: '載入 Localization 失敗',
         langCount: '{count} 個語言',
         addLang: '+ 新增語言',
         empty: '尚未新增任何本地化資料',
