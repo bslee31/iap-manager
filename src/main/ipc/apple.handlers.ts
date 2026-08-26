@@ -213,6 +213,23 @@ export function registerAppleHandlers(): void {
           territoryIds,
           availableInNewTerritories
         )
+
+        // Mirror what the single-product handler does: the cached count drives
+        // the list's Availability column and its filters, so leaving it stale
+        // would show the old numbers until the next full sync. We know the new
+        // count exactly — no extra Apple calls needed. Only the products Apple
+        // accepted are touched.
+        const db = getDatabase()
+        const stmt = db.prepare(
+          'UPDATE apple_products SET territory_count = ?, available = ? WHERE id = ?'
+        )
+        const persist = db.transaction((ids: string[]) => {
+          for (const id of ids) {
+            stmt.run(territoryIds.length, territoryIds.length > 0 ? 1 : 0, id)
+          }
+        })
+        persist(result.success)
+
         return { success: true, data: result }
       } catch (e) {
         return { success: false, error: sanitizeError(e) }
