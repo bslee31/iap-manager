@@ -1,19 +1,37 @@
 import js from '@eslint/js'
 import globals from 'globals'
 import pluginVue from 'eslint-plugin-vue'
-import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript'
+import { defineConfig } from 'eslint/config'
+import tseslint from 'typescript-eslint'
+import vueParser from 'vue-eslint-parser'
 import prettierConfig from '@vue/eslint-config-prettier'
 
-// Flat config (ESLint 9). Three-tier Electron app, so each src tree gets its
+// Flat config (ESLint 10). Three-tier Electron app, so each src tree gets its
 // own globals: main/preload run in Node, the renderer runs in Chromium with
 // the contextBridge `window.api` surface.
-export default defineConfigWithVueTs(
+export default defineConfig(
   {
     ignores: ['out/**', 'release/**', 'dist/**', 'node_modules/**', '.idea/**']
   },
   js.configs.recommended,
+  // Apply TypeScript's core-rule overrides to Vue script blocks as well.
+  tseslint.configs.recommended.map((config) =>
+    config.files ? { ...config, files: [...config.files, '**/*.vue'] } : config
+  ),
   pluginVue.configs['flat/recommended'],
-  vueTsConfigs.recommended,
+  {
+    files: ['**/*.vue'],
+    languageOptions: {
+      parser: vueParser,
+      parserOptions: {
+        parser: tseslint.parser,
+        extraFileExtensions: ['.vue']
+      }
+    },
+    rules: {
+      'vue/block-lang': ['error', { script: { lang: 'ts' } }]
+    }
+  },
   {
     files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'electron.vite.config.ts'],
     languageOptions: {
